@@ -1,0 +1,260 @@
+
+.card.card-container {
+    padding: 25px 22px;
+    border: 1px solid #d3d3d359;
+    border-radius: 10px;
+    /* max-height: 450px; */
+}
+p.cards-pg {
+    color: #AFAFAF;
+    font-size: 16px;
+}
+h3.card-total {
+    font-size: 32px;
+    font-weight: 600;
+}
+
+#myChart {
+    width: 100%;
+    height: 100%;
+  }
+
+  .chart-container {
+    position: relative;
+    padding-top: 10px;
+  }
+  .center-text {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .char-card-header{
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 30px;
+  }
+  .selector {
+    border: 1px solid lightgray;
+    border-radius: 6px;
+    padding-right: 5px;
+}
+select#dropdown {
+    border-radius: 6px;
+    border: none;
+    outline: none;
+    width: 120px;
+    padding: 5px 10px;
+}
+.targets-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+}
+.pie-data-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 40px;
+    margin-bottom: 10px;
+}
+h3.percent {
+    margin: 0;
+    font-size: 24px;
+    padding-left: 5px;
+    font-weight: 600;
+}
+
+
+.rows-container{
+    padding-top: 20px;
+}
+
+
+
+
+  
+
+button.btn.bar-btn.dropdown-toggle {
+    border: 1px solid lightgray;
+}
+ul.dropdown-menu.bar-menu {
+    padding-top: 35px;
+}
+.bar-li {
+    background: white;
+    width: 70%;
+}
+.pie-li {
+    background: white;
+    width: 100%;
+}
+ul.dropdown-menu.pie-menu.show {
+    padding-left: 50px;
+    padding-top: 35px;
+    background: none;
+}
+@media (max-width: 600px){
+    
+.card {
+    margin-bottom: 0;
+}
+h3.percent {
+    font-size: 16px;
+}
+h2.percent {
+    font-size: 16px;
+}
+select#dropdown {
+    border-radius: 6px;
+    border: none;
+    outline: none;
+    width: 102px;
+    padding: 5px 5px;
+}
+.targets-dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 5px;
+}
+
+.rows-container{
+    padding-top: 0;
+}
+
+ul.dropdown-menu.bar-menu {
+    padding-top: 60px;
+    padding-left: 20px;
+}
+.bar-li {
+    background: white;
+    width: 100%;
+}
+ul.dropdown-menu.pie-menu.show {
+    padding-left: 25px;
+    padding-top: 60px;
+}
+}
+
+
+
+@media(min-width: 768px) and (max-width: 1024px) {
+    h3.percent {
+        font-size: 18px;
+    }
+    .targets-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 5px;
+    }
+    p.pie-pg {
+        margin-bottom: 5px;
+        font-size: 12px;
+    }
+    h2.percent {
+        font-size: 15px;
+    }
+    select#dropdown {
+        width: 90px;
+        padding: 5px;
+        font-size: 12px;
+    }
+    .card.card-container {
+        padding: 25px 15px;
+        border: 1px solid #d3d3d359;
+        border-radius: 10px;
+    }
+    button.btn.bar-btn.dropdown-toggle {
+        border: 1px solid lightgray;
+        font-size: 13px;
+        padding: 3px 6px;
+    }
+    ul.dropdown-menu.pie-menu.show {
+        padding-left: 65px;
+    }
+
+    canvas#chartjs-doughnut {
+        width: 180px;
+        height: 200px;
+    }
+    h1.total-percent-center {
+        font-size: 22px;
+        font-weight: 700;
+    }
+}
+
+/* Laptop specific styles (1025px to 1366px) */
+@media (min-width: 1025px) and (max-width: 1366px) {
+    h3.percent {
+        font-size: 20px;
+    }
+    h2.percent {
+        font-size: 18px;
+    }
+    .targets-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 5px;
+    }
+    p.pie-pg {
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    select#dropdown {
+        width: 110px;
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+    .card.card-container {
+        padding: 25px 20px;
+        border: 1px solid #d3d3d359;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    button.btn.bar-btn.dropdown-toggle {
+        border: 1px solid lightgray;
+        font-size: 14px;
+        padding: 5px 8px;
+    }
+    ul.dropdown-menu.bar-menu {
+        padding-top: 40px;
+    }
+    ul.dropdown-menu.pie-menu.show {
+        padding-left: 70px;
+        padding-top: 40px;
+    }
+    .bar-li {
+        background: white;
+        width: 80%;
+    }
+    .pie-li {
+        background: white;
+        width: 100%;
+    }
+    canvas#chartjs-doughnut {
+        width: 220px;
+        height: 240px;
+    }
+    h1.total-percent-center {
+        font-size: 24px;
+        font-weight: 700;
+    }
+    h3.card-total {
+        font-size: 28px;
+        font-weight: 600;
+    }
+    p.cards-pg {
+        font-size: 16px;
+    }
+    .char-card-header {
+        padding-bottom: 25px;
+    }
+    .pie-data-container {
+        padding-top: 35px;
+        margin-bottom: 15px;
+    }
+}

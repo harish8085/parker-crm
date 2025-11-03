@@ -1,0 +1,40 @@
+.invalid-feedback {
+    display: none; /* Hide the error message by default */
+    color: #dc3545; /* Error text color */
+    margin-top: 0.25rem; /* Add spacing between input field and error message */
+}
+label.input-label {
+    color: black;
+    font-weight: 600;
+}
+span.required {
+    color: #EA334B;
+}
+
+ul.dropdown-menu.show {
+    border: none;
+    padding-top: 10px;
+    width: 100%;
+    background: #ffffff14;
+}
+
+.eye-icon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+@media(max-width: 600px){
+    .inputs-container {
+        padding: 0;
+    }
+}
+@media(min-width: 768px) and (max-width: 1024px){
+    label.input-label {
+        font-size: 13px;
+    }
+    .inputs-container {
+        padding: 5px 0;
+    }
+}

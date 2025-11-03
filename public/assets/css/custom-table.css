@@ -1,0 +1,197 @@
+a {
+    text-decoration: none !important;
+}
+.application-header-icon {
+    margin-right: 10px;
+}
+
+tr th.table-header {
+    background-color: #eceff6;
+    color: #6174a5;
+}
+
+tbody tr td.row-color {
+    color: #6174a5;
+}
+
+tr td.table-row {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+button.table-status-btn {
+    width: 110px;
+    padding: 5px 5px;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    border: none;
+}
+
+button.status-buttons {
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+.pending {
+    background-color: #fc9300;
+}
+.bankpending{
+    background-color: #fc6500;
+}
+
+.completed {
+    background-color: #42cc7d;
+}
+
+.inprogress,
+.in-progress,
+.checker {
+    background-color: #4043d3 !important;
+}
+
+.rejected {
+    background-color: #ea334b;
+}
+
+.total {
+    background-color: #5e5e5e;
+}
+
+ul.dropdown-menu.show {
+    border: none;
+    padding-top: 5px;
+    width: 100%;
+    background: #ffffff14;
+}
+
+.settlement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 15px;
+}
+
+h3.settlement-heading {
+    font-size: 24px;
+    color: #6174a5;
+}
+
+.settlement-header-btn {
+    border: 1px solid #6174a5;
+    padding: 5px 13px;
+    border-radius: 6px;
+    color: #6174a5;
+    background-color: white;
+    margin: 2px;
+}
+
+@media (max-width: 768px) {
+    img.application-header-icon {
+        margin-right: 0px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        max-width: 525px;
+    }
+
+    .table {
+        width: 100%;
+    }
+
+    .table th,
+    .table td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .settlement-header {
+        padding: 20px 8px;
+    }
+
+    button.settlement-header-btn {
+        padding: 5px;
+        font-size: 15px;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1023px) {
+    img.application-header-icon {
+        margin-right: 5px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        max-width: 700px;
+    }
+
+    .table {
+        width: 100%;
+    }
+
+    .table th,
+    .table td {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* Laptop specific styles (1024px to 1366px) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+    img.application-header-icon {
+        margin-right: 8px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    .table {
+        width: 100%;
+        font-size: 14px;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px 10px;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .settlement-header {
+        padding: 20px 25px;
+    }
+
+    h3.settlement-heading {
+        font-size: 24px;
+        color: #6174a5;
+    }
+
+    button.settlement-header-btn {
+        padding: 6px 14px;
+        font-size: 14px;
+        margin: 3px;
+    }
+
+    button.table-status-btn {
+        width: 120px;
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+
+    button.status-buttons {
+        padding: 8px 15px;
+        font-size: 14px;
+        margin: 3px;
+    }
+}

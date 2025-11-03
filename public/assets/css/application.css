@@ -1,0 +1,145 @@
+
+button.application-header-btn {
+  border: 1px solid #6174A5;
+  padding: 5px 13px;
+  border-radius: 6px;
+  color: #6174A5;
+  background-color: white;
+  margin: 2px;
+}
+.application-header {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  margin-bottom: 20px;
+  padding: 5px 15px;
+}
+
+h3.application-heading {
+  font-size: 24px;
+  color: #6174A5;
+}
+
+p{
+  margin: 0 ;
+}
+.application-status-container {
+  margin-top: 12px;
+  margin-bottom: 30px;
+  text-align: left;
+  display: flex;
+  /* flex-direction: column; */
+}
+
+
+.status-container {
+  display: flex;
+}
+ul.dropdown-menu.show {
+  border: none;
+  padding-top: 10px;
+  width: 100%;
+  background: #ffffff14;
+}
+
+@media (max-width: 768px) {
+ 
+.application-header {
+  flex-direction: column;
+  width: 100%;
+  padding: 8px;
+}
+
+button.application-header-btn {
+  font-size: 12px;
+  padding: 2px 6px;
+  margin: 0;
+}
+.dashboard-content {
+  padding: 10px;
+}
+.btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.application-status-container {
+  align-items: center;
+    padding-top: 75px;
+    flex-direction: column;
+}
+button.status-buttons {
+  font-size: 13px;
+  width: 180px;
+  padding: 5px 6px;
+  margin-top: 10px;
+}
+.status-container {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+}
+}
+
+@media (min-width: 769px) and (max-width: 1023px){
+
+  button.status-buttons {
+    font-size: 12px;
+    padding: 8px 6px;
+}
+button.application-header-btn {
+  font-size: 14px;
+  padding: 5px;
+}
+
+button.application-header-btn {
+  font-size: 14px;
+  padding: 3px 5px;
+}
+h3.application-heading {
+  font-size: 18px;
+  color: #6174A5;
+}
+}
+
+/* Laptop specific styles (1024px to 1366px) */
+@media (min-width: 1024px) and (max-width: 1366px) {
+  .application-header {
+    padding: 10px 20px;
+    margin-top: 25px;
+    margin-bottom: 25px;
+  }
+
+  h3.application-heading {
+    font-size: 22px;
+    color: #6174A5;
+  }
+
+  button.application-header-btn {
+    font-size: 14px;
+    padding: 6px 12px;
+    margin: 3px;
+  }
+
+  .application-status-container {
+    margin-top: 15px;
+    margin-bottom: 25px;
+  }
+
+  button.status-buttons {
+    font-size: 14px;
+    padding: 8px 15px;
+    margin: 4px;
+  }
+
+  .status-container {
+    gap: 8px;
+  }
+
+  .dashboard-content {
+    padding: 20px;
+    padding-top: 85px;
+  }
+}
+

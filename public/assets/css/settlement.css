@@ -1,0 +1,57 @@
+button.roles-btn.dropdown-toggle.form-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+span.required {
+  color: #EA334B;
+}
+.modal-header {
+  padding: 0 15px;
+  background-color: #012670;
+  color: white;
+}
+.save-btn-container {
+  text-align: center;
+  padding-top: 20px;
+  padding-bottom: 10px;
+}
+button.save-btn {
+  border: none;
+  background-color: #069F47;
+  padding: 5px 25px;
+  color: white;
+  border-radius: 5px;
+}
+label.input-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: black;
+}
+ul.dropdown-menu.user-roles.show {
+  background-color: white;
+  width: 92%;
+}
+.no-style{
+  text-decoration: none;
+}
+@media(max-width: 768px){
+  .dashboard-content {
+    padding-top: 90px;
+    
+}
+}
+
+@media (min-width: 768px)and (max-width: 1023px){
+  .modal-dialog.modal-dialog-centered {
+    margin-left: 270px;
+    width: 370px;
+}
+}
+
+/* @media (min-width: 1024px)and (max-width: 1380px){
+  .modal-dialog.modal-dialog-centered {
+    margin-left: 340px;
+   
+}
+} */

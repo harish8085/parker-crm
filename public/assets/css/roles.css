@@ -1,0 +1,106 @@
+.user-btn-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.selector {
+    border: 1px solid #6174A5;
+    border-radius: 6px;
+    padding-right: 5px;
+    margin-right: 5px;
+}
+select#dropdown {
+    border-radius: 6px;
+    border: none;
+    outline: none;
+    width: 105px;
+    padding: 5px 10px;
+    color: #6174A5;
+}
+a.nav-link.dropdown-toggle.nav-links {
+    color: white;
+}
+
+/* li.dropdown-list-li {
+    padding-left: 40px;
+    margin-bottom: 5px;
+} */
+
+button.manage-user.dropdown-toggle {
+    background: none;
+    border: 1px solid #6174A5;
+    padding: 6px 15px;
+    margin-right: 8px;
+    border-radius: 5px;
+    color: #6174A5;
+}
+ul.dropdown-menu.manage-user.show {
+    background: white;
+}
+
+.modal-header {
+    padding: 0 15px;
+    background-color: #012670;
+    color: white;
+  }
+  button.roles-btn.dropdown-toggle.form-control {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  label.input-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: black;
+  }
+  span.required {
+    color: #EA334B;
+  }
+  ul.dropdown-menu.user-roles.show {
+    background-color: white;
+    width: 92%;
+  }
+  .save-btn-container {
+    text-align: center;
+    padding-top: 20px;
+    padding-bottom: 10px;
+  }
+  button.save-btn {
+    border: none;
+    background-color: #069F47;
+    padding: 5px 25px;
+    color: white;
+    border-radius: 5px;
+  }
+
+@media(max-width: 600px){
+    .user-btn-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        justify-content: end;
+        padding-top: 20px;
+    }
+    .settlement-header {
+        padding: 20px 8px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    select#dropdown {
+        border-radius: 5px;
+        border: none;
+        outline: none;
+        width: 100px;
+        padding: 4px 5px;
+        color: #6174A5;
+        font-size: 16px;
+    }
+}
+
+@media (min-width: 768px)and (max-width: 1023px){
+    .modal-dialog.modal-dialog-centered {
+      margin-left: 270px;
+      width: 370px;
+  }
+  }
