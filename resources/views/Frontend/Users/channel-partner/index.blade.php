@@ -80,5 +80,8 @@
 </div>
 @endsection
 @section('script')
+<script>
+    var isAdmin = {{ auth()->user()->roles[0]->id == 1 ? 'true' : 'false' }};
+</script>
 @include('Frontend.Users.channel-partner.index_js')
 @endsection

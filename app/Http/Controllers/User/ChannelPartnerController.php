@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Exports\StaffExport;
 use App\Http\Controllers\Controller;
 use App\Models\BankData;
+use App\Models\ChannelUser;
 use App\Models\Role;
 use App\Models\Service;
 use App\Models\StaffAssign;
@@ -120,6 +121,17 @@ class ChannelPartnerController extends Controller
                     ->editColumn('phone', function ($row) {
                         return $row->phone ? $row->phone : '-';
                     })
+                    ->addColumn('associated_channel', function ($row) {
+                        // Count users associated with this channel partner (where this channel partner is the parent)
+                        $count = ChannelUser::where('channel_id', $row->id)->count();
+                        
+                        if ($count == 0) {
+                            return '-';
+                        }
+                        
+                        $url = url('/channel/associated-users/' . $row->id);
+                        return '<a href="' . $url . '" style="color: #007bff; text-decoration: underline;">' . $count . '</a>';
+                    })
                     ->editColumn('status', function ($row) {
                         $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
                         return $status;
@@ -145,7 +157,7 @@ class ChannelPartnerController extends Controller
                         return $btn;
                     })
 
-                    ->rawColumns(['status', 'action'])
+                    ->rawColumns(['status', 'action', 'associated_channel'])
                     ->make(true);
             }
         } elseif ($user->roles[0]->id == 2) {
@@ -643,5 +655,30 @@ class ChannelPartnerController extends Controller
             ->flash();
 
         return response()->json(['success' => true]);
+    }
+
+    public function associatedUsers($id)
+    {
+        $Route = 'Associated Channel Users';
+        $channelPartner = User::findOrFail($id);
+        $bank = BankData::where('user_id', $channelPartner->id)->first();
+        $states = getState();
+        $districts = getState();
+        $services = Service::get();
+        
+        // Get districts for the selected state
+        foreach ($states as $stateData) {
+            if ($stateData['state_code'] === $channelPartner->state) {
+                $districts = $stateData['districts'];
+            }
+        }
+        
+        // Get all associated channel users where channel_id matches the channel partner id
+        // These are users that are associated with this channel partner
+        $associatedUserIds = ChannelUser::where('channel_id', $id)->pluck('associate_channel_id');
+        
+        $associatedUsers = User::whereIn('id', $associatedUserIds)->paginate(25);
+        
+        return view('Frontend.Users.channel-partner.associated-users', compact('Route', 'channelPartner', 'associatedUsers', 'bank', 'states', 'districts', 'services'));
     }
 }

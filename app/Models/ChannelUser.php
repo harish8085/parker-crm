@@ -21,4 +21,16 @@ class ChannelUser extends Model
     protected $fillable = [
         'channel_id','associate_channel_id'
     ];
+
+    // Relationship to get the parent channel
+    public function channel()
+    {
+        return $this->belongsTo(User::class, 'channel_id');
+    }
+
+    // Relationship to get the associated channel
+    public function associateChannel()
+    {
+        return $this->belongsTo(User::class, 'associate_channel_id');
+    }
 }
