@@ -38,6 +38,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+use Illuminate\Support\Facades\Crypt;
+
+Route::get('/encrypt', function () {
+    $encrypted = Crypt::encryptString('MPIndRic00016');
+    return $encrypted;
+});
+
 Route::get('/', [AuthController::class, 'index']);
 Route::get('/signup', [AuthController::class, 'signup'])->name('signup');
 Route::post('/signup', [AuthController::class, 'register']);

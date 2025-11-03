@@ -148,6 +148,129 @@ class ChannelPartnerController extends Controller
                     ->rawColumns(['status', 'action'])
                     ->make(true);
             }
+        } elseif ($user->roles[0]->id == 2) {
+
+            $roleId = 6;
+            $channels = User::whereHas('roles', function ($query) use ($roleId) {
+                $query->where('id', $roleId);
+            })->get();
+            if ($request->ajax()) {
+
+                $query = User::whereHas('roles', function ($q) use ($roleId) {
+                    $q->where('id', $roleId);
+                });
+
+                if ($request->date) {
+                    $now = Carbon::now();
+                    if ($request->date == 'today') {
+                        $today = Carbon::today()->toDateString();
+                        $query = $query->whereDate('created_at', $today);
+                    } elseif ($request->date == 'yesterday') {
+                        $yesterday = Carbon::yesterday()->toDateString();
+                        $query = $query->whereDate('created_at', $yesterday);
+                    } elseif ($request->date == 'this_week') {
+                        $weekStartDate = $now->startOfWeek()->toDateString();
+                        $weekEndDate = $now->endOfWeek()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $weekStartDate)
+                                      ->whereDate('created_at', '<=', $weekEndDate);
+                    } elseif ($request->date == 'last_week') {
+                        $subWeek = $now->subWeek();
+                        $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
+                        $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
+                                      ->whereDate('created_at', '<=', $lastWeekEndDate);
+                    } elseif ($request->date == 'this_month') {
+                        $startOfMonth = $now->startOfMonth()->toDateString();
+                        $endOfMonth = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
+                                      ->whereDate('created_at', '<=', $endOfMonth);
+                    } elseif ($request->date == 'last_month') {
+                        $subMonth = $now->subMonth();
+                        $startOfMonth = $subMonth->startOfMonth()->toDateString();
+                        $endOfMonth = $subMonth->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
+                                      ->whereDate('created_at', '<=', $endOfMonth);
+                    } elseif ($request->date == 'last_3_months') {
+                        $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
+                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
+                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                    } elseif ($request->date == 'last_6_months') {
+                        $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
+                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
+                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                    } elseif ($request->date == 'this_year') {
+                        $thisYearStart = $now->startOfYear()->toDateString();
+                        $thisYearEnd = $now->endOfYear()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $thisYearStart)
+                                      ->whereDate('created_at', '<=', $thisYearEnd);
+                    } elseif ($request->date == 'last_year') {
+                        $lastYear = $now->subYear();
+                        $lastYearStart = $lastYear->startOfYear()->toDateString();
+                        $lastYearEnd = $lastYear->endOfYear()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $lastYearStart)
+                                      ->whereDate('created_at', '<=', $lastYearEnd);
+                    } elseif ($request->date == 'custom' && isset($request->date_range)) {
+                        if (strpos($request->date_range, 'to') !== false) {
+                            $dates = explode('to', $request->date_range);
+                            $startDate = trim($dates[0]);
+                            $endDate = trim($dates[1]);
+                            $query = $query->whereDate('created_at', '>=', $startDate)
+                                          ->whereDate('created_at', '<=', $endDate);
+                        } else {
+                            throw new \Exception('Date range is not provided or is incorrectly formatted.');
+                        }
+                    }
+                }
+                
+                if ($request->channel_name) {
+                        $query->where('first_name', $request->channel_name);
+                }
+
+                return DataTables::of($query)
+                    ->addIndexColumn()
+                    ->editColumn('Emp_Id', function ($row) {
+                        return $row->Emp_Id ? $row->Emp_Id : '-';
+                    })
+                    ->editColumn('first_name', function ($row) {
+                        return $row->first_name ? $row->first_name : '-';
+                    })
+                    ->editColumn('email', function ($row) {
+                        return $row->email ? $row->email : '-';
+                    })
+                    ->editColumn('phone', function ($row) {
+                        return $row->phone ? $row->phone : '-';
+                    })
+                    ->editColumn('status', function ($row) {
+                        $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
+                        return $status;
+                    })
+                    
+                    ->addColumn('action', function ($row) {
+                        $btn = '';
+
+                        if (auth()->user()->hasPermission('channel', 'view')) {
+                            $btn .= "<img onclick=\"window.location.href='" . url('/channel/view/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
+                        }
+
+                        if (auth()->user()->hasPermission('channel', 'update')) {
+                            $btn .= "<img onclick=\"window.location.href='" . url('/channel/update/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                        }
+
+                        if (auth()->user()->hasPermission('channel', 'delete')) {
+                            
+                                $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                            
+                            
+                        }
+                        return $btn;
+                    })
+
+                    ->rawColumns(['status', 'action'])
+                    ->make(true);
+            }
+
         } else {
             $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
             if ($channel_assign == null) {
