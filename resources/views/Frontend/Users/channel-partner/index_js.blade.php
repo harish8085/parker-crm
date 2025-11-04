@@ -165,7 +165,8 @@
                                         console.log(xhr.responseText);
                                 },
                         },
-                        columns: [{
+                        columns: (function() {
+                                var cols = [{
                                         data: null,
                                         name: 'srno',
                                         render: function(data, type, row, meta) {
@@ -189,8 +190,17 @@
                                 {
                                         data: 'phone',
                                         name: 'phone'
-                                },
-                                {
+                                }];
+                                
+                                // Add associated channel column only for admin users
+                                if (typeof isAdmin !== 'undefined' && isAdmin) {
+                                        cols.push({
+                                                data: 'associated_channel',
+                                                name: 'associated_channel'
+                                        });
+                                }
+                                
+                                cols.push({
                                         data: 'status',
                                         name: 'status'
                                 },
@@ -199,8 +209,10 @@
                                         name: 'action',
                                         orderable: false,
                                         searchable: false
-                                },
-                        ]
+                                });
+                                
+                                return cols;
+                        })()
                 });
 
         };

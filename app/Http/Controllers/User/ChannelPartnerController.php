@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Exports\StaffExport;
 use App\Http\Controllers\Controller;
 use App\Models\BankData;
+use App\Models\ChannelUser;
 use App\Models\Role;
 use App\Models\Service;
 use App\Models\StaffAssign;
@@ -29,6 +30,139 @@ class ChannelPartnerController extends Controller
             $query->where('id', $roleId);
         });
         if ($user->roles[0]->id == 1) {
+            $channels = User::whereHas('roles', function ($query) use ($roleId) {
+                $query->where('id', $roleId);
+            })->get();
+            if ($request->ajax()) {
+
+                $query = User::whereHas('roles', function ($q) use ($roleId) {
+                    $q->where('id', $roleId);
+                });
+
+                if ($request->date) {
+                    $now = Carbon::now();
+                    if ($request->date == 'today') {
+                        $today = Carbon::today()->toDateString();
+                        $query = $query->whereDate('created_at', $today);
+                    } elseif ($request->date == 'yesterday') {
+                        $yesterday = Carbon::yesterday()->toDateString();
+                        $query = $query->whereDate('created_at', $yesterday);
+                    } elseif ($request->date == 'this_week') {
+                        $weekStartDate = $now->startOfWeek()->toDateString();
+                        $weekEndDate = $now->endOfWeek()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $weekStartDate)
+                                      ->whereDate('created_at', '<=', $weekEndDate);
+                    } elseif ($request->date == 'last_week') {
+                        $subWeek = $now->subWeek();
+                        $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
+                        $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
+                                      ->whereDate('created_at', '<=', $lastWeekEndDate);
+                    } elseif ($request->date == 'this_month') {
+                        $startOfMonth = $now->startOfMonth()->toDateString();
+                        $endOfMonth = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
+                                      ->whereDate('created_at', '<=', $endOfMonth);
+                    } elseif ($request->date == 'last_month') {
+                        $subMonth = $now->subMonth();
+                        $startOfMonth = $subMonth->startOfMonth()->toDateString();
+                        $endOfMonth = $subMonth->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
+                                      ->whereDate('created_at', '<=', $endOfMonth);
+                    } elseif ($request->date == 'last_3_months') {
+                        $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
+                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
+                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                    } elseif ($request->date == 'last_6_months') {
+                        $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
+                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
+                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                    } elseif ($request->date == 'this_year') {
+                        $thisYearStart = $now->startOfYear()->toDateString();
+                        $thisYearEnd = $now->endOfYear()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $thisYearStart)
+                                      ->whereDate('created_at', '<=', $thisYearEnd);
+                    } elseif ($request->date == 'last_year') {
+                        $lastYear = $now->subYear();
+                        $lastYearStart = $lastYear->startOfYear()->toDateString();
+                        $lastYearEnd = $lastYear->endOfYear()->toDateString();
+                        $query = $query->whereDate('created_at', '>=', $lastYearStart)
+                                      ->whereDate('created_at', '<=', $lastYearEnd);
+                    } elseif ($request->date == 'custom' && isset($request->date_range)) {
+                        if (strpos($request->date_range, 'to') !== false) {
+                            $dates = explode('to', $request->date_range);
+                            $startDate = trim($dates[0]);
+                            $endDate = trim($dates[1]);
+                            $query = $query->whereDate('created_at', '>=', $startDate)
+                                          ->whereDate('created_at', '<=', $endDate);
+                        } else {
+                            throw new \Exception('Date range is not provided or is incorrectly formatted.');
+                        }
+                    }
+                }
+                
+                if ($request->channel_name) {
+                        $query->where('first_name', $request->channel_name);
+                }
+
+                return DataTables::of($query)
+                    ->addIndexColumn()
+                    ->editColumn('Emp_Id', function ($row) {
+                        return $row->Emp_Id ? $row->Emp_Id : '-';
+                    })
+                    ->editColumn('first_name', function ($row) {
+                        return $row->first_name ? $row->first_name : '-';
+                    })
+                    ->editColumn('email', function ($row) {
+                        return $row->email ? $row->email : '-';
+                    })
+                    ->editColumn('phone', function ($row) {
+                        return $row->phone ? $row->phone : '-';
+                    })
+                    ->addColumn('associated_channel', function ($row) {
+                        // Count users associated with this channel partner (where this channel partner is the parent)
+                        $count = ChannelUser::where('channel_id', $row->id)->count();
+                        
+                        if ($count == 0) {
+                            return '-';
+                        }
+                        
+                        $url = url('/channel/associated-users/' . $row->id);
+                        return '<a href="' . $url . '" style="color: #007bff; text-decoration: underline;">' . $count . '</a>';
+                    })
+                    ->editColumn('status', function ($row) {
+                        $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
+                        return $status;
+                    })
+                    
+                    ->addColumn('action', function ($row) {
+                        $btn = '';
+
+                        if (auth()->user()->hasPermission('channel', 'view')) {
+                            $btn .= "<img onclick=\"window.location.href='" . url('/channel/view/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
+                        }
+
+                        if (auth()->user()->hasPermission('channel', 'update')) {
+                            $btn .= "<img onclick=\"window.location.href='" . url('/channel/update/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                        }
+
+                        if (auth()->user()->hasPermission('channel', 'delete')) {
+                            
+                                $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                            
+                            
+                        }
+                        return $btn;
+                    })
+
+                    ->rawColumns(['status', 'action', 'associated_channel'])
+                    ->make(true);
+            }
+        } elseif ($user->roles[0]->id == 2) {
+
+            $roleId = 6;
             $channels = User::whereHas('roles', function ($query) use ($roleId) {
                 $query->where('id', $roleId);
             })->get();
@@ -148,6 +282,7 @@ class ChannelPartnerController extends Controller
                     ->rawColumns(['status', 'action'])
                     ->make(true);
             }
+
         } else {
             $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
             if ($channel_assign == null) {
@@ -520,5 +655,30 @@ class ChannelPartnerController extends Controller
             ->flash();
 
         return response()->json(['success' => true]);
+    }
+
+    public function associatedUsers($id)
+    {
+        $Route = 'Associated Channel Users';
+        $channelPartner = User::findOrFail($id);
+        $bank = BankData::where('user_id', $channelPartner->id)->first();
+        $states = getState();
+        $districts = getState();
+        $services = Service::get();
+        
+        // Get districts for the selected state
+        foreach ($states as $stateData) {
+            if ($stateData['state_code'] === $channelPartner->state) {
+                $districts = $stateData['districts'];
+            }
+        }
+        
+        // Get all associated channel users where channel_id matches the channel partner id
+        // These are users that are associated with this channel partner
+        $associatedUserIds = ChannelUser::where('channel_id', $id)->pluck('associate_channel_id');
+        
+        $associatedUsers = User::whereIn('id', $associatedUserIds)->paginate(25);
+        
+        return view('Frontend.Users.channel-partner.associated-users', compact('Route', 'channelPartner', 'associatedUsers', 'bank', 'states', 'districts', 'services'));
     }
 }

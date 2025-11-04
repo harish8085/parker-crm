@@ -1218,3 +1218,19 @@ if (!function_exists('generateQRCode')) {
         return $url;
     }
 }
+
+if (!function_exists('generateEmployeeCode')) {
+    function generateEmployeeCode($stateCode, $district, $firstName, $id)
+    {
+        // Extract first three letters of the district and first name
+        $districtAbbreviation = substr($district, 0, 3);
+        $firstNameAbbreviation = substr($firstName, 0, 3);
+
+        $nextId = '000'.$id;
+
+        // Generate the employee ID
+        $employeeID = $stateCode . '' . $districtAbbreviation . '' . $firstNameAbbreviation . '' . $nextId;
+
+        return $employeeID;
+    }
+}

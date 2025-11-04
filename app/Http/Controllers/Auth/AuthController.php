@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
+use App\Models\ChannelUser;
+use App\Models\BankData;
 
 class AuthController extends Controller
 {
@@ -152,8 +155,8 @@ class AuthController extends Controller
             ];
             
             $services = Service::all();
-            
-            return view('Auth.signup', compact('states', 'services'));
+            $verificationCode = Crypt::decryptString(request()->getQueryString());
+            return view('Auth.signup', compact('states', 'services', 'verificationCode'));
         }
     }
 
@@ -186,9 +189,17 @@ class AuthController extends Controller
         $masterCode = MasterCode::where('code',$request->verification_code)->first();
         
         if (!$masterCode || $masterCode->code !== $request->verification_code) {
-            return redirect()->back()
+            $employeeCode = User::where('Emp_Id', $request->verification_code)->first();
+            if (!$employeeCode || $employeeCode->Emp_Id != $request->verification_code) {
+
+                return redirect()->back()
                 ->withErrors(['verification_code' => 'Invalid verification code. Please contact your administrator.'])
                 ->withInput();
+            } else {
+                $parentId = $employeeCode->id;
+            }
+        } else {
+            $parentId = $masterCode->user_id;
         }
 
         try {
@@ -213,11 +224,32 @@ class AuthController extends Controller
                 'service_type' => $request->service_type,
                 'user_type' => 'channel',
                 'status' => 1,
-                'Emp_Id' => 'MP_Ind_111'
+                'Emp_Id' => $request->state.'_'.$request->district.'_'.$request->first_name
 
             ]);
 
-            $user->roles()->sync([2]);
+            $user->update(['Emp_Id'=> generateEmployeeCode($request->state, $request->district, $request->first_name, $user->id)]);
+
+            if (!empty($masterCode)) {
+                $user->roles()->sync([2]);
+            } else {
+                $user->roles()->sync([6]);
+            }
+
+            $bankData = new BankData();
+            $bankData->user_id = $user->id;
+            $bankData->bank_name = $request->bank_name;
+            $bankData->branch_name = $request->branch_name;
+            $bankData->account_number = $request->account_number;
+            $bankData->holder_name = $request->holder_name;
+            $bankData->ifsc_code = $request->ifsc_code;
+            $bankData->save();
+
+            //Save associate channel
+            $associateChannel = ChannelUser::create([
+                'channel_id' => $parentId,
+                'associate_channel_id' => $user->id
+            ]);
 
             flash()
                 ->success('Registration successful! Please login with your credentials.')

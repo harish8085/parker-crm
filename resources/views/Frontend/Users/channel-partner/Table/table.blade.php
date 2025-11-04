@@ -6,6 +6,9 @@
                     <th class="table-header">Channel name</th>
                     <th class="table-header">Email</th>
                     <th class="table-header">Phone</th>
+                    @if(auth()->user()->roles[0]->id == 1)
+                    <th class="table-header">Associated Channel</th>
+                    @endif
                     <th class="table-header">Status</th>
                     <th class="table-header">Actions</th>
                 </tr>
