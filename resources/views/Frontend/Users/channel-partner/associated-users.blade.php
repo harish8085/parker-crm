@@ -28,97 +28,128 @@
     </div>
 
     <!-- Channel Partner Personal Details -->
-    <div class="bank-card p-4" style="margin-bottom: 20px;">
-        <div class="card-top-border">Channel Partner Personal Details</div>
+    <div class="bank-card">
+        <div class="card-top-border">
+            Personal Details
+            <div style="float: right;">
+                <a href="javascript:void(0);" id="toggleDetailsLink" style="color: white; text-decoration: underline; cursor: pointer;">Show More Details</a>
+            </div>
+        </div>
         <div class="card-form">
-            <div class="row">
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Channel Name</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->first_name }}" disabled>
-                    </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Channel Name</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->first_name }}" disabled>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Employee ID</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->Emp_Id ?? '-' }}" disabled>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Email</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->email }}" disabled>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Phone Number</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->phone }}" disabled>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Pan Card</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->pan_number ?? '-' }}" disabled>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Aadhar Number</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->aadhar_number ?? '-' }}" disabled>
+            </div>
+        </div>
+    </div>
+
+    <!-- Address Details -->
+    @if($channelPartner->address_1 || $channelPartner->address_2 || $channelPartner->state || $channelPartner->district || $channelPartner->pincode)
+    <div id="addressDetailsSection" style="display: none;">
+        <br>
+        <div class="bank-card">
+            <div class="card-top-border">Address Details</div>
+            <div class="card-form">
+                @if($channelPartner->address_1)
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Address Line 1</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->address_1 }}" disabled>
                 </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Employee ID</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->Emp_Id ?? '-' }}" disabled>
-                    </div>
+                @endif
+                @if($channelPartner->address_2)
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Address Line 2</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->address_2 }}" disabled>
                 </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Email</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->email }}" disabled>
-                    </div>
-                </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Phone Number</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->phone }}" disabled>
-                    </div>
-                </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Pan Card</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->pan_number ?? '-' }}" disabled>
-                    </div>
-                </div>
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Aadhar Number</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->aadhar_number ?? '-' }}" disabled>
-                    </div>
-                </div>
-                @if($channelPartner->address_1 || $channelPartner->address_2)
-                <div class="col-lg-12 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Address</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->address_1 }} {{ $channelPartner->address_2 ?? '' }}" disabled>
-                    </div>
+                @endif
+                @if($channelPartner->landmark)
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Landmark</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->landmark }}" disabled>
                 </div>
                 @endif
                 @if($channelPartner->state)
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">State</label>
-                        <select class="bank-detail-input form-select" disabled>
-                            @foreach($states as $stateData)
-                            <option value="{{ $stateData['state_code'] }}" {{ ($channelPartner->state == $stateData['state_code']) ? 'selected' : '' }}>{{ $stateData['state'] }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">State</label>
+                    <select class="bank-detail-input form-select" disabled>
+                        @foreach($states as $stateData)
+                        <option value="{{ $stateData['state_code'] }}" {{ ($channelPartner->state == $stateData['state_code']) ? 'selected' : '' }}>{{ $stateData['state'] }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 @endif
                 @if($channelPartner->district)
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">District</label>
-                        <select class="bank-detail-input form-select" disabled>
-                            @foreach($districts as $districtData)
-                            <option value="{{ $districtData }}" {{ ($channelPartner->district == $districtData) ? 'selected' : '' }}>{{ $districtData }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">District</label>
+                    <select class="bank-detail-input form-select" disabled>
+                        @foreach($districts as $districtData)
+                        <option value="{{ $districtData }}" {{ ($channelPartner->district == $districtData) ? 'selected' : '' }}>{{ $districtData }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 @endif
                 @if($channelPartner->pincode)
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Pincode</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->pincode }}" disabled>
-                    </div>
-                </div>
-                @endif
-                @if($bank)
-                <div class="col-lg-6 mb-3">
-                    <div class="bank-detail-inputs">
-                        <label class="bank-input-label">Bank Name</label>
-                        <input class="bank-detail-input form-control" type="text" value="{{ $bank->bank_name ?? '-' }}" disabled>
-                    </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Pincode</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $channelPartner->pincode }}" disabled>
                 </div>
                 @endif
             </div>
         </div>
     </div>
+    @endif
+
+    <!-- Bank Details -->
+    @if($bank)
+    <div id="bankDetailsSection" style="display: none;">
+        <br>
+        <div class="bank-card">
+            <div class="card-top-border">Bank Details</div>
+            <div class="card-form">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Bank Name</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $bank->bank_name ?? '-' }}" disabled>
+                </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Branch Name</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $bank->branch_name ?? '-' }}" disabled>
+                </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Account Holder Name</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $bank->holder_name ?? '-' }}" disabled>
+                </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Account Number</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $bank->account_number ?? '-' }}" disabled>
+                </div>
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">IFSC Code</label>
+                    <input class="bank-detail-input form-control" type="text" value="{{ $bank->ifsc_code ?? '-' }}" disabled>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Associated Users List -->
     <div class="table-responsive p-4">
@@ -164,3 +195,31 @@
 </div>
 @endsection
 
+@section('script')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleLink = document.getElementById('toggleDetailsLink');
+        const addressSection = document.getElementById('addressDetailsSection');
+        const bankSection = document.getElementById('bankDetailsSection');
+        
+        let isVisible = false;
+
+        toggleLink.addEventListener('click', function() {
+            isVisible = !isVisible;
+
+            // Toggle address section if it exists
+            if (addressSection) {
+                addressSection.style.display = isVisible ? 'block' : 'none';
+            }
+
+            // Toggle bank section if it exists
+            if (bankSection) {
+                bankSection.style.display = isVisible ? 'block' : 'none';
+            }
+
+            // Update link text
+            toggleLink.textContent = isVisible ? 'Hide Details' : 'Show More Details';
+        });
+    });
+</script>
+@endsection

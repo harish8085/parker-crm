@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use App\Models\ChannelUser;
 use App\Models\BankData;
 
@@ -183,6 +185,9 @@ class AuthController extends Controller
             'confirm_account_number' => 'required|string|same:account_number', 
             'ifsc_code' => 'required|string',
             'service_type' => 'required|exists:services,id',
+            'aadhar_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+            'pan_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+            'passbook_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
         ]);
 
         // Validate verification code against master code
@@ -202,60 +207,104 @@ class AuthController extends Controller
             $parentId = $masterCode->user_id;
         }
 
+        // Handle file uploads before transaction (file operations aren't transactional)
+        $aadharPhotoPath = null;
+        $panPhotoPath = null;
+        $passbookPhotoPath = null;
+
         try {
-            $user = User::create([
-                'first_name' => $request->first_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'pan_number' => $request->pan_number,
-                'aadhar_number' => $request->aadhar_number,
-                'address_1' => $request->address_1,
-                'address_2' => $request->address_2,
-                'landmark' => $request->landmark,
-                'state' => $request->state,
-                'district' => $request->district,
-                'pincode' => $request->pincode,
-                'bank_name' => $request->bank_name,
-                'branch_name' => $request->branch_name,
-                'holder_name' => $request->holder_name,
-                'account_number' => $request->account_number,
-                'ifsc_code' => $request->ifsc_code,
-                'service_type' => $request->service_type,
-                'user_type' => 'channel',
-                'status' => 1,
-                'Emp_Id' => $request->state.'_'.$request->district.'_'.$request->first_name
-
-            ]);
-
-            $user->update(['Emp_Id'=> generateEmployeeCode($request->state, $request->district, $request->first_name, $user->id)]);
-
-            if (!empty($masterCode)) {
-                $user->roles()->sync([2]);
-            } else {
-                $user->roles()->sync([6]);
+            if ($request->hasFile('aadhar_photo')) {
+                $aadharPhotoPath = $request->file('aadhar_photo')->store('uploads/users/aadhar', 'public');
             }
 
-            $bankData = new BankData();
-            $bankData->user_id = $user->id;
-            $bankData->bank_name = $request->bank_name;
-            $bankData->branch_name = $request->branch_name;
-            $bankData->account_number = $request->account_number;
-            $bankData->holder_name = $request->holder_name;
-            $bankData->ifsc_code = $request->ifsc_code;
-            $bankData->save();
+            if ($request->hasFile('pan_photo')) {
+                $panPhotoPath = $request->file('pan_photo')->store('uploads/users/pan', 'public');
+            }
 
-            //Save associate channel
-            $associateChannel = ChannelUser::create([
-                'channel_id' => $parentId,
-                'associate_channel_id' => $user->id
-            ]);
+            if ($request->hasFile('passbook_photo')) {
+                $passbookPhotoPath = $request->file('passbook_photo')->store('uploads/users/passbook', 'public');
+            }
 
-            flash()
-                ->success('Registration successful! Please login with your credentials.')
-                ->flash();
-            
-            return redirect('/');
+            // Wrap all database operations in a transaction
+            DB::beginTransaction();
+
+            try {
+                $user = User::create([
+                    'first_name' => $request->first_name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'password' => Hash::make($request->password),
+                    'pan_number' => $request->pan_number,
+                    'aadhar_number' => $request->aadhar_number,
+                    'aadhar_photo' => $aadharPhotoPath,
+                    'pan_photo' => $panPhotoPath,
+                    'passbook_photo' => $passbookPhotoPath,
+                    'address_1' => $request->address_1,
+                    'address_2' => $request->address_2,
+                    'landmark' => $request->landmark,
+                    'state' => $request->state,
+                    'district' => $request->district,
+                    'pincode' => $request->pincode,
+                    'bank_name' => $request->bank_name,
+                    'branch_name' => $request->branch_name,
+                    'holder_name' => $request->holder_name,
+                    'account_number' => $request->account_number,
+                    'ifsc_code' => $request->ifsc_code,
+                    'service_type' => $request->service_type,
+                    'user_type' => 'channel',
+                    'status' => 1,
+                    'Emp_Id' => $request->state.'_'.$request->district.'_'.$request->first_name
+
+                ]);
+
+                $user->update(['Emp_Id'=> generateEmployeeCode($request->state, $request->district, $request->first_name, $user->id)]);
+
+                if (!empty($masterCode)) {
+                    $user->roles()->sync([2]);
+                } else {
+                    $user->roles()->sync([6]);
+                }
+
+                $bankData = new BankData();
+                $bankData->user_id = $user->id;
+                $bankData->bank_name = $request->bank_name;
+                $bankData->branch_name = $request->branch_name;
+                $bankData->account_number = $request->account_number;
+                $bankData->holder_name = $request->holder_name;
+                $bankData->ifsc_code = $request->ifsc_code;
+                $bankData->save();
+
+                //Save associate channel
+                $associateChannel = ChannelUser::create([
+                    'channel_id' => $parentId,
+                    'associate_channel_id' => $user->id
+                ]);
+
+                // Commit the transaction if everything succeeds
+                DB::commit();
+
+                flash()
+                    ->success('Registration successful! Please login with your credentials.')
+                    ->flash();
+                
+                return redirect('/');
+            } catch (\Exception $e) {
+                // Rollback the transaction on any error
+                DB::rollBack();
+
+                // Clean up uploaded files if transaction fails
+                if ($aadharPhotoPath && Storage::disk('public')->exists($aadharPhotoPath)) {
+                    Storage::disk('public')->delete($aadharPhotoPath);
+                }
+                if ($panPhotoPath && Storage::disk('public')->exists($panPhotoPath)) {
+                    Storage::disk('public')->delete($panPhotoPath);
+                }
+                if ($passbookPhotoPath && Storage::disk('public')->exists($passbookPhotoPath)) {
+                    Storage::disk('public')->delete($passbookPhotoPath);
+                }
+
+                throw $e; // Re-throw to be caught by outer catch block
+            }
         } catch (\Exception $e) {
 
             \Log::error('User registration failed', [
