@@ -51,6 +51,9 @@ if (!function_exists('getPermissionName')) {
             case 'bank-payout':
                 return 'Bank Payout';
                 break;
+            case 'master_code':
+                return 'Master Code';
+                break;
             default:
                 return 'Unknown Permission';
                 break;

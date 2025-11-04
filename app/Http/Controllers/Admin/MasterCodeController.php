@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MasterCodeController extends Controller
 {
@@ -27,8 +28,15 @@ class MasterCodeController extends Controller
      */
     public function index()
     {
-        $masterCodes = $this->masterCode->where('user_id', auth()->user()->id)->first();
-        return view('Frontend.master-code.index', compact('masterCodes'));
+        $user = Auth::user()->roles[0]->name;
+        if ($user == 'Admin') {
+            $masterCodes = $this->masterCode->where('user_id', auth()->user()->id)->first();
+            $masterCode = $masterCodes->code;
+            
+        } else {
+            $masterCode = Auth::user()->Emp_Id;
+        }
+        return view('Frontend.master-code.index', compact('masterCode'));
     }
 
     public function update(MasterCodeRequest $request)
