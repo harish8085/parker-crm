@@ -39,7 +39,7 @@
                 <p class="form-subtitle">Fill in your details to get started</p>
             </div>
 
-            <form class="needs-validation signup-form" action="{{url('/signup')}}" method="POST" novalidate>
+            <form class="needs-validation signup-form" action="{{url('/signup')}}" method="POST" enctype="multipart/form-data" novalidate>
                 @csrf
                 @if ($errors->any())
                 <div class="alert alert-danger">
@@ -121,6 +121,30 @@
                                    placeholder="Enter verification code" value="{{old('verification_code') ?? $verificationCode}}" readonly="readonly" required>
                             <div class="invalid-feedback">Please enter a valid verification code.</div>
                             <small class="form-text text-muted">Enter the code provided by your administrator.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Aadhar Card Photo</label>
+                            <input class="form-control" type="file" name="aadhar_photo" id="aadhar_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">PAN Card Photo</label>
+                            <input class="form-control" type="file" name="pan_photo" id="pan_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Passbook Photo</label>
+                            <input class="form-control" type="file" name="passbook_photo" id="passbook_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
                         </div>
                     </div>
                 </div>
