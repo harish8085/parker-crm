@@ -2,6 +2,45 @@
 @section('style')
 <link rel="stylesheet" href="{{asset('assets/css/add-service-1.css')}}">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+    .image-preview-container {
+        margin-top: 15px;
+        position: relative;
+        display: inline-block;
+    }
+    .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        padding: 5px;
+        background: #f9f9f9;
+        display: block;
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .remove-image-btn:hover {
+        background: #c82333;
+    }
+    .file-input-wrapper {
+        position: relative;
+    }
+</style>
 @endsection
 @section('body')
 <div class="breadcrumb-container" style="margin-bottom: 24px;">
@@ -75,18 +114,36 @@
         <div class="card-form">
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">PAN Photo<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="file" name="pan_photo" id="pan_photo" accept="image/jpeg,image/png,image/jpg,application/pdf" required>
-                <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, PDF (Max size: 4MB)</small>
+                <div class="file-input-wrapper">
+                    <input class="bank-detail-input form-control" type="file" name="pan_photo" id="pan_photo" accept="image/jpeg,image/png,image/jpg" required>
+                    <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG only (Max size: 4MB)</small>
+                </div>
+                <div class="image-preview-container" id="pan_photo_preview" style="display: none;">
+                    <img class="image-preview" id="pan_photo_preview_img" src="" alt="PAN Photo Preview">
+                    <button type="button" class="remove-image-btn" onclick="removeImage('pan_photo')" title="Remove image">&times;</button>
+                </div>
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Aadhar Photo<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="file" name="aadhar_photo" id="aadhar_photo" accept="image/jpeg,image/png,image/jpg,application/pdf" required>
-                <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, PDF (Max size: 4MB)</small>
+                <div class="file-input-wrapper">
+                    <input class="bank-detail-input form-control" type="file" name="aadhar_photo" id="aadhar_photo" accept="image/jpeg,image/png,image/jpg" required>
+                    <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG only (Max size: 4MB)</small>
+                </div>
+                <div class="image-preview-container" id="aadhar_photo_preview" style="display: none;">
+                    <img class="image-preview" id="aadhar_photo_preview_img" src="" alt="Aadhar Photo Preview">
+                    <button type="button" class="remove-image-btn" onclick="removeImage('aadhar_photo')" title="Remove image">&times;</button>
+                </div>
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Passbook Photo<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="file" name="passbook_photo" id="passbook_photo" accept="image/jpeg,image/png,image/jpg,application/pdf" required>
-                <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG, PDF (Max size: 4MB)</small>
+                <div class="file-input-wrapper">
+                    <input class="bank-detail-input form-control" type="file" name="passbook_photo" id="passbook_photo" accept="image/jpeg,image/png,image/jpg" required>
+                    <small class="form-text text-muted">Accepted formats: JPEG, PNG, JPG only (Max size: 4MB)</small>
+                </div>
+                <div class="image-preview-container" id="passbook_photo_preview" style="display: none;">
+                    <img class="image-preview" id="passbook_photo_preview_img" src="" alt="Passbook Photo Preview">
+                    <button type="button" class="remove-image-btn" onclick="removeImage('passbook_photo')" title="Remove image">&times;</button>
+                </div>
             </div>
         </div>
     </div>
@@ -181,6 +238,70 @@
                 $(this).removeClass('is-invalid');
             }
         });
+
+        // Image preview functionality
+        function previewImage(inputId) {
+            var input = document.getElementById(inputId);
+            var previewContainer = document.getElementById(inputId + '_preview');
+            var previewImg = document.getElementById(inputId + '_preview_img');
+            
+            if (input.files && input.files[0]) {
+                var file = input.files[0];
+                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                
+                // Validate file type
+                if (!allowedTypes.includes(file.type)) {
+                    bootbox.alert({
+                        message: 'Please select a valid image file (JPEG, JPG, or PNG only).',
+                        className: 'bootbox-danger'
+                    });
+                    input.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Validate file size (4MB)
+                if (file.size > 4 * 1024 * 1024) {
+                    bootbox.alert({
+                        message: 'File size must be less than 4MB.',
+                        className: 'bootbox-danger'
+                    });
+                    input.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Function to remove image
+        window.removeImage = function(inputId) {
+            var input = document.getElementById(inputId);
+            var previewContainer = document.getElementById(inputId + '_preview');
+            
+            input.value = '';
+            previewContainer.style.display = 'none';
+        };
+
+        // Attach preview to file inputs
+        $('#pan_photo').on('change', function() {
+            previewImage('pan_photo');
+        });
+
+        $('#aadhar_photo').on('change', function() {
+            previewImage('aadhar_photo');
+        });
+
+        $('#passbook_photo').on('change', function() {
+            previewImage('passbook_photo');
+        });
     });
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.3/bootbox.min.js"></script>
 @endsection

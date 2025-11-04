@@ -25,71 +25,7 @@ class BankDataController extends Controller
         $user = Auth::user();
         
         if ($request->ajax()) {
-            $query = BankData::where('user_id', $user->id);
-
-            if ($request->date) {
-                $now = Carbon::now();
-                if ($request->date == 'today') {
-                    $today = Carbon::today()->toDateString();
-                    $query = $query->whereDate('created_at', $today);
-                } elseif ($request->date == 'yesterday') {
-                    $yesterday = Carbon::yesterday()->toDateString();
-                    $query = $query->whereDate('created_at', $yesterday);
-                } elseif ($request->date == 'this_week') {
-                    $weekStartDate = $now->startOfWeek()->toDateString();
-                    $weekEndDate = $now->endOfWeek()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                        ->whereDate('created_at', '<=', $weekEndDate);
-                } elseif ($request->date == 'last_week') {
-                    $subWeek = $now->subWeek();
-                    $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
-                    $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                        ->whereDate('created_at', '<=', $lastWeekEndDate);
-                } elseif ($request->date == 'this_month') {
-                    $startOfMonth = $now->startOfMonth()->toDateString();
-                    $endOfMonth = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                        ->whereDate('created_at', '<=', $endOfMonth);
-                } elseif ($request->date == 'last_month') {
-                    $subMonth = $now->subMonth();
-                    $startOfMonth = $subMonth->startOfMonth()->toDateString();
-                    $endOfMonth = $subMonth->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                        ->whereDate('created_at', '<=', $endOfMonth);
-                } elseif ($request->date == 'last_3_months') {
-                    $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
-                    $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
-                } elseif ($request->date == 'last_6_months') {
-                    $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
-                    $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
-                } elseif ($request->date == 'this_year') {
-                    $thisYearStart = $now->startOfYear()->toDateString();
-                    $thisYearEnd = $now->endOfYear()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                        ->whereDate('created_at', '<=', $thisYearEnd);
-                } elseif ($request->date == 'last_year') {
-                    $lastYear = $now->subYear();
-                    $lastYearStart = $lastYear->startOfYear()->toDateString();
-                    $lastYearEnd = $lastYear->endOfYear()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                        ->whereDate('created_at', '<=', $lastYearEnd);
-                } elseif ($request->date == 'custom' && isset($request->date_range)) {
-                    if (strpos($request->date_range, 'to') !== false) {
-                        $dates = explode('to', $request->date_range);
-                        $startDate = trim($dates[0]);
-                        $endDate = trim($dates[1]);
-                        $query = $query->whereDate('created_at', '>=', $startDate)
-                            ->whereDate('created_at', '<=', $endDate);
-                    } else {
-                        throw new \Exception('Date range is not provided or is incorrectly formatted.');
-                    }
-                }
-            }
+            $query = BankData::where('user_id', $user->id)->orderBy('id', 'desc');           
 
             if ($request->bank_name) {
                 $query->where('bank_name', $request->bank_name);
@@ -165,14 +101,17 @@ class BankDataController extends Controller
             'confirm_account_number' => 'required|string|max:64|regex:/^[0-9]+$/|same:account_number',
             'ifsc_code'           => 'required|string|max:32',
             'bank_name'           => 'required|string|max:255',
-            'pan_photo'           => 'required|image|mimes:jpeg,png,jpg,pdf|max:4096',
-            'aadhar_photo'        => 'required|image|mimes:jpeg,png,jpg,pdf|max:4096',
-            'passbook_photo'      => 'required|image|mimes:jpeg,png,jpg,pdf|max:4096',
+            'pan_photo'           => 'required|image|mimes:jpeg,jpg,png|max:4096',
+            'aadhar_photo'        => 'required|image|mimes:jpeg,jpg,png|max:4096',
+            'passbook_photo'      => 'required|image|mimes:jpeg,jpg,png|max:4096',
             'branch_name'         => 'required|string|max:255',
         ], [
             'account_number.regex' => 'The account number must contain only digits.',
             'confirm_account_number.regex' => 'The confirm account number must contain only digits.',
             'confirm_account_number.same' => 'The account number and confirm account number must match.',
+            'pan_photo.mimes' => 'PAN photo must be a JPEG, JPG, or PNG image.',
+            'aadhar_photo.mimes' => 'Aadhar photo must be a JPEG, JPG, or PNG image.',
+            'passbook_photo.mimes' => 'Passbook photo must be a JPEG, JPG, or PNG image.',
         ]);
 
         $bankData = new BankData();
@@ -182,7 +121,7 @@ class BankDataController extends Controller
         $bankData->ifsc_code = $request->ifsc_code;
         $bankData->bank_name = $request->bank_name;
         $bankData->branch_name = $request->branch_name;
-        $bankData->status = 1;
+        
         // Handle file uploads
         if ($request->hasFile('pan_photo')) {
             $bankData->pan_photo = $request->file('pan_photo')->store('uploads/bankdata/pan', 'public');
