@@ -118,7 +118,7 @@
                         <div class="form-group">
                             <label class="form-label">Verification Code <span class="required">*</span></label>
                             <input class="form-control" type="text" name="verification_code" id="verification_code" 
-                                   placeholder="Enter verification code" value="{{old('verification_code')}}" required>
+                                   placeholder="Enter verification code" value="{{old('verification_code') ?? $verificationCode}}" readonly="readonly" required>
                             <div class="invalid-feedback">Please enter a valid verification code.</div>
                             <small class="form-text text-muted">Enter the code provided by your administrator.</small>
                         </div>

@@ -39,6 +39,15 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+use Illuminate\Support\Facades\Crypt;
+
+Route::get('/encrypt', function () {
+    $encrypted = Crypt::encryptString('MPIndRic00016');
+    return $encrypted;
+});
+
+Route::get('/channel/associated-users/{id}', [ChannelPartnerController::class, 'associatedUsers'])->name('channel.associated-users');
+
 Route::get('/', [AuthController::class, 'index']);
 Route::get('/signup', [AuthController::class, 'signup'])->name('signup');
 Route::post('/signup', [AuthController::class, 'register']);
@@ -190,6 +199,7 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/channel/update/{id}', [ChannelPartnerController::class, 'edit']);
     Route::post('/channel/update/{id}', [ChannelPartnerController::class, 'update']);
     Route::delete('/channel/delete/{user}', [ChannelPartnerController::class, 'destroy']);
+    // Route::get('/channel/associated-users/{id}', [ChannelPartnerController::class, 'associatedUsers'])->name('channel.associated-users');
 
     //Sales Partner 
     Route::get('/sales-person', [SalesPersonController::class, 'index'])->name('sales-person.index');
