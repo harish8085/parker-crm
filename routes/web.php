@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MasterCodeController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Bank\BankController;
+use App\Http\Controllers\Bank\BankDataController;
 use App\Http\Controllers\Bank\BankProductController;
 use App\Http\Controllers\Bank\ProductController;
 use App\Http\Controllers\Bank_MIS\BankMisController;
@@ -91,6 +92,15 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/master-code', [MasterCodeController::class, 'index'])->name('master-code.index');
     Route::post('/master-code/update', [MasterCodeController::class, 'update'])->name('master-code.update');
     Route::get('/master-code/download', [MasterCodeController::class, 'download'])->name('master-code.download');
+    Route::get('/link-bank', [BankDataController::class, 'index'])->name('link-bank.index');
+    Route::get('/link-bank/create', [BankDataController::class, 'create'])->name('link-bank.create');
+    Route::post('/link-bank/create', [BankDataController::class, 'store']);
+    Route::get('/link-bank/view/{id}', [BankDataController::class, 'show'])->name('link-bank.show');
+    Route::get('/link-bank/update/{id}', [BankDataController::class, 'edit']);
+    Route::put('/link-bank/update/{bankData}', [BankDataController::class, 'update']);
+    Route::delete('/link-bank/delete/{bankData}', [BankDataController::class, 'destory']);
+    Route::post('/link-bank/activate/{id}', [BankDataController::class, 'activate'])->name('link-bank.activate');
+    Route::post('/link-bank/deactivate/{id}', [BankDataController::class, 'deactivate'])->name('link-bank.deactivate');
 });
 
 

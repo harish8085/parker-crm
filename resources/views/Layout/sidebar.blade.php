@@ -82,11 +82,20 @@
                     </ul>
                 </li>
                 @endif
-                @if(auth()->user()->hasPermission('master_code','view'))
+                @if(auth()->user()->hasPermission('master_code','view') || auth()->user()->roles[0]->id ==2)
 
                 <li class="list-item {{(Request::path() == 'master-code')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'master-code')?'active-li':''}}" href="{{url('master-code')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'master-code')?'assets/images/master-code-active.svg':'assets/images/master-code.svg')}}" alt="error">Master Code
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'master-code')?'assets/images/master-code-active.svg':'assets/images/master-code.svg')}}" alt="error">Invite User
+                    </a>
+                </li>
+                @endif
+                
+                @if(auth()->user()->roles[0]->id ==2)
+
+                <li class="list-item {{(Request::path() == 'link-bank')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'link-bank')?'active-li':''}}" href="{{url('link-bank')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'master-code')?'assets/images/bank-active.svg':'assets/images/bank.svg')}}" alt="error">Link Bank
                     </a>
                 </li>
                 @endif

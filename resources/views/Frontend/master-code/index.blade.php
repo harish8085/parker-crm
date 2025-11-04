@@ -24,7 +24,7 @@
 @section('body')
 <div class="card">
     <div class="application-header">
-        <h3 class="application-heading">Master Code</h3>
+        <h3 class="application-heading">{{auth()->user()->roles[0]->id ==2 ? 'Invite User' : 'Master Code'}}</h3>
     </div>
 
     <div class="bank-card p-4">
@@ -59,11 +59,45 @@
                             <small class="text-danger">{{ $message }}</small>
                             @enderror
                         </div>
+                        @if(auth()->user()->roles[0]->id ==1)
                         <div class="update-wrap mt-3">
                             <button type="submit" class="application-header-btn w-100">
                                 <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">Update Code
                             </button>
                         </div>
+                        @endif
+                    <div class="mt-3">
+                        <button type="button" class=" btn btn-sm btn-outline-primary w-100" id="share-link-btn">
+                            <img src="{{ asset('assets/images/share-icon.svg') }}" alt="Share" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;" onmouseover="Share this link with your team">Share Link
+                        </button>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            document.getElementById('share-link-btn').addEventListener('click', async function() {
+                                const url = "{{ route('signup') . '?code=' . urlencode($masterCodes->code ?? '') }}";
+                                @if(!empty($masterCodes->code))
+                                if (navigator.share) {
+                                    navigator.share({
+                                        title: 'Signup Link',
+                                        text: 'Here is the signup link with master code:',
+                                        url: url
+                                    });
+                                } else if (navigator.clipboard) {
+                                    try {
+                                        await navigator.clipboard.writeText(url);
+                                        alert('Link copied to clipboard!');
+                                    } catch (e) {
+                                        prompt('Copy this link:', url);
+                                    }
+                                } else {
+                                    prompt('Copy this link:', url);
+                                }
+                                @else
+                                alert('No master code found!');
+                                @endif
+                            });
+                        });
+                    </script>
                     </div>
                 </div>
 
