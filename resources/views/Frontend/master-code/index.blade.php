@@ -22,6 +22,13 @@
 </style>
 @endsection
 @section('body')
+@php
+    // Encrypt the master code before embedding
+    $encryptedCode = '';
+    if (!empty($masterCode)) {
+        $encryptedCode = \Illuminate\Support\Facades\Crypt::encryptString($masterCode);
+    }
+@endphp
 <div class="card">
     <div class="application-header">
         <h3 class="application-heading">{{auth()->user()->roles[0]->id ==2 ? 'Invite User' : 'Master Code'}}</h3>
@@ -35,12 +42,13 @@
         <form method="POST" action="{{ route('master-code.update') }}">
             @csrf
             <div class="row">
-                @if(!empty($masterCodes->code))
+                @if(!empty($masterCode))
             <div class="col-lg-3 mb-3">
                     <div class="panel-box panel-pad h-100 d-flex flex-column align-items-left justify-content-center">
                        
                         <div class="qr-card mb-2">
-                            <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ route('signup') . '?code=' . urlencode($masterCodes->code ?? '') }}" alt="QR Code" width="220" height="220">
+                          
+                            <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ route('signup') . '?code=' . urlencode($encryptedCode) }}" alt="QR Code" width="220" height="220">
                         </div>
                         <div class="qr-actions d-flex gap-2 mt-1">
                             <a id="download-qr" class="btn btn-sm btn-outline-primary" href="{{ route('master-code.download') }}">Download PNG</a>
@@ -54,7 +62,7 @@
                     <div class="panel-box panel-pad">
                         <div class="bank-detail-inputs inner-field">
                             <label class="bank-input-label">Master Code</label>
-                            <input id="master-code-input" type="text" class="form-control" name="code" placeholder="Enter new master code..." value="{{ old('code', $masterCodes->code ?? '') }}" required>
+                            <input id="master-code-input" type="text" class="form-control" name="code" placeholder="Enter new master code..." value="{{ old('code', $masterCode ?? '') }}" required>
                             @error('code')
                             <small class="text-danger">{{ $message }}</small>
                             @enderror
@@ -74,8 +82,8 @@
                     <script>
                         document.addEventListener('DOMContentLoaded', function() {
                             document.getElementById('share-link-btn').addEventListener('click', async function() {
-                                const url = "{{ route('signup') . '?code=' . urlencode($masterCodes->code ?? '') }}";
-                                @if(!empty($masterCodes->code))
+                                const url = "{{ route('signup') . '?code=' . urlencode($encryptedCode ?? '') }}";
+                                @if(!empty($masterCode))
                                 if (navigator.share) {
                                     navigator.share({
                                         title: 'Signup Link',
