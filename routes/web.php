@@ -51,6 +51,9 @@ Route::get('/channel/associated-users/{id}', [ChannelPartnerController::class, '
 Route::get('/', [AuthController::class, 'index']);
 Route::get('/signup', [AuthController::class, 'signup'])->name('signup');
 Route::post('/signup', [AuthController::class, 'register']);
+Route::get('/verify-otp', [AuthController::class, 'showVerifyOtp'])->name('verify-otp');
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::get('/getDistrict/{state_code}', [Controller::class, 'getDistrict']);
 Route::post('/login', [AuthController::class, 'Login']);
 Route::get('/logout', [AuthController::class, 'Logout']);

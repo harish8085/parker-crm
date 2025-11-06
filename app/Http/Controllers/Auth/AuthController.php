@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Carbon\Carbon;
+use App\Mail\OtpVerificationMail;
+use App\Mail\WelcomeMail;
 use App\Models\ChannelUser;
 use App\Models\BankData;
 
@@ -65,6 +69,49 @@ class AuthController extends Controller
 
                 if (Auth::attempt($userdata)) {
                     $user = Auth::user();
+
+                    // Check if user has verified their email (OTP is cleared)
+                    if ($user->otp !== null || $user->otp_expires_at !== null) {
+                        // User is not verified - check if OTP is expired
+                        $isOtpExpired = false;
+                        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
+                            $isOtpExpired = true;
+                        }
+
+                        // Logout the user
+                        Auth::logout();
+
+                        // If OTP is expired or doesn't exist, generate and send a new one
+                        if ($isOtpExpired || !$user->otp) {
+                            $otp = generateOTP();
+                            $otpExpiresAt = Carbon::now()->addMinutes(10);
+                            
+                            $user->update([
+                                'otp' => $otp,
+                                'otp_expires_at' => $otpExpiresAt
+                            ]);
+                            
+                            // Send OTP email
+                            try {
+                                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+                            } catch (\Exception $e) {
+                                \Log::error('Failed to send OTP email', [
+                                    'user_id' => $user->id,
+                                    'email' => $user->email,
+                                    'error' => $e->getMessage()
+                                ]);
+                            }
+                        }
+
+                        // Store user info in session for OTP verification
+                        session(['user_id' => $user->id, 'email' => $user->email]);
+
+                        flash()
+                            ->warning('Please verify your email address to continue. We\'ve sent a verification code to your email.')
+                            ->flash();
+                        
+                        return redirect()->route('verify-otp');
+                    }
 
                     if (in_array($user->user_type, $type)) {
                         if ($request->has('remember') == null) {
@@ -296,11 +343,32 @@ class AuthController extends Controller
                 // Commit the transaction if everything succeeds
                 DB::commit();
 
-                flash()
-                    ->success('Registration successful! Please login with your credentials.')
-                    ->flash();
+                // Generate and send OTP
+                $otp = generateOTP();
+                $otpExpiresAt = Carbon::now()->addMinutes(10);
                 
-                return redirect('/');
+                // Store OTP in database
+                $user->update([
+                    'otp' => $otp,
+                    'otp_expires_at' => $otpExpiresAt
+                ]);
+                
+                // Send OTP email
+                try {
+                    Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send OTP email', [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                // Store user info in session for OTP verification
+                session(['user_id' => $user->id, 'email' => $user->email]);
+
+                // Redirect to OTP verification page
+                return redirect()->route('verify-otp');
             } catch (\Exception $e) {
                 // Rollback the transaction on any error
                 DB::rollBack();
@@ -332,6 +400,215 @@ class AuthController extends Controller
                 ->flash();
             
             return redirect()->back()->withInput();
+        }
+    }
+
+    public function showVerifyOtp()
+    {
+        $user_id = session('user_id');
+        $email = session('email');
+
+        // If no user_id in session, check if it's in the request
+        if (!$user_id && request()->has('user_id')) {
+            $user_id = request()->get('user_id');
+            $email = request()->get('email');
+        }
+
+        if (!$user_id || !$email) {
+            flash()
+                ->error('Invalid verification link. Please login or register again.')
+                ->flash();
+            return redirect('/');
+        }
+
+        // Get user to check OTP status
+        $user = User::find($user_id);
+        if (!$user || $user->email !== $email) {
+            flash()
+                ->error('Invalid user information. Please login again.')
+                ->flash();
+            return redirect('/');
+        }
+
+        // If user is already verified (OTP is null), redirect to login
+        if ($user->otp === null && $user->otp_expires_at === null) {
+            flash()
+                ->success('Your email is already verified. Please login.')
+                ->flash();
+            return redirect('/');
+        }
+
+        // Check if OTP is expired and regenerate if needed
+        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
+            // Generate new OTP
+            $otp = generateOTP();
+            $otpExpiresAt = Carbon::now()->addMinutes(10);
+            
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt
+            ]);
+            
+            // Send OTP email
+            try {
+                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send OTP email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+
+        return view('Auth.verify-otp', compact('user_id', 'email'));
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'otp' => 'required|string|size:6|regex:/^[0-9]{6}$/',
+            'user_id' => 'required|exists:users,id',
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        // Verify email matches user
+        if ($user->email !== $request->email) {
+            return redirect()->back()
+                ->withErrors(['email' => 'Email does not match the registered user.'])
+                ->withInput();
+        }
+
+        // Refresh user to get latest OTP data
+        $user->refresh();
+
+        // Check if OTP exists and is not expired
+        if (!$user->otp || !$user->otp_expires_at) {
+            return redirect()->back()
+                ->withErrors(['otp' => 'OTP not found. Please request a new one.'])
+                ->withInput();
+        }
+
+        // Check if OTP has expired
+        if (Carbon::now()->greaterThan($user->otp_expires_at)) {
+            return redirect()->back()
+                ->withErrors(['otp' => 'OTP has expired. Please request a new one.'])
+                ->withInput();
+        }
+
+        // Verify OTP
+        if ($user->otp !== $request->otp) {
+            return redirect()->back()
+                ->withErrors(['otp' => 'Invalid OTP. Please try again.'])
+                ->withInput();
+        }
+
+        // OTP verified successfully - clear OTP from database
+        $user->update([
+            'otp' => null,
+            'otp_expires_at' => null
+        ]);
+
+        // Send welcome email
+        try {
+            Mail::to($user->email)->send(new WelcomeMail($user));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send welcome email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        // Auto login the user
+        Auth::login($user);
+
+        // Clear session data
+        session()->forget(['user_id', 'email']);
+
+        flash()
+            ->success('Email verified successfully! Welcome to ' . env('APP_NAME') . '.')
+            ->flash();
+
+        // Redirect based on user type (similar to login logic)
+        $subdomain = explode('.', $request->getHost())[0];
+        switch ($subdomain) {
+            case 'admin':
+                $type = ['admin', 'staff'];
+                break;
+            case 'parker':
+                $type = ['admin', 'staff', 'channel', 'sales'];
+                break;
+            case 'partner':
+                $type = ['channel'];
+                break;
+            case 'sales-team':
+                $type = ['sales'];
+                break;
+            default:
+                $type = ['admin', 'staff', 'channel', 'sales'];
+                break;
+        }
+
+        if (in_array($user->user_type, $type)) {
+            return redirect('/application');
+        } else {
+            Auth::logout();
+            flash()
+                ->error('Account access denied.')
+                ->flash();
+            return redirect('/');
+        }
+    }
+
+    public function resendOtp(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        // Verify email matches user
+        if ($user->email !== $request->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email does not match the registered user.'
+            ], 400);
+        }
+
+        // Generate new OTP
+        $otp = generateOTP();
+        $otpExpiresAt = Carbon::now()->addMinutes(10);
+
+        // Store OTP in database
+        $user->update([
+            'otp' => $otp,
+            'otp_expires_at' => $otpExpiresAt
+        ]);
+
+        // Send OTP email
+        try {
+            Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP has been resent to your email.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to resend OTP email', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send OTP. Please try again later.'
+            ], 500);
         }
     }
 }
