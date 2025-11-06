@@ -157,7 +157,18 @@ class AuthController extends Controller
             ];
             
             $services = Service::all();
-            $verificationCode = Crypt::decryptString(request()->getQueryString());
+            $encryptedCode = request()->query('code');
+            $verificationCode = null;
+            
+            if ($encryptedCode) {
+                try {
+                    $verificationCode = Crypt::decryptString($encryptedCode);
+                } catch (\Exception $e) {
+                    // If decryption fails, set to null or handle error
+                    $verificationCode = null;
+                }
+            }
+            
             return view('Auth.signup', compact('states', 'services', 'verificationCode'));
         }
     }
