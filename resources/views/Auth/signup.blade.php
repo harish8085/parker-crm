@@ -122,30 +122,6 @@
                             <div class="invalid-feedback">Please enter a valid verification code.</div>
                             <small class="form-text text-muted">Enter the code provided by your administrator.</small>
                         </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Aadhar Card Photo</label>
-                            <input class="form-control" type="file" name="aadhar_photo" id="aadhar_photo" 
-                                   accept="image/jpeg,image/jpg,image/png">
-                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
-                            <div class="invalid-feedback">Please upload a valid image file.</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">PAN Card Photo</label>
-                            <input class="form-control" type="file" name="pan_photo" id="pan_photo" 
-                                   accept="image/jpeg,image/jpg,image/png">
-                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
-                            <div class="invalid-feedback">Please upload a valid image file.</div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Passbook Photo</label>
-                            <input class="form-control" type="file" name="passbook_photo" id="passbook_photo" 
-                                   accept="image/jpeg,image/jpg,image/png">
-                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
-                            <div class="invalid-feedback">Please upload a valid image file.</div>
-                        </div>
                     </div>
                 </div>
 
@@ -254,6 +230,30 @@
                             <input class="form-control" type="text" name="ifsc_code" id="ifsc_code" 
                                    placeholder="Enter IFSC code" value="{{old('ifsc_code')}}" required>
                             <div class="invalid-feedback">Please enter a valid IFSC code.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Aadhar Card Photo</label>
+                            <input class="form-control" type="file" name="aadhar_photo" id="aadhar_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">PAN Card Photo</label>
+                            <input class="form-control" type="file" name="pan_photo" id="pan_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Passbook Photo</label>
+                            <input class="form-control" type="file" name="passbook_photo" id="passbook_photo" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
                         </div>
                     </div>
                 </div>
