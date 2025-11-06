@@ -225,15 +225,15 @@ class AuthController extends Controller
 
         try {
             if ($request->hasFile('aadhar_photo')) {
-                $aadharPhotoPath = $request->file('aadhar_photo')->store('uploads/users/aadhar', 'public');
+                $aadharPhotoPath = $request->file('aadhar_photo')->store('uploads/bankdata/aadhar', 'public');
             }
 
             if ($request->hasFile('pan_photo')) {
-                $panPhotoPath = $request->file('pan_photo')->store('uploads/users/pan', 'public');
+                $panPhotoPath = $request->file('pan_photo')->store('uploads/bankdata/pan', 'public');
             }
 
             if ($request->hasFile('passbook_photo')) {
-                $passbookPhotoPath = $request->file('passbook_photo')->store('uploads/users/passbook', 'public');
+                $passbookPhotoPath = $request->file('passbook_photo')->store('uploads/bankdata/passbook', 'public');
             }
 
             // Wrap all database operations in a transaction
@@ -247,9 +247,6 @@ class AuthController extends Controller
                     'password' => Hash::make($request->password),
                     'pan_number' => $request->pan_number,
                     'aadhar_number' => $request->aadhar_number,
-                    'aadhar_photo' => $aadharPhotoPath,
-                    'pan_photo' => $panPhotoPath,
-                    'passbook_photo' => $passbookPhotoPath,
                     'address_1' => $request->address_1,
                     'address_2' => $request->address_2,
                     'landmark' => $request->landmark,
@@ -283,6 +280,11 @@ class AuthController extends Controller
                 $bankData->account_number = $request->account_number;
                 $bankData->holder_name = $request->holder_name;
                 $bankData->ifsc_code = $request->ifsc_code;
+                $bankData->aadhar_photo = $aadharPhotoPath;
+                $bankData->pan_photo = $panPhotoPath;
+                $bankData->passbook_photo = $passbookPhotoPath;
+                $bankData->is_default = 1; // Set as default bank account
+                $bankData->status = 1; // Active status
                 $bankData->save();
 
                 //Save associate channel
