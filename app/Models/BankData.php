@@ -22,6 +22,7 @@ class BankData extends Model
         'aadhar_photo',
         'passbook_photo',
         'status',
+        'is_default',
     ];
 
     public function bank()
