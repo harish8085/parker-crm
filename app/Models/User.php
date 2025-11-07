@@ -61,6 +61,14 @@ class User extends Authenticatable
         'otp_expires_at' => 'datetime',
     ];
 
+    public function channelUser()
+    {
+        return $this->hasMany(ChannelUser::class, 'associate_channel_id', 'id');
+    }
+    public function channelUserParent()
+    {
+        return $this->hasMany(ChannelUser::class, 'channel_id', 'id');
+    }
     public function bankData()
     {
         return $this->hasMany(BankData::class);

@@ -170,6 +170,8 @@ class ChannelPartnerController extends Controller
 
                 $query = User::whereHas('roles', function ($q) use ($roleId) {
                     $q->where('id', $roleId);
+                })->whereHas('channelUser', function ($q) use ($user) {
+                    $q->where('channel_id', $user->id);
                 });
 
                 if ($request->date) {
