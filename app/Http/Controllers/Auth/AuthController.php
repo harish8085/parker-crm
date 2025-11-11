@@ -203,6 +203,98 @@ class AuthController extends Controller
             'aadhar_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'pan_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'passbook_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        ], [
+            // Personal Details
+            'first_name.required' => 'Channel name is required.',
+            'first_name.string' => 'Channel name must be a valid text.',
+            'first_name.max' => 'Channel name must not exceed 255 characters.',
+            
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email address must not exceed 255 characters.',
+            'email.unique' => 'This email address is already registered. Please use a different email.',
+            
+            'phone.required' => 'Phone number is required.',
+            'phone.string' => 'Phone number must be a valid text.',
+            'phone.min' => 'Phone number must be exactly 10 digits.',
+            'phone.max' => 'Phone number must be exactly 10 digits.',
+            'phone.unique' => 'This phone number is already registered. Please use a different phone number.',
+            
+            'password.required' => 'Password is required.',
+            'password.string' => 'Password must be a valid text.',
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            
+            'pan_number.required' => 'PAN card number is required.',
+            'pan_number.string' => 'PAN card number must be a valid text.',
+            
+            'aadhar_number.required' => 'Aadhar number is required.',
+            'aadhar_number.string' => 'Aadhar number must be a valid text.',
+            
+            'verification_code.required' => 'Verification code is required.',
+            'verification_code.string' => 'Verification code must be a valid text.',
+            
+            // Address Details
+            'address_1.required' => 'Address line 1 is required.',
+            'address_1.string' => 'Address line 1 must be a valid text.',
+            'address_1.max' => 'Address line 1 must not exceed 255 characters.',
+            
+            'address_2.required' => 'Address line 2 is required.',
+            'address_2.string' => 'Address line 2 must be a valid text.',
+            'address_2.max' => 'Address line 2 must not exceed 255 characters.',
+            
+            'landmark.required' => 'Landmark is required.',
+            'landmark.string' => 'Landmark must be a valid text.',
+            'landmark.max' => 'Landmark must not exceed 255 characters.',
+            
+            'state.required' => 'State is required.',
+            'state.string' => 'State must be a valid text.',
+            
+            'district.required' => 'District is required.',
+            'district.string' => 'District must be a valid text.',
+            
+            'pincode.required' => 'Pincode is required.',
+            'pincode.string' => 'Pincode must be a valid text.',
+            'pincode.regex' => 'Pincode must be exactly 6 digits.',
+            
+            // Bank Details
+            'bank_name.required' => 'Bank name is required.',
+            'bank_name.string' => 'Bank name must be a valid text.',
+            'bank_name.max' => 'Bank name must not exceed 255 characters.',
+            
+            'branch_name.required' => 'Branch name is required.',
+            'branch_name.string' => 'Branch name must be a valid text.',
+            'branch_name.max' => 'Branch name must not exceed 255 characters.',
+            
+            'holder_name.required' => 'Account holder name is required.',
+            'holder_name.string' => 'Account holder name must be a valid text.',
+            'holder_name.max' => 'Account holder name must not exceed 255 characters.',
+            
+            'account_number.required' => 'Account number is required.',
+            'account_number.string' => 'Account number must be a valid text.',
+            
+            'confirm_account_number.required' => 'Account number confirmation is required.',
+            'confirm_account_number.string' => 'Account number confirmation must be a valid text.',
+            'confirm_account_number.same' => 'Account number confirmation does not match the account number.',
+            
+            'ifsc_code.required' => 'IFSC code is required.',
+            'ifsc_code.string' => 'IFSC code must be a valid text.',
+            
+            'service_type.required' => 'Service type is required.',
+            'service_type.exists' => 'Selected service type is invalid.',
+            
+            // File Uploads
+            'aadhar_photo.image' => 'Aadhar photo must be an image file.',
+            'aadhar_photo.mimes' => 'Aadhar photo must be a JPEG, JPG, or PNG file.',
+            'aadhar_photo.max' => 'Aadhar photo size must not exceed 2MB.',
+            
+            'pan_photo.image' => 'PAN photo must be an image file.',
+            'pan_photo.mimes' => 'PAN photo must be a JPEG, JPG, or PNG file.',
+            'pan_photo.max' => 'PAN photo size must not exceed 2MB.',
+            
+            'passbook_photo.image' => 'Passbook photo must be an image file.',
+            'passbook_photo.mimes' => 'Passbook photo must be a JPEG, JPG, or PNG file.',
+            'passbook_photo.max' => 'Passbook photo size must not exceed 2MB.',
         ]);
 
         // Validate verification code against master code
