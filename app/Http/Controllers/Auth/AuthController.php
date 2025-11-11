@@ -70,49 +70,6 @@ class AuthController extends Controller
                 if (Auth::attempt($userdata)) {
                     $user = Auth::user();
 
-                    // Check if user has verified their email (OTP is cleared)
-                    if ($user->otp !== null || $user->otp_expires_at !== null) {
-                        // User is not verified - check if OTP is expired
-                        $isOtpExpired = false;
-                        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
-                            $isOtpExpired = true;
-                        }
-
-                        // Logout the user
-                        Auth::logout();
-
-                        // If OTP is expired or doesn't exist, generate and send a new one
-                        if ($isOtpExpired || !$user->otp) {
-                            $otp = generateOTP();
-                            $otpExpiresAt = Carbon::now()->addMinutes(10);
-                            
-                            $user->update([
-                                'otp' => $otp,
-                                'otp_expires_at' => $otpExpiresAt
-                            ]);
-                            
-                            // Send OTP email
-                            try {
-                                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
-                            } catch (\Exception $e) {
-                                \Log::error('Failed to send OTP email', [
-                                    'user_id' => $user->id,
-                                    'email' => $user->email,
-                                    'error' => $e->getMessage()
-                                ]);
-                            }
-                        }
-
-                        // Store user info in session for OTP verification
-                        session(['user_id' => $user->id, 'email' => $user->email]);
-
-                        flash()
-                            ->warning('Please verify your email address to continue. We\'ve sent a verification code to your email.')
-                            ->flash();
-                        
-                        return redirect()->route('verify-otp');
-                    }
-
                     if (in_array($user->user_type, $type)) {
                         if ($request->has('remember') == null) {
                             setcookie('email', $email, 100);
@@ -343,32 +300,23 @@ class AuthController extends Controller
                 // Commit the transaction if everything succeeds
                 DB::commit();
 
-                // Generate and send OTP
-                $otp = generateOTP();
-                $otpExpiresAt = Carbon::now()->addMinutes(10);
-                
-                // Store OTP in database
-                $user->update([
-                    'otp' => $otp,
-                    'otp_expires_at' => $otpExpiresAt
-                ]);
-                
-                // Send OTP email
+                // Send welcome email with terms & conditions and verification link
                 try {
-                    Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+                    Mail::to($user->email)->send(new WelcomeMail($user));
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send OTP email', [
+                    \Log::error('Failed to send welcome email', [
                         'user_id' => $user->id,
                         'email' => $user->email,
                         'error' => $e->getMessage()
                     ]);
                 }
 
-                // Store user info in session for OTP verification
-                session(['user_id' => $user->id, 'email' => $user->email]);
+                flash()
+                    ->success('Registration successful! Please check your email for terms & conditions and verification link.')
+                    ->flash();
 
-                // Redirect to OTP verification page
-                return redirect()->route('verify-otp');
+                // Redirect to login page
+                return redirect('/');
             } catch (\Exception $e) {
                 // Rollback the transaction on any error
                 DB::rollBack();
@@ -430,16 +378,11 @@ class AuthController extends Controller
             return redirect('/');
         }
 
-        // If user is already verified (OTP is null), redirect to login
-        if ($user->otp === null && $user->otp_expires_at === null) {
-            flash()
-                ->success('Your email is already verified. Please login.')
-                ->flash();
-            return redirect('/');
-        }
-
-        // Check if OTP is expired and regenerate if needed
-        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
+        // Check if OTP exists and is valid
+        $hasValidOtp = $user->otp && $user->otp_expires_at && Carbon::now()->lessThanOrEqualTo($user->otp_expires_at);
+        
+        // If no valid OTP exists, generate and send a new one
+        if (!$hasValidOtp) {
             // Generate new OTP
             $otp = generateOTP();
             $otpExpiresAt = Carbon::now()->addMinutes(10);
@@ -609,6 +552,97 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Failed to send OTP. Please try again later.'
             ], 500);
+        }
+    }
+
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        try {
+            // Decrypt the token
+            $decryptedData = Crypt::decryptString($request->token);
+            $data = explode('|', $decryptedData);
+            
+            if (count($data) !== 2) {
+                flash()
+                    ->error('Invalid verification link.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            $user_id = $data[0];
+            $email = $data[1];
+
+            // Find the user
+            $user = User::where('id', $user_id)
+                        ->where('email', $email)
+                        ->first();
+
+            if (!$user) {
+                flash()
+                    ->error('Invalid verification link. User not found.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            // Check if user is already verified (both OTP fields are null means verified)
+            // But we still allow them to request a new OTP if they want to re-verify
+            // Only skip if they explicitly have been verified before
+            $isAlreadyVerified = ($user->otp === null && $user->otp_expires_at === null);
+            
+            // Generate OTP with 10 minutes validity
+            $otp = generateOTP();
+            $otpExpiresAt = Carbon::now()->addMinutes(10);
+            
+            // Store OTP in database
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt
+            ]);
+            
+            // Send OTP email
+            try {
+                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send OTP email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+                
+                flash()
+                    ->error('Failed to send OTP. Please try again later.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            // Store user info in session for OTP verification
+            session(['user_id' => $user->id, 'email' => $user->email]);
+
+            if ($isAlreadyVerified) {
+                flash()
+                    ->info('A new OTP has been sent to your email. Please verify it within 10 minutes.')
+                    ->flash();
+            } else {
+                flash()
+                    ->success('Verification link clicked successfully! We\'ve sent an OTP to your email. Please verify it within 10 minutes.')
+                    ->flash();
+            }
+            
+            return redirect()->route('verify-otp');
+        } catch (\Exception $e) {
+            \Log::error('Email verification failed', [
+                'error' => $e->getMessage(),
+                'token' => $request->token
+            ]);
+
+            flash()
+                ->error('Invalid verification link. Please contact support.')
+                ->flash();
+            return redirect('/');
         }
     }
 }
