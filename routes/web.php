@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\MasterCodeController;
+use App\Http\Controllers\Advance\AdvanceController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Bank\BankController;
@@ -113,6 +114,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::delete('/link-bank/delete/{bankData}', [BankDataController::class, 'destory']);
     Route::post('/link-bank/activate/{id}', [BankDataController::class, 'activate'])->name('link-bank.activate');
     Route::post('/link-bank/deactivate/{id}', [BankDataController::class, 'deactivate'])->name('link-bank.deactivate');
+
+    //Advance Route
+    Route::get('/advance', [AdvanceController::class, 'index'])->name('advance.index');
+    Route::get('/advance/create', [AdvanceController::class, 'create'])->name('advance.create');
+    Route::post('/advance/create', [AdvanceController::class, 'store'])->name('advance.store');
+    Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
+    Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
 });
 
 

@@ -1229,10 +1229,10 @@ if (!function_exists('generateEmployeeCode')) {
         $districtAbbreviation = substr($district, 0, 3);
         $firstNameAbbreviation = substr($firstName, 0, 3);
 
-        $nextId = '000'.$id;
+        $nextId = $id;
 
         // Generate the employee ID
-        $employeeID = $stateCode . '' . $districtAbbreviation . '' . $firstNameAbbreviation . '' . $nextId;
+        $employeeID = ucfirst($stateCode) . '' . ucfirst($districtAbbreviation) . '' . ucfirst($firstNameAbbreviation) . '' . $nextId;
 
         return $employeeID;
     }

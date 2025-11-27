@@ -59,9 +59,9 @@ $remember = NULL;}
                 <div class="d-grid">
                     <button type="submit" class="btn btn-block" style="background-color: #012670; color: white;">Sign in</button>
                 </div>
-                <div class="text-center mt-3">
+                <!-- <div class="text-center mt-3">
                     <p class="mb-0">Don't have an account? <a href="{{url('/signup')}}" class="text-decoration-none" style="color: #012670; font-weight: 600;">Sign up here</a></p>
-                </div>
+                </div> -->
             </form>
         </div>
     </div>

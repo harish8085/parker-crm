@@ -192,7 +192,7 @@ class BankDataController extends Controller
         $bankData->account_number = $request->account_number;
         $bankData->ifsc_code = $request->ifsc_code;
         $bankData->bank_name = $request->bank_name;
-
+        
         // Handle file uploads
         if ($request->hasFile('pan_photo')) {
             if(!empty($bankData->pan_photo)) {
@@ -230,7 +230,7 @@ class BankDataController extends Controller
         $userId = Auth::id();
 
         // Deactivate all other bank accounts
-        BankData::where('user_id', $userId)->update(['status' => 0]);
+        BankData::where('id', $id)->update(['status' => 1]);
         // Activate this one
         $bank = BankData::where('user_id', $userId)->findOrFail($id);
         $bank->status = 1;
@@ -248,7 +248,7 @@ class BankDataController extends Controller
     public function deactivate($id)
     {
         $userId = Auth::id();
-        $bank = BankData::where('user_id', $userId)->findOrFail($id);
+        $bank = BankData::where('id', $id)->findOrFail($id);
         $bank->status = 0;
         $bank->save();
 

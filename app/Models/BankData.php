@@ -23,6 +23,7 @@ class BankData extends Model
         'passbook_photo',
         'status',
         'is_default',
+        'verification_status',
     ];
 
     public function bank()

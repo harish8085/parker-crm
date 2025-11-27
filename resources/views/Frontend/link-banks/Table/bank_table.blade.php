@@ -7,6 +7,7 @@
             <th class="table-header">IFSC Code</th>
             <th class="table-header">Bank Name</th>
             <th class="table-header">Status</th>
+            <th class="table-header">Verification Status</th>
             <th class="table-header">Actions</th>
         </tr>
     </thead>

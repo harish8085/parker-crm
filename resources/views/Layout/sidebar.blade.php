@@ -28,6 +28,14 @@
                 </li>
                 @endif
 
+                @if(auth()->user()->roles[0]->id ==1)
+                <li class="list-item {{(Request::path() == 'advance')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'advance')?'active-li':''}}" href="{{url('advance')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'advance')?'assets/images/sheet-active.svg':'assets/images/sheet.svg')}}" alt="error">Advance
+                    </a>
+                </li>
+                @endif
+
 
 
                 @if(auth()->user()->hasPermission('settlement','view'))
@@ -91,7 +99,7 @@
                 </li>
                 @endif
                 
-                @if(auth()->user()->roles[0]->id ==2)
+                @if(auth()->user()->roles[0]->id ==2 || auth()->user()->roles[0]->id ==6)
 
                 <li class="list-item {{(Request::path() == 'link-bank')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'link-bank')?'active-li':''}}" href="{{url('link-bank')}}">

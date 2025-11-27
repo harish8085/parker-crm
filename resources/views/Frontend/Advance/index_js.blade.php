@@ -1,13 +1,13 @@
 <script>
     $(document).on('change', '.status-toggle', function () {
         var toggleElement = $(this);
-        var bankId = toggleElement.data('bank-id');
+        var advanceId = toggleElement.data('advance-id');
         var isChecked = toggleElement.is(':checked');
         var action = isChecked ? 'activate' : 'deactivate';
         var actionText = isChecked ? 'activate' : 'deactivate';
         
         bootbox.confirm({
-            message: 'Are you sure you want to ' + actionText + ' this bank account?',
+            message: 'Are you sure you want to ' + actionText + ' this advance?',
             buttons: {
                 confirm: {
                     label: 'Yes',
@@ -20,7 +20,7 @@
             },
             callback: function (result) {
                 if (result) {
-                    var url = isChecked ? '/link-bank/activate/' + bankId : '/link-bank/deactivate/' + bankId;
+                    var url = isChecked ? '/advance/activate/' + advanceId : '/advance/deactivate/' + advanceId;
                     
                     $.ajax({
                         url: url,
@@ -30,7 +30,7 @@
                         },
                         success: function (response) {
                             bootbox.alert({
-                                message: 'Bank account ' + actionText + 'd successfully.',
+                                message: 'Advance ' + actionText + 'd successfully.',
                                 callback: function () {
                                     $('.data-table').DataTable().ajax.reload();
                                 }
@@ -42,7 +42,7 @@
                             
                             console.log(xhr.responseText);
                             bootbox.alert({
-                                message: 'An error occurred while ' + actionText + 'ing the bank account.',
+                                message: 'An error occurred while ' + actionText + 'ing the advance.',
                                 className: 'bootbox-danger'
                             });
                         }
@@ -85,7 +85,7 @@
 <!-- Datatable -->
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
-    function load_data(date = '', date_range = '', bank_name = '', status = '') {
+    function load_data(date = '', date_range = '', status = '') {
 
         var table = $('.data-table').DataTable({
             debug: false, // Disable debugging
@@ -100,7 +100,7 @@
                 charset: 'UTF-8',
                 bom: true,
                 title: function () {
-                    return bank_name ? bank_name + ' Bank Account Details ' : 'Bank Account Details';
+                    return 'Advance Details';
                 },
                 exportOptions: {
                     columns: function (index, data, node) {
@@ -114,10 +114,9 @@
                     if (date == "custom") {
                         var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
                     }
-                    if (date || date_range || bank_name || status) {
+                    if (date || date_range || status) {
                         if (date) header += 'Date: ' + date + '\n';
                         if (date_range) header += 'Date Range: ' + date_range + '\n';
-                        if (bank_name) header += 'Bank Name: ' + bank_name + '\n';
                         if (status) header += 'Status: ' + (status == 1 ? 'Active' : 'Inactive') + '\n';
                     }
                     return header + csv; // Prepend the filter information to the CSV content
@@ -127,7 +126,7 @@
                 extend: 'excelHtml5',
                 text: 'Excel',
                 title: function () {
-                    return bank_name ? bank_name + ' Bank Account Details ' : 'Bank Account Details';
+                    return 'Advance Details';
                 },
                 exportOptions: {
                     columns: function (index, data, node) {
@@ -143,10 +142,9 @@
                     if (date == "custom") {
                         var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
                     }
-                    if (date || date_range || bank_name || status) {
+                    if (date || date_range || status) {
                         if (date) header += 'Date: ' + date + '\n';
                         if (date_range) header += 'Date Range: ' + date_range + '\n';
-                        if (bank_name) header += 'Bank Name: ' + bank_name + '\n';
                         if (status) header += 'Status: ' + (status == 1 ? 'Active' : 'Inactive') + '\n';
                     }
                     // Add the header in the first row
@@ -165,7 +163,7 @@
                 extend: 'print',
                 text: 'Print',
                 title: function () {
-                    return bank_name ? bank_name + ' Bank Account Details ' : 'Bank Account Details';
+                    return 'Advance Details';
                 },
                 exportOptions: {
                     columns: function (index, data, node) {
@@ -179,11 +177,10 @@
                     if (date == "custom") {
                         var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
                     }
-                    if (date || date_range || bank_name || status) {
+                    if (date || date_range || status) {
                         filters += '<h4>Filters Applied:</h4>';
                         if (date) filters += '<p>Date: ' + date + '</p>';
                         if (date_range) filters += '<p>Date Range: ' + date_range + '</p>';
-                        if (bank_name) filters += '<p>Bank Name: ' + bank_name + '</p>';
                         if (status) filters += '<p>Status: ' + (status == 1 ? 'Active' : 'Inactive') + '</p>';
                     }
 
@@ -194,11 +191,10 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: "{{ route('link-bank.index') }}",
+                url: "{{ route('advance.index') }}",
                 data: {
                     date: date,
                     date_range: date_range,
-                    bank_name: bank_name,
                     status: status,
                 },
                 error: function (xhr, error, thrown) {
@@ -212,28 +208,12 @@
                 searchable: false
             },
             {
-                data: 'account_holder_name',
-                name: 'account_holder_name'
+                data: 'user_id',
+                name: 'user_id'
             },
             {
-                data: 'account_number',
-                name: 'account_number'
-            },
-            {
-                data: 'ifsc_code',
-                name: 'ifsc_code'
-            },
-            {
-                data: 'bank_name',
-                name: 'bank_name'
-            },
-            {
-                data: 'status',
-                name: 'status'
-            },
-            {
-                data: 'verification_status',
-                name: 'verification_status'
+                data: 'advance_amount',
+                name: 'advance_amount'
             },
             {
                 data: 'action',
@@ -257,12 +237,11 @@
         $('#filter').click(function () {
             var date = $('#date').val();
             var date_range = $('#date-range-picker').val();
-            var bank_name = $('#bank_name').val();
             var status = $('#status').val();
 
-            if (date || bank_name || status) {
+            if (date || status) {
                 $('.data-table').DataTable().destroy();
-                load_data(date, date_range, bank_name, status);
+                load_data(date, date_range, status);
             } else {
                 bootbox.alert({
                     message: 'Select at least one filter!',
