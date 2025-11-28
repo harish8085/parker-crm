@@ -70,49 +70,6 @@ class AuthController extends Controller
                 if (Auth::attempt($userdata)) {
                     $user = Auth::user();
 
-                    // Check if user has verified their email (OTP is cleared)
-                    if ($user->otp !== null || $user->otp_expires_at !== null) {
-                        // User is not verified - check if OTP is expired
-                        $isOtpExpired = false;
-                        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
-                            $isOtpExpired = true;
-                        }
-
-                        // Logout the user
-                        Auth::logout();
-
-                        // If OTP is expired or doesn't exist, generate and send a new one
-                        if ($isOtpExpired || !$user->otp) {
-                            $otp = generateOTP();
-                            $otpExpiresAt = Carbon::now()->addMinutes(10);
-                            
-                            $user->update([
-                                'otp' => $otp,
-                                'otp_expires_at' => $otpExpiresAt
-                            ]);
-                            
-                            // Send OTP email
-                            try {
-                                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
-                            } catch (\Exception $e) {
-                                \Log::error('Failed to send OTP email', [
-                                    'user_id' => $user->id,
-                                    'email' => $user->email,
-                                    'error' => $e->getMessage()
-                                ]);
-                            }
-                        }
-
-                        // Store user info in session for OTP verification
-                        session(['user_id' => $user->id, 'email' => $user->email]);
-
-                        flash()
-                            ->warning('Please verify your email address to continue. We\'ve sent a verification code to your email.')
-                            ->flash();
-                        
-                        return redirect()->route('verify-otp');
-                    }
-
                     if (in_array($user->user_type, $type)) {
                         if ($request->has('remember') == null) {
                             setcookie('email', $email, 100);
@@ -246,6 +203,98 @@ class AuthController extends Controller
             'aadhar_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'pan_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'passbook_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+        ], [
+            // Personal Details
+            'first_name.required' => 'Channel name is required.',
+            'first_name.string' => 'Channel name must be a valid text.',
+            'first_name.max' => 'Channel name must not exceed 255 characters.',
+            
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.max' => 'Email address must not exceed 255 characters.',
+            'email.unique' => 'This email address is already registered. Please use a different email.',
+            
+            'phone.required' => 'Phone number is required.',
+            'phone.string' => 'Phone number must be a valid text.',
+            'phone.min' => 'Phone number must be exactly 10 digits.',
+            'phone.max' => 'Phone number must be exactly 10 digits.',
+            'phone.unique' => 'This phone number is already registered. Please use a different phone number.',
+            
+            'password.required' => 'Password is required.',
+            'password.string' => 'Password must be a valid text.',
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.confirmed' => 'Password confirmation does not match.',
+            
+            'pan_number.required' => 'PAN card number is required.',
+            'pan_number.string' => 'PAN card number must be a valid text.',
+            
+            'aadhar_number.required' => 'Aadhar number is required.',
+            'aadhar_number.string' => 'Aadhar number must be a valid text.',
+            
+            'verification_code.required' => 'Verification code is required.',
+            'verification_code.string' => 'Verification code must be a valid text.',
+            
+            // Address Details
+            'address_1.required' => 'Address line 1 is required.',
+            'address_1.string' => 'Address line 1 must be a valid text.',
+            'address_1.max' => 'Address line 1 must not exceed 255 characters.',
+            
+            'address_2.required' => 'Address line 2 is required.',
+            'address_2.string' => 'Address line 2 must be a valid text.',
+            'address_2.max' => 'Address line 2 must not exceed 255 characters.',
+            
+            'landmark.required' => 'Landmark is required.',
+            'landmark.string' => 'Landmark must be a valid text.',
+            'landmark.max' => 'Landmark must not exceed 255 characters.',
+            
+            'state.required' => 'State is required.',
+            'state.string' => 'State must be a valid text.',
+            
+            'district.required' => 'District is required.',
+            'district.string' => 'District must be a valid text.',
+            
+            'pincode.required' => 'Pincode is required.',
+            'pincode.string' => 'Pincode must be a valid text.',
+            'pincode.regex' => 'Pincode must be exactly 6 digits.',
+            
+            // Bank Details
+            'bank_name.required' => 'Bank name is required.',
+            'bank_name.string' => 'Bank name must be a valid text.',
+            'bank_name.max' => 'Bank name must not exceed 255 characters.',
+            
+            'branch_name.required' => 'Branch name is required.',
+            'branch_name.string' => 'Branch name must be a valid text.',
+            'branch_name.max' => 'Branch name must not exceed 255 characters.',
+            
+            'holder_name.required' => 'Account holder name is required.',
+            'holder_name.string' => 'Account holder name must be a valid text.',
+            'holder_name.max' => 'Account holder name must not exceed 255 characters.',
+            
+            'account_number.required' => 'Account number is required.',
+            'account_number.string' => 'Account number must be a valid text.',
+            
+            'confirm_account_number.required' => 'Account number confirmation is required.',
+            'confirm_account_number.string' => 'Account number confirmation must be a valid text.',
+            'confirm_account_number.same' => 'Account number confirmation does not match the account number.',
+            
+            'ifsc_code.required' => 'IFSC code is required.',
+            'ifsc_code.string' => 'IFSC code must be a valid text.',
+            
+            'service_type.required' => 'Service type is required.',
+            'service_type.exists' => 'Selected service type is invalid.',
+            
+            // File Uploads
+            'aadhar_photo.image' => 'Aadhar photo must be an image file.',
+            'aadhar_photo.mimes' => 'Aadhar photo must be a JPEG, JPG, or PNG file.',
+            'aadhar_photo.max' => 'Aadhar photo size must not exceed 2MB.',
+            
+            'pan_photo.image' => 'PAN photo must be an image file.',
+            'pan_photo.mimes' => 'PAN photo must be a JPEG, JPG, or PNG file.',
+            'pan_photo.max' => 'PAN photo size must not exceed 2MB.',
+            
+            'passbook_photo.image' => 'Passbook photo must be an image file.',
+            'passbook_photo.mimes' => 'Passbook photo must be a JPEG, JPG, or PNG file.',
+            'passbook_photo.max' => 'Passbook photo size must not exceed 2MB.',
         ]);
 
         // Validate verification code against master code
@@ -343,32 +392,23 @@ class AuthController extends Controller
                 // Commit the transaction if everything succeeds
                 DB::commit();
 
-                // Generate and send OTP
-                $otp = generateOTP();
-                $otpExpiresAt = Carbon::now()->addMinutes(10);
-                
-                // Store OTP in database
-                $user->update([
-                    'otp' => $otp,
-                    'otp_expires_at' => $otpExpiresAt
-                ]);
-                
-                // Send OTP email
+                // Send welcome email with terms & conditions and verification link
                 try {
-                    Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+                    Mail::to($user->email)->send(new WelcomeMail($user));
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send OTP email', [
+                    \Log::error('Failed to send welcome email', [
                         'user_id' => $user->id,
                         'email' => $user->email,
                         'error' => $e->getMessage()
                     ]);
                 }
 
-                // Store user info in session for OTP verification
-                session(['user_id' => $user->id, 'email' => $user->email]);
+                flash()
+                    ->success('Registration successful! Please check your email for terms & conditions and verification link.')
+                    ->flash();
 
-                // Redirect to OTP verification page
-                return redirect()->route('verify-otp');
+                // Redirect to login page
+                return redirect('/');
             } catch (\Exception $e) {
                 // Rollback the transaction on any error
                 DB::rollBack();
@@ -430,16 +470,11 @@ class AuthController extends Controller
             return redirect('/');
         }
 
-        // If user is already verified (OTP is null), redirect to login
-        if ($user->otp === null && $user->otp_expires_at === null) {
-            flash()
-                ->success('Your email is already verified. Please login.')
-                ->flash();
-            return redirect('/');
-        }
-
-        // Check if OTP is expired and regenerate if needed
-        if ($user->otp_expires_at && Carbon::now()->greaterThan($user->otp_expires_at)) {
+        // Check if OTP exists and is valid
+        $hasValidOtp = $user->otp && $user->otp_expires_at && Carbon::now()->lessThanOrEqualTo($user->otp_expires_at);
+        
+        // If no valid OTP exists, generate and send a new one
+        if (!$hasValidOtp) {
             // Generate new OTP
             $otp = generateOTP();
             $otpExpiresAt = Carbon::now()->addMinutes(10);
@@ -609,6 +644,97 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Failed to send OTP. Please try again later.'
             ], 500);
+        }
+    }
+
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        try {
+            // Decrypt the token
+            $decryptedData = Crypt::decryptString($request->token);
+            $data = explode('|', $decryptedData);
+            
+            if (count($data) !== 2) {
+                flash()
+                    ->error('Invalid verification link.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            $user_id = $data[0];
+            $email = $data[1];
+
+            // Find the user
+            $user = User::where('id', $user_id)
+                        ->where('email', $email)
+                        ->first();
+
+            if (!$user) {
+                flash()
+                    ->error('Invalid verification link. User not found.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            // Check if user is already verified (both OTP fields are null means verified)
+            // But we still allow them to request a new OTP if they want to re-verify
+            // Only skip if they explicitly have been verified before
+            $isAlreadyVerified = ($user->otp === null && $user->otp_expires_at === null);
+            
+            // Generate OTP with 10 minutes validity
+            $otp = generateOTP();
+            $otpExpiresAt = Carbon::now()->addMinutes(10);
+            
+            // Store OTP in database
+            $user->update([
+                'otp' => $otp,
+                'otp_expires_at' => $otpExpiresAt
+            ]);
+            
+            // Send OTP email
+            try {
+                Mail::to($user->email)->send(new OtpVerificationMail($user, $otp));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send OTP email', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
+                
+                flash()
+                    ->error('Failed to send OTP. Please try again later.')
+                    ->flash();
+                return redirect('/');
+            }
+
+            // Store user info in session for OTP verification
+            session(['user_id' => $user->id, 'email' => $user->email]);
+
+            if ($isAlreadyVerified) {
+                flash()
+                    ->info('A new OTP has been sent to your email. Please verify it within 10 minutes.')
+                    ->flash();
+            } else {
+                flash()
+                    ->success('Verification link clicked successfully! We\'ve sent an OTP to your email. Please verify it within 10 minutes.')
+                    ->flash();
+            }
+            
+            return redirect()->route('verify-otp');
+        } catch (\Exception $e) {
+            \Log::error('Email verification failed', [
+                'error' => $e->getMessage(),
+                'token' => $request->token
+            ]);
+
+            flash()
+                ->error('Invalid verification link. Please contact support.')
+                ->flash();
+            return redirect('/');
         }
     }
 }
