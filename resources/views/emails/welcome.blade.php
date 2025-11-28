@@ -78,8 +78,7 @@
         
         <div class="content">
             <h2>Welcome, {{ $user->first_name }}!</h2>
-            <p>Congratulations! Your email has been successfully verified.</p>
-            <p>You are now a registered member of {{ env('APP_NAME') }}. We're excited to have you on board!</p>
+            <p>Thank you for registering with {{ env('APP_NAME') }}. We're excited to have you on board!</p>
             
             <div class="info-box">
                 <p style="margin: 0;"><strong>Your Account Details:</strong></p>
@@ -90,7 +89,18 @@
                 </ul>
             </div>
             
-            <p>You can now access all the features of our platform. Here's what you can do:</p>
+            <p>Please find attached the Terms and Conditions document for your reference.</p>
+            
+            <p><strong>Important:</strong> To complete your registration and verify your email address, please click on the verification link below. Once you click the link, you will receive an OTP (One-Time Password) via email with 10 minutes validity.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ $verificationLink }}" class="button" style="background-color: #28a745;">Verify Your Email Address</a>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="{{ $verificationLink }}" style="color: #007bff; word-break: break-all;">{{ $verificationLink }}</a></p>
+            
+            <p>You can now login to your account and access all the features of our platform. Here's what you can do:</p>
             <ul>
                 <li>Access your dashboard</li>
                 <li>Manage your profile</li>
