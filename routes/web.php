@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\MasterCodeController;
+use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Advance\AdvanceController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\User\ChannelPartnerController;
 use App\Http\Controllers\User\SalesPersonController;
+use App\Http\Controllers\AnnouncementPopupController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
@@ -122,6 +124,10 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/advance/create', [AdvanceController::class, 'store'])->name('advance.store');
     Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
     Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
+
+    // Announcement popup API for logged-in users
+    Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');
+    Route::post('/announcements/{id}/acknowledge', [AnnouncementPopupController::class, 'acknowledge'])->name('announcements.acknowledge');
 });
 
 
@@ -262,4 +268,12 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/bank-payout/update/{bankPayout}', [BankPayoutController::class, 'edit']);
     Route::post('/bank-payout/update/{bankPayout}', [BankPayoutController::class, 'update']);
     Route::delete('/bank-payout/delete/{bankPayout}', [BankPayoutController::class, 'destory']);
+
+    // Announcement Route
+    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/announcements/create', [AnnouncementController::class, 'create']);
+    Route::post('/announcements/create', [AnnouncementController::class, 'store']);
+    Route::get('/announcements/update/{announcement}', [AnnouncementController::class, 'edit']);
+    Route::post('/announcements/update/{announcement}', [AnnouncementController::class, 'update']);
+    Route::delete('/announcements/delete/{announcement}', [AnnouncementController::class, 'destroy']);
 });

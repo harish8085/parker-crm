@@ -19,21 +19,23 @@ class CreatePermission extends Migration
         // Insert new permissions for master code in the permissions table (according to existing structure)
         DB::table('permissions')->insert([
             [
-                'name' => 'master_code',
-                'create' => true,
-                'update' => true,
-                'view' => true,
-                'delete' => false,
+                'name'       => 'master_code',
+                'create'     => true,
+                'update'     => true,
+                'view'       => true,
+                'delete'     => false,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-           
         ]);
-        $channelRole = Role::where('name', 'channel')->first();
-        $channelRole->permissions()->attach(Permission::where('name', 'master_code')->first());
 
-        // Insert new permissions for master code in the permissions table
-       
+        // Safely attach the permission to the "channel" role if it exists
+        $channelRole = Role::where('name', 'channel')->first();
+        $permission  = Permission::where('name', 'master_code')->first();
+
+        if ($channelRole && $permission) {
+            $channelRole->permissions()->attach($permission);
+        }
     }
 
     /**

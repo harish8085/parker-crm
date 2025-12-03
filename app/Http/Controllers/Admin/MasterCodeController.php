@@ -31,10 +31,10 @@ class MasterCodeController extends Controller
         $user = Auth::user()->roles[0]->name;
         if ($user == 'Admin') {
             $masterCodes = $this->masterCode->where('user_id', auth()->user()->id)->first();
-            $masterCode = $masterCodes->code;
+            $masterCode = ($masterCodes)?$masterCodes->code:'';
             
         } else {
-            $masterCode = Auth::user()->Emp_Id;
+            $masterCode = ($masterCodes)?$masterCodes->code:'';
         }
         return view('Frontend.master-code.index', compact('masterCode'));
     }

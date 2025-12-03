@@ -219,6 +219,11 @@
                                         searchable: false
                                 },
                                 {
+                                        data: 'percent',
+                                        name: 'percent',
+                                        searchable: false
+                                },
+                                {
                                         data: 'auto_generate_lan',
                                         name: 'auto_generate_lan',
                                         searchable: false

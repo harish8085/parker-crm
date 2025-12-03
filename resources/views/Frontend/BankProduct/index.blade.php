@@ -128,6 +128,12 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Percent<span class="required">*</span></label>
+                            <input type="number" class="form-control" name="percent" id="percent" placeholder="Enter Percent" step="0.01" min="0">
+                        </div>
+                    </div>
                     <div class="save-btn-container">
                         <button type="submit" class="save-btn">Save</button>
                     </div>

@@ -7,6 +7,23 @@
 
 @endsection
 @section('body')
+
+<div class="breadcrumb-container" style="margin-bottom: 24px;">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
+            <li class="breadcrumb-item"><a href="{{ url('/dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url('/bank/view/product') }}">All Products</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Bank Product</li>
+        </ol>
+    </nav>
+</div>
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ url('/bank/view/product') }}" class="btn btn-secondary">
+            &larr; Back
+        </a>
+    </div>
+
+
     <h2>Edit Bank Product</h2>
     <form action="{{url('/bank/update/product/' . $bank->id)}}" method="POST">
         @method('PUT')
@@ -53,9 +70,14 @@
                     <!-- <input class="bank-detail-input form-control" type="text" name="disbAmount" id="disbAmount" placeholder="Enter Disburse Amount" required> -->
                     <select class="bank-detail-input form-select row_select" required name="auto_generate_lan" id="auto_generate_lan">
                         <option value="" selected disabled>Select Type</option>
-                        <option value="1">True</option>
-                        <option value="0">False</option>
+                        <option @if($bank->auto_generate_lan == 1) selected @endif value="1">True</option>
+                        <option @if($bank->auto_generate_lan == 0) selected @endif value="0">False</option>
                     </select>
+                </div>
+
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Percent<span class="required">*</span></label>
+                    <input type="number" class="bank-detail-input form-control" name="percent" id="percent" value="{{$bank->percent}}" placeholder="Enter Percent" step="0.01" min="0">
                 </div>
 
 
