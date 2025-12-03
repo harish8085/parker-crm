@@ -49,6 +49,22 @@
         </div>
     </div>
     @yield('modal')
+
+    <!-- Global Announcement Modal -->
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="announcementModalTitle">Announcement</h5>
+                </div>
+                <div class="modal-body" id="announcementModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="announcementOkButton" class="btn btn-primary">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 
@@ -80,5 +96,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
 @yield('script')
+
+<script src="{{ asset('assets/js/announcement-popup.js') }}"></script>
 
 </html>

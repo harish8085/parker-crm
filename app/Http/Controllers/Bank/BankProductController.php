@@ -100,6 +100,9 @@ class BankProductController extends Controller
                 ->editColumn('product_group', function ($row) {
                     return $row->product ? $row->product->group : '-'; 
                 })
+                ->editColumn('percent', function ($row) {
+                    return $row->percent ? $row->percent : '-'; 
+                })
                 ->editColumn('auto_generate_lan', function ($row) {
                     return $row->auto_generate_lan ? 'Yes' : 'No'; 
                 })
@@ -131,6 +134,7 @@ class BankProductController extends Controller
             'bank_id' => 'required|string|max:255',
             'product_id' => 'required|string|max:255',
             'auto_generate_lan' => 'required|string|max:10',
+            'percent' => 'required|numeric|max:100',
         ]);
 
         $checkExist = BankProduct::where([ 'product_id' => $request->product_id, 'bank_id' => $request->bank_id])->get();
@@ -189,6 +193,7 @@ class BankProductController extends Controller
             'bank_id' => 'required|string|max:255',
             'product_id' => 'required|string|max:255',
             'auto_generate_lan' => 'required|boolean|max:10',
+            'percent' => 'required|numeric|max:100',
         ]);
          $checkExist = BankProduct::where([ 'product_id' => $request->product_id, 'bank_id' => $request->bank_id])->where('id', '!=', $bankProduct->id)->get();
         if ($checkExist->isNotEmpty()) {

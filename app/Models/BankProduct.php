@@ -20,7 +20,7 @@ class BankProduct extends Model
      *
      * @var array
      */
-    protected $fillable = ['bank_id', 'product_id','auto_generate_lan'];
+    protected $fillable = ['bank_id', 'product_id','auto_generate_lan','percent'];
 
     /**
      * Get the bank that owns the bank product.
