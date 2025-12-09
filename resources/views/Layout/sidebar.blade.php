@@ -13,13 +13,13 @@
                     <a class="nav-links {{(Request::path() == 'dashboard')?'active-li':''}}" href="{{url('dashboard')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'dashboard')?'assets/images/home-active.svg':'assets/images/home.svg')}}" alt="error">Dashboard</a>
                 </li>
-                @if(auth()->user()->roles[0]->id ==1)
+                
                 <li class="list-item {{(Request::path() == 'announcements')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'announcements')?'active-li':''}}" href="{{url('announcements')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'announcements')?'assets/images/announcement-active.svg':'assets/images/announcement.svg')}}" alt="error">Announcement
                     </a>
                 </li>
-                @endif
+                
                 @if(auth()->user()->hasPermission('application','view'))
                 <li class="list-item {{(Request::path() == 'application')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'application')?'active-li':''}}" href="{{url('application')}}">
@@ -160,6 +160,11 @@
                         <li class="dropdown-list-li {{(Request::path() == 'staff/view/permissions')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'staff/view/permissions')?'active-li':''}}" href="{{url('staff/view/permissions')}}">Permissions</a>
                         </li>
+                        @if(auth()->user()->roles[0]->id == 1)
+                        <li class="dropdown-list-li {{(Request::path() == 'maker-checker')?'active-li':''}}">
+                            <a class="dropdown-item nav-links {{(Request::path() == 'maker-checker')?'active-li':''}}" href="{{url('maker-checker')}}">Maker / Checker</a>
+                        </li>
+                        @endif
                     </ul>
                 </li>
                 @endif

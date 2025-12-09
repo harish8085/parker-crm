@@ -17,22 +17,38 @@ class AnnouncementPopupController extends Controller
         $now = Carbon::now();
 
         $announcements = Announcement::where('is_active', true)
-            ->where(function ($q) use ($now) {
-                $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
-            })
+             
             ->where(function ($q) use ($now) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>=', $now);
             })
             ->whereDoesntHave('views', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })
-            ->orderBy('created_at', 'asc')
+            })->where('created_by', '!=', $user->id)
+            ->with('attachments')
+            ->orderBy('created_at', 'desc')
             ->get(['id', 'title', 'message']);
+
+        // Format announcements with attachments
+        $formattedAnnouncements = $announcements->map(function ($announcement) {
+            return [
+                'id' => $announcement->id,
+                'title' => $announcement->title,
+                'message' => $announcement->message,
+                'attachments' => $announcement->attachments->map(function ($attachment) {
+                    return [
+                        'id' => $attachment->id,
+                        'path' => $attachment->attachment,
+                        'name' => basename($attachment->attachment),
+                        'url' => asset($attachment->attachment),
+                    ];
+                }),
+            ];
+        });
 
         return response()->json([
             'status' => 'success',
             'code' => 200,
-            'data' => $announcements,
+            'data' => $formattedAnnouncements->values()->toArray(),
         ]);
     }
 
