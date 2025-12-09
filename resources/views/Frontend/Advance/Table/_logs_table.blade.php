@@ -8,6 +8,7 @@
             <th class="table-header">Created At</th>
             <th class="table-header">Created By</th>
             <th class="table-header">Remark</th>
+            <th class="table-header">Actions</th>
         </tr>
     </thead>
     <tbody>        
