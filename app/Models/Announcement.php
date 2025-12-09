@@ -15,6 +15,7 @@ class Announcement extends Model
         'starts_at',
         'expires_at',
         'is_active',
+    
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class Announcement extends Model
         'expires_at' => 'datetime',
         'is_active' => 'boolean',
     ];
+
+    
 
     public function creator(): BelongsTo
     {
@@ -31,6 +34,11 @@ class Announcement extends Model
     public function views(): HasMany
     {
         return $this->hasMany(AnnouncementView::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(AnnouncementAttachment::class);
     }
 }
 

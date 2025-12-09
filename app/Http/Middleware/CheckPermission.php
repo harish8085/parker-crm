@@ -23,6 +23,11 @@ class CheckPermission
         $urlParts = explode('/', $request->path());
         $applicationName = $urlParts[0];
         $type = isset($urlParts[1]) ? $urlParts[1] : 'view';
+
+        if(Auth::user()->user_type == 'admin'){
+            return $next($request);
+        }
+        
         if ($applicationName != 'dashboard') {
             if (!Auth::user()->hasPermission($applicationName, $type)) {
                 abort(403, 'Unauthorized action.');
