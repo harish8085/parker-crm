@@ -123,7 +123,12 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/advance/create', [AdvanceController::class, 'create'])->name('advance.create');
     Route::post('/advance/create', [AdvanceController::class, 'store'])->name('advance.store');
     Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
+    Route::get('/advance/update/{id}', [AdvanceController::class, 'edit'])->name('advance.edit');
+    Route::post('/advance/update/{id}', [AdvanceController::class, 'update'])->name('advance.update');
     Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
+    Route::get('/advance/applications/by-user', [AdvanceController::class, 'applicationsByUser'])->name('advance.applications.by-user');
+    Route::get('/advance/applications/list-by-user', [AdvanceController::class, 'applicationsListByUser'])->name('advance.applications.list-by-user');
+    Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');

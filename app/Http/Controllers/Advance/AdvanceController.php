@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Advance;
 use App\Http\Controllers\Controller;
 use App\Models\Advance;
 use App\Models\AdvanceAmountLog;
+use App\Models\Application;
+use App\Models\BankProduct;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -109,28 +111,102 @@ class AdvanceController extends Controller
             $messages = [
                 'user_id.required' => 'Please select a channel partner.',
                 'user_id.exists' => 'The selected channel partner does not exist.',
-                'advance_amount.required' => 'Please enter an advance amount.',
+                'advance_amount.required_if' => 'Please enter an advance amount for No Case type.',
                 'advance_amount.numeric' => 'The advance amount must be a number.',
                 'advance_amount.min' => 'The advance amount must be at least 1.',
                 'advance_remark.max' => 'The advance remark must not exceed 500 characters.',
-                'advance_type.required' => 'Please select an advance type.',
-                'advance_type.in' => 'The advance type must be either add or deduct.',
+                'case_type.required' => 'Please select case type (Case / No Case).',
+                'case_type.in' => 'Invalid case type selected.',
+                'application_ids.required_if' => 'Please select at least one case when case type is Case.',
+                'application_ids.array' => 'Cases selection must be a valid list.',
+                'application_ids.*.exists' => 'One or more selected cases are invalid.',
             ];
     
             $validated = $request->validate([
                 'user_id' => 'required|exists:users,id',
-                'advance_amount' => 'required|numeric|min:1',
+                'advance_amount' => 'required_if:case_type,no_case|numeric|min:1',
                 'advance_remark' => 'nullable|string|max:500',
-                'advance_type' => 'required|in:add,deduct',
+                'case_type' => 'required|in:case,no_case',
+                'application_ids' => 'required_if:case_type,case|array',
+                'application_ids.*' => 'exists:applications,id',
             ], $messages);
+
+            $perCaseAmounts = [];
+
+            // If case_type is "case", calculate advance amount from applications and bank_products percentage
+            if ($validated['case_type'] === 'case') {
+                $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
+                    ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
+
+                if ($applications->isEmpty()) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'No valid applications found for the selected cases.');
+                }
+
+                $totalAdvanceAmount = 0;
+
+                foreach ($applications as $app) {
+                    $bankProduct = BankProduct::where('bank_id', $app->bank_id)
+                        ->where('product_id', $app->product_id)
+                        ->first();
+
+                    if (!$bankProduct || $bankProduct->percent === null) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Payout percentage is not configured for Bank/Product of case ' . $app->app_id . ' (' . $app->customer_name . ').');
+                    }
+
+                    $disburseAmount = (float) ($app->disburse_amount ?? 0);
+                    $percent = (float) $bankProduct->percent;
+
+                    $caseAmount = round($disburseAmount * $percent / 100, 2);
+
+                    if ($caseAmount <= 0) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Calculated advance amount is zero for case ' . $app->app_id . '. Please check disbursement amount and percentage.');
+                    }
+
+                    $perCaseAmounts[$app->id] = $caseAmount;
+                    $totalAdvanceAmount += $caseAmount;
+                }
+
+                if ($totalAdvanceAmount <= 0) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Calculated total advance amount is zero. Please verify selected cases and configuration.');
+                }
+
+                // Override advance_amount with calculated total
+                $validated['advance_amount'] = $totalAdvanceAmount;
+            }
     
-            Advance::createAdvance([
+            $advanceAmountLog = Advance::createAdvance([
                 'user_id' => $validated['user_id'],
                 'advance_amount' => $validated['advance_amount'],
                 'advance_remark' => $validated['advance_remark'] ?? null,
-                'advance_type' => $validated['advance_type'],
+                'advance_type' => 'add', // default type now
                 'created_by' => auth()->user()->id,
             ]);
+
+            // If there are specific cases selected, create records in advance_payment_cases
+            if ($validated['case_type'] === 'case' && !empty($validated['application_ids']) && $advanceAmountLog) {
+                foreach ($validated['application_ids'] as $applicationId) {
+                    $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                    if ($caseAmount === null) {
+                        // Should not happen, but guard anyway
+                        continue;
+                    }
+
+                    \App\Models\AdvancePaymentCase::create([
+                        'advance_amount_log_id' => $advanceAmountLog->id,
+                        'application_id' => $applicationId,
+                        'advance_payment_amount' => $caseAmount,
+                        'status' => 'active',
+                    ]);
+                }
+            }
     
             return redirect()->route('advance.index')->with('success', 'Advance created successfully.');
         } catch (\Throwable $e) {
@@ -182,6 +258,165 @@ class AdvanceController extends Controller
     }
 
     /**
+     * Get applications (cases) for a given channel partner (user) for multi-select.
+     * This is kept for backward compatibility but may not be used if checkbox list is used.
+     */
+    public function applicationsByUser(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $term = $request->get('q');
+        $userId = $request->get('user_id');
+
+        $applications = Application::select('id', 'app_id', 'customer_name', 'disburse_amount')
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->when($term, function ($query) use ($term) {
+                $query->where(function ($inner) use ($term) {
+                    $inner->where('app_id', 'like', '%' . $term . '%')
+                        ->orWhere('customer_name', 'like', '%' . $term . '%');
+                });
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $results = $applications->map(function ($app) {
+            $text = $app->app_id;
+            if ($app->customer_name) {
+                $text .= ' - ' . $app->customer_name;
+            }
+            if ($app->disburse_amount) {
+                $text .= ' (₹' . number_format($app->disburse_amount, 2) . ')';
+            }
+
+            return [
+                'id' => $app->id,
+                'text' => $text,
+            ];
+        });
+
+        return response()->json($results);
+    }
+
+    /**
+     * Get applications (cases) with full details for checkbox list display.
+     */
+    public function applicationsListByUser(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $userId = $request->get('user_id');
+
+        $applications = Application::with(['bank', 'product'])
+            ->where('user_id', $userId)
+            ->where('status', 'pending')
+            ->whereNotNull('app_id')
+            ->where('app_id', '!=', '')
+            ->orderBy('id', 'desc')
+            ->get([
+                'id', 'app_id', 'customer_name', 'customer_firm_name', 
+                'disburse_amount', 'disbursement_date', 'case_location', 
+                'case_state', 'bank_id', 'product_id', 'group', 'fresh_or_bt'
+            ]);
+
+        $results = $applications->map(function ($app) {
+            return [
+                'id' => $app->id,
+                'app_id' => $app->app_id,
+                'customer_name' => $app->customer_name,
+                'customer_firm_name' => $app->customer_firm_name,
+                'disburse_amount' => $app->disburse_amount,
+                'disbursement_date' => $app->disbursement_date,
+                'case_location' => $app->case_location,
+                'case_state' => $app->case_state,
+                'bank_name' => $app->bank ? $app->bank->name : '-',
+                'product_name' => $app->product ? $app->product->name : '-',
+                'group' => $app->group,
+                'fresh_or_bt' => $app->fresh_or_bt,
+            ];
+        });
+
+        return response()->json($results);
+    }
+
+    /**
+     * Calculate advance amount for selected cases (applications) without saving.
+     * Used for real-time calculation on the frontend.
+     */
+    public function calculateCaseAmount(Request $request)
+    {
+        $validated = $request->validate([
+            'application_ids' => 'required|array',
+            'application_ids.*' => 'exists:applications,id',
+        ]);
+
+        $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
+            ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
+
+        if ($applications->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No valid applications found for the selected cases.',
+            ], 422);
+        }
+
+        $perCase = [];
+        $totalAdvanceAmount = 0;
+
+        foreach ($applications as $app) {
+            $bankProduct = BankProduct::where('bank_id', $app->bank_id)
+                ->where('product_id', $app->product_id)
+                ->first();
+
+            if (!$bankProduct || $bankProduct->percent === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Payout percentage is not configured for Bank/Product of case ' . $app->app_id . ' (' . $app->customer_name . ').',
+                ], 422);
+            }
+
+            $disburseAmount = (float) ($app->disburse_amount ?? 0);
+            $percent = (float) $bankProduct->percent;
+            $caseAmount = round($disburseAmount * $percent / 100, 2);
+
+            if ($caseAmount <= 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Calculated advance amount is zero for case ' . $app->app_id . '. Please check disbursement amount and percentage.',
+                ], 422);
+            }
+
+            $perCase[] = [
+                'application_id' => $app->id,
+                'app_id' => $app->app_id,
+                'customer_name' => $app->customer_name,
+                'disburse_amount' => $disburseAmount,
+                'percent' => $percent,
+                'advance_amount' => $caseAmount,
+            ];
+
+            $totalAdvanceAmount += $caseAmount;
+        }
+
+        if ($totalAdvanceAmount <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Calculated total advance amount is zero. Please verify selected cases and configuration.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'total_amount' => round($totalAdvanceAmount, 2),
+            'cases' => $perCase,
+        ]);
+    }
+
+    /**
      * Display the specified advance details with logs.
      *
      * @param  Request  $request
@@ -228,5 +463,189 @@ class AdvanceController extends Controller
         }
 
         return view('Frontend.Advance.show', compact('Route', 'advance'));
+    }
+
+    /**
+     * Show the form for editing an existing advance (latest log & cases).
+     */
+    public function edit($id)
+    {
+        $Route = 'Edit Advance';
+        $advance = Advance::with('user', 'advanceAmountLogs')->findOrFail($id);
+
+        // Get latest log for this advance
+        $latestLog = $advance->advanceAmountLogs()->latest('created_at')->first();
+
+        $selectedApplicationIds = [];
+        if ($latestLog) {
+            $selectedApplicationIds = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $latestLog->id)
+                ->pluck('application_id')
+                ->toArray();
+        }
+
+        // Determine case type: if there are any cases linked, it's "case", else "no_case"
+        $caseType = !empty($selectedApplicationIds) ? 'case' : 'no_case';
+
+        // Preload selected applications for select2 display
+        $preloadedApplications = [];
+        if (!empty($selectedApplicationIds)) {
+            $preloadedApplications = \App\Models\Application::whereIn('id', $selectedApplicationIds)
+                ->get(['id', 'app_id', 'customer_name', 'disburse_amount']);
+        }
+
+        $users = User::select('id', 'first_name', 'last_name', 'email')
+            ->whereHas('roles', function ($query) {
+                $query->where('roles.id', 2);
+            })
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->limit(10)
+            ->get();
+
+        return view('Frontend.Advance.edit', compact(
+            'Route',
+            'advance',
+            'users',
+            'latestLog',
+            'caseType',
+            'selectedApplicationIds',
+            'preloadedApplications'
+        ));
+    }
+
+    /**
+     * Update an existing advance & its latest log/cases with same logic as create.
+     */
+    public function update(Request $request, $id)
+    {
+        try {
+            $messages = [
+                'user_id.required' => 'Please select a channel partner.',
+                'user_id.exists' => 'The selected channel partner does not exist.',
+                'advance_amount.required_if' => 'Please enter an advance amount for No Case type.',
+                'advance_amount.numeric' => 'The advance amount must be a number.',
+                'advance_amount.min' => 'The advance amount must be at least 1.',
+                'advance_remark.max' => 'The advance remark must not exceed 500 characters.',
+                'case_type.required' => 'Please select case type (Case / No Case).',
+                'case_type.in' => 'Invalid case type selected.',
+                'application_ids.required_if' => 'Please select at least one case when case type is Case.',
+                'application_ids.array' => 'Cases selection must be a valid list.',
+                'application_ids.*.exists' => 'One or more selected cases are invalid.',
+            ];
+
+            $validated = $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'advance_amount' => 'required_if:case_type,no_case|numeric|min:1',
+                'advance_remark' => 'nullable|string|max:500',
+                'case_type' => 'required|in:case,no_case',
+                'application_ids' => 'required_if:case_type,case|array',
+                'application_ids.*' => 'exists:applications,id',
+            ], $messages);
+
+            $advance = Advance::with('advanceAmountLogs')->findOrFail($id);
+
+            $perCaseAmounts = [];
+
+            // If case_type is "case", recalculate advance amount from applications and bank_products percentage
+            if ($validated['case_type'] === 'case') {
+                $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
+                    ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
+
+                if ($applications->isEmpty()) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'No valid applications found for the selected cases.');
+                }
+
+                $totalAdvanceAmount = 0;
+
+                foreach ($applications as $app) {
+                    $bankProduct = BankProduct::where('bank_id', $app->bank_id)
+                        ->where('product_id', $app->product_id)
+                        ->first();
+
+                    if (!$bankProduct || $bankProduct->percent === null) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Payout percentage is not configured for Bank/Product of case ' . $app->app_id . ' (' . $app->customer_name . ').');
+                    }
+
+                    $disburseAmount = (float) ($app->disburse_amount ?? 0);
+                    $percent = (float) $bankProduct->percent;
+
+                    $caseAmount = round($disburseAmount * $percent / 100, 2);
+
+                    if ($caseAmount <= 0) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Calculated advance amount is zero for case ' . $app->app_id . '. Please check disbursement amount and percentage.');
+                    }
+
+                    $perCaseAmounts[$app->id] = $caseAmount;
+                    $totalAdvanceAmount += $caseAmount;
+                }
+
+                if ($totalAdvanceAmount <= 0) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Calculated total advance amount is zero. Please verify selected cases and configuration.');
+                }
+
+                $validated['advance_amount'] = $totalAdvanceAmount;
+            }
+
+            \DB::transaction(function () use ($advance, $validated, $perCaseAmounts) {
+                // Update base advance details
+                $advance->user_id = $validated['user_id'];
+                $advance->advance_amount = $validated['advance_amount'];
+                $advance->advance_remark = $validated['advance_remark'] ?? null;
+                $advance->save();
+
+                // Latest log
+                $latestLog = $advance->advanceAmountLogs()->latest('created_at')->first();
+                if (!$latestLog) {
+                    // If no log exists (edge case), create one
+                    $latestLog = AdvanceAmountLog::createAdvanceAmountLog([
+                        'advance_id' => $advance->id,
+                        'advance_amount' => $validated['advance_amount'],
+                        'advance_date' => now()->toDateString(),
+                        'type' => 'add',
+                        'remark' => $validated['advance_remark'] ?? null,
+                        'created_by' => auth()->user()->id,
+                    ]);
+                } else {
+                    // Update existing latest log
+                    $latestLog->advance_amount = $validated['advance_amount'];
+                    $latestLog->advance_date = now()->toDateString();
+                    $latestLog->type = 'add';
+                    $latestLog->remark = $validated['advance_remark'] ?? null;
+                    $latestLog->created_by = auth()->user()->id;
+                    $latestLog->save();
+                }
+
+                // Sync cases in advance_payment_cases for this log
+                \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $latestLog->id)->delete();
+
+                if ($validated['case_type'] === 'case' && !empty($validated['application_ids'])) {
+                    foreach ($validated['application_ids'] as $applicationId) {
+                        $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                        if ($caseAmount === null) {
+                            continue;
+                        }
+
+                        \App\Models\AdvancePaymentCase::create([
+                            'advance_amount_log_id' => $latestLog->id,
+                            'application_id' => $applicationId,
+                            'advance_payment_amount' => $caseAmount,
+                            'status' => 'active',
+                        ]);
+                    }
+                }
+            });
+
+            return redirect()->route('advance.index')->with('success', 'Advance updated successfully.');
+        } catch (\Throwable $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
     }
 }

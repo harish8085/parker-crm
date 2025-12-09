@@ -11,17 +11,17 @@
         <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
             <li class="breadcrumb-item"><a href="{{ url('/dashboard') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ route('advance.index') }}">Advances</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Advance</li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Advance</li>
         </ol>
     </nav>
 </div>
 
 <div class="card p-4">
     <div class="application-header mb-4">
-        <h3 class="application-heading mb-0">Add Advance</h3>
+        <h3 class="application-heading mb-0">Edit Advance</h3>
     </div>
 
-    <form method="POST" action="{{ route('advance.store') }}">
+    <form method="POST" action="{{ route('advance.update', $advance->id) }}">
         @csrf
         <div class="row">
             {{-- 1. Channel Partner --}}
@@ -31,7 +31,8 @@
                     <select class="form-select select user-select" name="user_id" data-placeholder="Select Channel Partner" required>
                         <option value="">Select Channel Partner</option>
                         @foreach($users as $user)
-                            <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>
+                            <option value="{{ $user->id }}"
+                                {{ old('user_id', $advance->user_id) == $user->id ? 'selected' : '' }}>
                                 {{ $user->first_name }} {{ $user->last_name }} @if($user->email) ({{ $user->email }}) @endif
                             </option>
                         @endforeach
@@ -43,15 +44,18 @@
             </div>
 
             {{-- 2. Case Type --}}
+            @php
+                $oldCaseType = old('case_type', $caseType);
+            @endphp
             <div class="col-lg-6 mb-3">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Case Type</label>
                     <div>
                         <label class="me-3">
-                            <input type="radio" name="case_type" value="no_case" {{ old('case_type', 'no_case') == 'no_case' ? 'checked' : '' }}> No Case
+                            <input type="radio" name="case_type" value="no_case" {{ $oldCaseType === 'no_case' ? 'checked' : '' }}> No Case
                         </label>
                         <label>
-                            <input type="radio" name="case_type" value="case" {{ old('case_type') == 'case' ? 'checked' : '' }}> Case
+                            <input type="radio" name="case_type" value="case" {{ $oldCaseType === 'case' ? 'checked' : '' }}> Case
                         </label>
                     </div>
                     @error('case_type')
@@ -61,7 +65,7 @@
             </div>
 
             {{-- 3. Cases (Applications) --}}
-            <div class="col-lg-12 mb-3 case-section" style="{{ old('case_type') == 'case' ? '' : 'display:none;' }}">
+            <div class="col-lg-12 mb-3 case-section" style="{{ $oldCaseType === 'case' ? '' : 'display:none;' }}">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Select Cases (Application IDs)</label>
                     <div id="cases-loading" class="text-center py-3" style="display:none;">
@@ -116,7 +120,7 @@
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Advance Amount<span class="text-danger">*</span></label>
                     <input type="number" step="0.01" min="1" name="advance_amount" id="advance_amount" class="form-control" placeholder="Enter amount"
-                        value="{{ old('advance_amount') }}" required>
+                        value="{{ old('advance_amount', $latestLog ? $latestLog->advance_amount : $advance->advance_amount) }}" required>
                     @error('advance_amount')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
@@ -132,7 +136,7 @@
             <div class="col-lg-12 mb-3">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Remark</label>
-                    <textarea name="advance_remark" class="form-control" rows="4" placeholder="Add an optional remark">{{ old('advance_remark') }}</textarea>
+                    <textarea name="advance_remark" class="form-control" rows="4" placeholder="Add an optional remark">{{ old('advance_remark', $latestLog ? $latestLog->remark : $advance->advance_remark) }}</textarea>
                     @error('advance_remark')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
@@ -142,7 +146,7 @@
 
         <div class="d-flex justify-content-end">
             <a href="{{ route('advance.index') }}" class="btn btn-secondary me-2">Cancel</a>
-            <button type="submit" class="btn btn-primary">Save Advance</button>
+            <button type="submit" class="btn btn-primary">Update Advance</button>
         </div>
     </form>
 </div>
@@ -161,6 +165,11 @@
         const casesLoading = $('#cases-loading');
         const casesEmpty = $('#cases-empty');
         const casesList = $('#cases-list');
+        
+        @php
+            $oldAppIds = old('application_ids', $selectedApplicationIds ?? []);
+        @endphp
+        const preSelectedIds = @json($oldAppIds);
 
         function toggleCaseSection() {
             const caseType = $('input[name="case_type"]:checked').val();
@@ -218,9 +227,10 @@
                             maximumFractionDigits: 2
                         });
                         const disbursementDate = caseItem.disbursement_date ? new Date(caseItem.disbursement_date).toLocaleDateString('en-IN') : '-';
+                        const isChecked = preSelectedIds.includes(caseItem.id.toString()) || preSelectedIds.includes(caseItem.id);
                         
                         html += '<tr>';
-                        html += '<td><input type="checkbox" name="application_ids[]" class="case-checkbox" value="' + caseItem.id + '"></td>';
+                        html += '<td><input type="checkbox" name="application_ids[]" class="case-checkbox" value="' + caseItem.id + '"' + (isChecked ? ' checked' : '') + '></td>';
                         html += '<td><strong>' + (caseItem.app_id || '-') + '</strong></td>';
                         html += '<td>' + (caseItem.customer_name || '-') + '</td>';
                         html += '<td>' + (caseItem.customer_firm_name || '-') + '</td>';
@@ -238,15 +248,15 @@
                     casesList.html(html);
                     casesContainer.show();
 
-                    // Restore old selections if any
-                    @if(is_array(old('application_ids')))
-                        const oldSelections = @json(old('application_ids'));
-                        oldSelections.forEach(function(appId) {
-                            $('.case-checkbox[value="' + appId + '"]').prop('checked', true);
-                        });
-                    @endif
+                    // Update select-all checkbox state
+                    const total = $('.case-checkbox').length;
+                    const checked = $('.case-checkbox:checked').length;
+                    $('#select-all-checkbox').prop('checked', total === checked && total > 0);
 
-                    updateCalculatedAmount();
+                    // Initial calculation if cases are pre-selected
+                    if (checked > 0) {
+                        updateCalculatedAmount();
+                    }
                 },
                 error: function (xhr) {
                     casesLoading.hide();
