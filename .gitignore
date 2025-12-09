@@ -15,4 +15,5 @@ yarn-error.log
 /.vscode
 /resources/views/vendor/
 /public/vendor/
+/public/uploads
 /.cursor
