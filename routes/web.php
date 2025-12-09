@@ -23,6 +23,7 @@ use App\Http\Controllers\SheetMatching\SheetMatchingController;
 use App\Http\Controllers\Staff\PermissionController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
+use App\Http\Controllers\User\MakerCheckerController;
 use App\Http\Controllers\User\ChannelPartnerController;
 use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
@@ -240,6 +241,15 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::post('/staff/update/{id}', [StaffController::class, 'update']);
     Route::delete('/staff/delete/{user}', [StaffController::class, 'destroy']);
 
+    // Maker / Checker Route
+    Route::get('/maker-checker', [MakerCheckerController::class, 'index'])->name('maker-checker.index');
+    Route::get('/maker-checker/create', [MakerCheckerController::class, 'create']);
+    Route::post('/maker-checker/create', [MakerCheckerController::class, 'store']);
+    Route::get('/maker-checker/view/{id}', [MakerCheckerController::class, 'show']);
+    Route::get('/maker-checker/update/{id}', [MakerCheckerController::class, 'edit']);
+    Route::post('/maker-checker/update/{id}', [MakerCheckerController::class, 'update']);
+    Route::delete('/maker-checker/delete/{user}', [MakerCheckerController::class, 'destroy']);
+
     //Manage Role Route
     Route::get('/staff/view/role', [RoleController::class, 'index'])->name('manage-role.index');
     Route::post('/staff/create/role', [RoleController::class, 'store']);
@@ -273,6 +283,8 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/create', [AnnouncementController::class, 'create']);
     Route::post('/announcements/create', [AnnouncementController::class, 'store']);
+    Route::get('/announcements/view/{id}', [AnnouncementController::class, 'show'])->name('announcements.show');
+    Route::get('/announcements/logs/{id}', [AnnouncementController::class, 'logs'])->name('announcements.logs');
     Route::get('/announcements/update/{announcement}', [AnnouncementController::class, 'edit']);
     Route::post('/announcements/update/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/delete/{announcement}', [AnnouncementController::class, 'destroy']);
