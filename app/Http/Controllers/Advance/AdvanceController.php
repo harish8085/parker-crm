@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Advance;
 use App\Http\Controllers\Controller;
 use App\Models\Advance;
 use App\Models\AdvanceAmountLog;
+use App\Models\AdvancePaymentCase;
 use App\Models\Application;
 use App\Models\BankProduct;
 use App\Models\User;
@@ -458,7 +459,17 @@ class AdvanceController extends Controller
                 ->editColumn('remark', function ($row) {
                     return $row->remark ? $row->remark : '-';
                 })
-                ->rawColumns(['type'])
+                ->addColumn('actions', function ($row) {
+                    // Check if this log has associated payment cases
+                    $hasCases = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $row->id)->exists();
+                    if ($hasCases) {
+                        return '<button type="button" class="btn btn-sm btn-info view-app-ids" data-log-id="' . $row->id . '" title="View Application IDs">
+                                    <i class="fas fa-eye"></i>
+                                </button>';
+                    }
+                    return '-';
+                })
+                ->rawColumns(['type', 'actions'])
                 ->make(true);
         }
 
@@ -646,6 +657,44 @@ class AdvanceController extends Controller
             return redirect()->route('advance.index')->with('success', 'Advance updated successfully.');
         } catch (\Throwable $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Get application IDs (app_ids) for a specific advance amount log.
+     *
+     * @param  int  $logId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getLogApplicationIds($logId)
+    {
+        try {
+            $log = AdvanceAmountLog::with(['paymentCases.application.bank', 'paymentCases.application.product'])->findOrFail($logId);
+            
+            $applications = $log->paymentCases->map(function ($paymentCase) {
+                if ($paymentCase->application && $paymentCase->application->app_id) {
+                    return [
+                        'app_id' => $paymentCase->application->app_id,
+                        'bank_name' => $paymentCase->application->bank ? $paymentCase->application->bank->name : '-',
+                        'product_name' => $paymentCase->application->product ? $paymentCase->application->product->name : '-',
+                    ];
+                }
+                return null;
+            })->filter(function ($item) {
+                // Filter out null entries
+                return $item !== null && !empty($item['app_id']);
+            })->values();
+
+            return response()->json([
+                'success' => true,
+                'applications' => $applications,
+                'count' => $applications->count(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch application IDs: ' . $e->getMessage(),
+            ], 500);
         }
     }
 }
