@@ -2,17 +2,38 @@
     $(document).on('click', '.delete-announcement-btn', function () {
         if (confirm('Are you sure you want to delete this announcement?')) {
             var id = $(this).data('announcement-id');
+            
             $.ajax({
                 url: '/announcements/delete/' + id,
                 type: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
-                success: function () {
-                    location.reload();
+                success: function (response) {
+                    // Refresh the DataTable if it exists
+                    if (announcementTable) {
+                        announcementTable.ajax.reload(null, false);
+                    } else {
+                        // Fallback: try to get the table instance
+                        var table = $('.data-table').DataTable();
+                        if (table) {
+                            table.ajax.reload(null, false);
+                        } else {
+                            // Last resort: reload the page
+                            location.reload();
+                        }
+                    }
+                    
+                    // Show success message
+                    if (response && response.message) {
+                        alert(response.message);
+                    } else {
+                        alert('Announcement deleted successfully.');
+                    }
                 },
                 error: function (xhr) {
                     console.log(xhr.responseText);
+                    alert('Error deleting announcement. Please try again.');
                 }
             });
         }
@@ -44,9 +65,12 @@
 <!-- Datatable -->
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
+    
+    // Store DataTable instance globally
+    var announcementTable = null;
 
     function load_data(date = '', date_range = '', title = '') {
-        var table = $('.data-table').DataTable({
+        announcementTable = $('.data-table').DataTable({
             debug: false,
             dom: 'Bfrtip<"bottom"l>',
             lengthMenu: [
@@ -64,6 +88,7 @@
                     },
                     exportOptions: {
                         columns: function (index, data, node) {
+                            var table = this.api();
                             return index !== table.column(':last').index();
                         }
                     },
@@ -89,6 +114,7 @@
                     },
                     exportOptions: {
                         columns: function (index, data, node) {
+                            var table = this.api();
                             return index !== table.column(':last').index();
                         }
                     },
@@ -122,6 +148,7 @@
                     },
                     exportOptions: {
                         columns: function (index, data, node) {
+                            var table = this.api();
                             return index !== table.column(':last').index();
                         }
                     },
@@ -194,7 +221,9 @@
             var title = $('#title').val();
 
             if (date || title) {
-                $('.data-table').DataTable().destroy();
+                if (announcementTable) {
+                    announcementTable.destroy();
+                }
                 load_data(date, date_range, title);
             } else {
                 alert('Select at least one filter!');
@@ -202,7 +231,11 @@
         });
 
         $('#refresh').click(function () {
-            window.location.reload();
+            if (announcementTable) {
+                announcementTable.ajax.reload(null, false);
+            } else {
+                window.location.reload();
+            }
         });
     });
 </script>

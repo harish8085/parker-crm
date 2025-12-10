@@ -15,6 +15,7 @@ class Announcement extends Model
         'starts_at',
         'expires_at',
         'is_active',
+        'message_attachment',
     
     ];
 

@@ -81,6 +81,26 @@
             </div>
         </div>
 
+        @if($announcement->message_attachment)
+        <div class="mb-4">
+            <div class="info-label">Message Attachment</div>
+            <div class="mt-2">
+                @php
+                    $messageAttachmentUrl = asset($announcement->message_attachment);
+                @endphp
+                <div class="attachment-item">
+                    <img src="{{ $messageAttachmentUrl }}" class="attachment-image" alt="Message Attachment" onclick="window.open('{{ $messageAttachmentUrl }}', '_blank')">
+                    <div class="file-name" title="{{ basename($announcement->message_attachment) }}">
+                        {{ strlen(basename($announcement->message_attachment)) > 20 ? substr(basename($announcement->message_attachment), 0, 20) . '...' : basename($announcement->message_attachment) }}
+                    </div>
+                    <a href="{{ $messageAttachmentUrl }}" target="_blank" class="attachment-link">
+                        <i class="fas fa-external-link-alt"></i> Open
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @if($announcement->attachments && $announcement->attachments->count() > 0)
         <div class="mb-4">
             <div class="info-label">Attachments</div>
@@ -155,17 +175,19 @@
             <div class="info-value">{{ $announcement->creator->first_name . ' ' . $announcement->creator->last_name ?? 'N/A' }}</div>
         </div>
         @endif
-        @endif
+       
 
         <div class="mb-4">
             <div class="info-label">Created At</div>
             <div class="info-value">{{ $announcement->created_at->format('d-m-Y H:i') }}</div>
         </div>
+        
 
         <div class="d-flex justify-content-end mt-4">
             <a href="{{ url('/announcements') }}" class="btn btn-secondary me-2">Back</a>
             <a href="{{ url('/announcements/update/'.$announcement->id) }}" class="btn btn-primary">Edit</a>
         </div>
+        @endif
     </div>
 </div>
 @endsection

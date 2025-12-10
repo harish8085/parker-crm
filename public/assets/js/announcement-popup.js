@@ -30,6 +30,13 @@ function showAnnouncementsSequentially(announcements) {
         // Build modal body with message and attachments
         let modalBodyHtml = '<div class="announcement-content">';
         
+        // Display message_attachment if exists (shown after title, before message, at original size)
+        if (announcement.message_attachment && announcement.message_attachment.url) {
+            modalBodyHtml += '<div class="mb-3 text-center">';
+            modalBodyHtml += '<img src="' + announcement.message_attachment.url + '" style="border-radius: 5px; cursor: pointer; display: block; margin: 0 auto;" onclick="window.open(\'' + announcement.message_attachment.url + '\', \'_blank\')" title="Click to view full size">';
+            modalBodyHtml += '</div>';
+        }
+        
         // Display message (with HTML support)
         modalBodyHtml += '<div class="announcement-message mb-3">' + announcement.message + '</div>';
         

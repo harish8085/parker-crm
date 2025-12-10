@@ -26,11 +26,11 @@ class AnnouncementPopupController extends Controller
             })->where('created_by', '!=', $user->id)
             ->with('attachments')
             ->orderBy('created_at', 'desc')
-            ->get(['id', 'title', 'message']);
+            ->get(['id', 'title', 'message', 'message_attachment']);
 
         // Format announcements with attachments
         $formattedAnnouncements = $announcements->map(function ($announcement) {
-            return [
+            $formatted = [
                 'id' => $announcement->id,
                 'title' => $announcement->title,
                 'message' => $announcement->message,
@@ -43,6 +43,17 @@ class AnnouncementPopupController extends Controller
                     ];
                 }),
             ];
+
+            // Add message_attachment if exists
+            if ($announcement->message_attachment) {
+                $formatted['message_attachment'] = [
+                    'path' => $announcement->message_attachment,
+                    'name' => basename($announcement->message_attachment),
+                    'url' => asset($announcement->message_attachment),
+                ];
+            }
+
+            return $formatted;
         });
 
         return response()->json([

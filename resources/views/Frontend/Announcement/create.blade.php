@@ -124,6 +124,16 @@
                 <textarea name="message" id="announcement_message_create" class="form-control" rows="4" required>{{ old('message') }}</textarea>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label" for="message_attachment">Message Attachment (Image Only)</label>
+                <input type="file" name="message_attachment" id="message_attachment" class="form-control"
+                    accept=".jpg,.jpeg,.png" />
+                <small class="form-text text-muted">
+                    Allowed file types: JPG, JPEG, PNG only. Single file upload. Max file size may apply.
+                </small>
+                <div id="message-attachment-preview" class="mt-3"></div>
+            </div>
+
 
 
             <div class="form-check mb-3">
@@ -299,6 +309,42 @@
             // Refresh preview
             displayFilePreview(selectedFiles);
         });
+
+        // Message attachment preview functionality (single file)
+        $('#message_attachment').on('change', function(e) {
+            const file = e.target.files[0];
+            const previewContainer = $('#message-attachment-preview');
+            previewContainer.empty();
+            
+            if (file) {
+                const isImage = ['jpg', 'jpeg', 'png'].includes(file.name.split('.').pop().toLowerCase());
+                const fileSize = formatFileSize(file.size);
+                const fileName = file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name;
+                
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const previewHtml = '<div class="file-preview-item" style="position: relative;">' +
+                            '<img src="' + e.target.result + '" class="file-preview-image" alt="' + file.name + '" style="max-width: 200px; max-height: 200px;">' +
+                            '<div class="file-name" title="' + file.name + '">' + fileName + '</div>' +
+                            '<small class="text-muted">' + fileSize + '</small>' +
+                            '<span class="remove-file" onclick="clearMessageAttachment()" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; border: 2px solid white;">&times;</span>' +
+                            '</div>';
+                        previewContainer.html(previewHtml);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    previewContainer.html('<div class="alert alert-warning">Please select a valid image file (JPG, JPEG, or PNG)</div>');
+                    $(this).val('');
+                }
+            }
+        });
+
+        // Function to clear message attachment
+        window.clearMessageAttachment = function() {
+            $('#message_attachment').val('');
+            $('#message-attachment-preview').empty();
+        };
     });
 </script>
 @endsection

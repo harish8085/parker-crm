@@ -17,7 +17,7 @@ class AnnouncementController extends Controller
         $Route = 'Announcement';
 
         if ($request->ajax()) {
-            $query = Announcement::query();
+            $query = Announcement::query()->orderBy('id', 'desc');
 
             if ($request->date) {
                 $now = Carbon::now();
@@ -163,11 +163,24 @@ class AnnouncementController extends Controller
             'title' => 'required|string|max:255',
             'message' => 'required|string',
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
+            'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
         ], [
             'attachments.*.file' => 'Each attachment must be a valid file.',
             'attachments.*.mimes' => 'Each attachment must be one of the following types: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv.',
             'attachments.*.max' => 'Each attachment must not be larger than 2MB.',
+            'message_attachment.file' => 'Message attachment must be a valid file.',
+            'message_attachment.mimes' => 'Message attachment must be one of the following types: jpg, jpeg, png.',
+            'message_attachment.max' => 'Message attachment must not be larger than 2MB.',
         ]);
+
+        // Handle message_attachment upload
+        $messageAttachmentPath = null;
+        if ($request->hasFile('message_attachment')) {
+            $messageAttachment = $request->file('message_attachment');
+            $messageAttachmentName = time() . '_' . uniqid() . '.' . $messageAttachment->getClientOriginalExtension();
+            $messageAttachment->move(public_path('attachments'), $messageAttachmentName);
+            $messageAttachmentPath = 'attachments/' . $messageAttachmentName;
+        }
 
         // Create the announcement
         $announcement = Announcement::create([
@@ -177,6 +190,7 @@ class AnnouncementController extends Controller
             'starts_at' => $startsAt,
             'expires_at' => $expiresAt,
             'is_active' => $request->has('is_active'),
+            'message_attachment' => $messageAttachmentPath,
         ]);
 
         // Handle file uploads - store in announcement_attachments table
@@ -239,20 +253,53 @@ class AnnouncementController extends Controller
             'title' => 'required|string|max:255',
             'message' => 'required|string',
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
+            'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
         ], [
             'attachments.*.file' => 'Each attachment must be a valid file.',
             'attachments.*.mimes' => 'Each attachment must be one of the following types: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv.',
             'attachments.*.max' => 'Each attachment must not be larger than 2MB.',
+            'message_attachment.file' => 'Message attachment must be a valid file.',
+            'message_attachment.mimes' => 'Message attachment must be one of the following types: jpg, jpeg, png.',
+            'message_attachment.max' => 'Message attachment must not be larger than 2MB.',
         ]);
 
-        // Update the announcement
-        $announcement->update([
+        // Handle message_attachment upload/update
+        $updateData = [
             'title' => $request->title,
             'message' => $request->message,
             'starts_at' => $startsAt,
             'expires_at' => $expiresAt,
             'is_active' => $request->has('is_active'),
-        ]);
+        ];
+
+        // If new message_attachment is uploaded
+        if ($request->hasFile('message_attachment')) {
+            // Delete old message_attachment if exists
+            if ($announcement->message_attachment) {
+                $oldFilePath = public_path($announcement->message_attachment);
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
+                }
+            }
+            
+            // Upload new message_attachment
+            $messageAttachment = $request->file('message_attachment');
+            $messageAttachmentName = time() . '_' . uniqid() . '.' . $messageAttachment->getClientOriginalExtension();
+            $messageAttachment->move(public_path('attachments'), $messageAttachmentName);
+            $updateData['message_attachment'] = 'attachments/' . $messageAttachmentName;
+        } elseif ($request->has('delete_message_attachment') && $request->delete_message_attachment == '1') {
+            // Delete message_attachment if requested
+            if ($announcement->message_attachment) {
+                $oldFilePath = public_path($announcement->message_attachment);
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
+                }
+            }
+            $updateData['message_attachment'] = null;
+        }
+
+        // Update the announcement
+        $announcement->update($updateData);
 
         // Handle deletion of existing attachments
         if ($request->has('delete_attachments') && !empty(trim($request->delete_attachments))) {
@@ -355,9 +402,34 @@ class AnnouncementController extends Controller
         }
     }
 
-    public function destroy(Announcement $announcement)
+    public function destroy(Request $request, Announcement $announcement)
     {
+        // Delete message_attachment file if exists
+        if ($announcement->message_attachment) {
+            $filePath = public_path($announcement->message_attachment);
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+        }
+
+        // Delete associated attachments
+        foreach ($announcement->attachments as $attachment) {
+            $attachmentPath = public_path($attachment->attachment);
+            if (file_exists($attachmentPath)) {
+                @unlink($attachmentPath);
+            }
+            $attachment->delete();
+        }
+
         $announcement->delete();
+
+        // Return JSON response for AJAX requests
+        if ($request->ajax()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Announcement deleted successfully.'
+            ]);
+        }
 
         return redirect()->route('announcements.index')->with('success', 'Announcement deleted successfully.');
     }
