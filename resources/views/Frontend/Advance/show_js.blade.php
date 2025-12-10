@@ -80,7 +80,70 @@
             {
                 data: 'remark',
                 name: 'remark'
+            },
+            {
+                data: 'actions',
+                name: 'actions',
+                orderable: false,
+                searchable: false
             }]
+        });
+
+        // Handle view application IDs button click
+        $(document).on('click', '.view-app-ids', function() {
+            var logId = $(this).data('log-id');
+            var modal = $('#viewAppIdsModal');
+            
+            // Show loading state
+            modal.find('#app-ids-list').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>');
+            modal.modal('show');
+
+            // Fetch application IDs via AJAX
+            $.ajax({
+                url: "{{ route('advance.log.application-ids', ':logId') }}".replace(':logId', logId),
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        var html = '';
+                        if (response.applications && response.applications.length > 0) {
+                            html += '<div class="mb-3"><strong>Total Cases: ' + response.count + '</strong></div>';
+                            html += '<div class="table-responsive">';
+                            html += '<table class="table table-sm table-bordered table-hover">';
+                            html += '<thead class="table-light">';
+                            html += '<tr>';
+                            html += '<th>App ID</th>';
+                            html += '<th>Bank Name</th>';
+                            html += '<th>Product Name</th>';
+                            html += '</tr>';
+                            html += '</thead>';
+                            html += '<tbody>';
+                            response.applications.forEach(function(app) {
+                                html += '<tr>';
+                                html += '<td><strong>' + (app.app_id || '-') + '</strong></td>';
+                                html += '<td>' + (app.bank_name || '-') + '</td>';
+                                html += '<td>' + (app.product_name || '-') + '</td>';
+                                html += '</tr>';
+                            });
+                            html += '</tbody>';
+                            html += '</table>';
+                            html += '</div>';
+                        } else {
+                            html = '<div class="text-muted">No application IDs found for this log entry.</div>';
+                        }
+                        modal.find('#app-ids-list').html(html);
+                    } else {
+                        modal.find('#app-ids-list').html('<div class="text-danger">Error: ' + (response.message || 'Failed to fetch application IDs') + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = 'Failed to fetch application IDs.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    modal.find('#app-ids-list').html('<div class="text-danger">' + errorMsg + '</div>');
+                }
+            });
         });
     });
 </script>

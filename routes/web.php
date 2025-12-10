@@ -130,6 +130,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/advance/applications/by-user', [AdvanceController::class, 'applicationsByUser'])->name('advance.applications.by-user');
     Route::get('/advance/applications/list-by-user', [AdvanceController::class, 'applicationsListByUser'])->name('advance.applications.list-by-user');
     Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
+    Route::get('/advance/log/{logId}/application-ids', [AdvanceController::class, 'getLogApplicationIds'])->name('advance.log.application-ids');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');
