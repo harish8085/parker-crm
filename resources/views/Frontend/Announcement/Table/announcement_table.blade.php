@@ -3,6 +3,9 @@
         <tr>
             <th class="table-header">S.NO</th>
             <th class="table-header">Title</th>
+            <th class="table-header">Category</th>
+            <th class="table-header">Bank</th>
+            <th class="table-header">Product</th>
             <th class="table-header">Message</th>
             <th class="table-header">Start</th>
             <th class="table-header">Expiry</th>

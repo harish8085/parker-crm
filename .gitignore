@@ -16,4 +16,5 @@ yarn-error.log
 /resources/views/vendor/
 /public/vendor/
 /public/uploads
+/public/attachments
 /.cursor

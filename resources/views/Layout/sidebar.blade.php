@@ -27,6 +27,13 @@
                     </a>
                 </li>
                 @endif
+                @if(auth()->user()->roles[0]->id ==1)
+                <li class="list-item {{(Request::path() == 'announcement-categories')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'announcement-categories')?'active-li':''}}" href="{{url('announcement-categories')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'announcement-categories')?'assets/images/announcement-categories-active.svg':'assets/images/announcement-categories.svg')}}" alt="error">Announcement Categories
+                    </a>
+                </li>
+                @endif
 
                 @if(auth()->user()->hasPermission('bank_mis','view'))
                 <li class="list-item {{(Request::path() == 'bank_mis')?'active-li':''}}">

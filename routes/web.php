@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\MasterCodeController;
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\AnnouncementCategoryController;
 use App\Http\Controllers\Advance\AdvanceController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
@@ -294,4 +295,13 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/announcements/update/{announcement}', [AnnouncementController::class, 'edit']);
     Route::post('/announcements/update/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/delete/{announcement}', [AnnouncementController::class, 'destroy']);
+
+    // Announcement Category Route
+    Route::get('/announcement-categories', [AnnouncementCategoryController::class, 'index'])->name('announcement-categories.index');
+    Route::get('/announcement-categories/create', [AnnouncementCategoryController::class, 'create']);
+    Route::post('/announcement-categories/create', [AnnouncementCategoryController::class, 'store']);
+    Route::get('/announcement-categories/update/{announcementCategory}', [AnnouncementCategoryController::class, 'edit']);
+    Route::post('/announcement-categories/update/{announcementCategory}', [AnnouncementCategoryController::class, 'update']);
+    Route::delete('/announcement-categories/delete/{announcementCategory}', [AnnouncementCategoryController::class, 'destroy']);
+    Route::post('/announcement-categories/toggle-status/{announcementCategory}', [AnnouncementCategoryController::class, 'toggleStatus'])->name('announcement-categories.toggle-status');
 });

@@ -67,6 +67,27 @@
         </div>
 
         <div class="row mb-4">
+            <div class="col-lg-4">
+                <div class="info-label">Category</div>
+                <div class="info-value">{{ optional($announcement->category)->name ?? 'Not set' }}</div>
+            </div>
+            <div class="col-lg-4">
+                <div class="info-label">Bank</div>
+                <div class="info-value">{{ optional($announcement->bank)->name ?? 'Not set' }}</div>
+            </div>
+            <div class="col-lg-4">
+                <div class="info-label">Bank Product</div>
+                <div class="info-value">
+                    @if($announcement->product)
+                        {{ $announcement->product->name }}{{ $announcement->product->group ? ' ('.$announcement->product->group.')' : '' }}
+                    @else
+                        Not set
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
             <div class="col-lg-6">
                 <div class="info-label">Start Date & Time</div>
                 <div class="info-value">

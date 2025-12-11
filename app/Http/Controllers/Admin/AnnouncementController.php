@@ -5,6 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementView;
+use App\Models\AnnouncementCategory;
+use App\Models\Bank;
+use App\Models\BankProduct;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -17,7 +21,7 @@ class AnnouncementController extends Controller
         $Route = 'Announcement';
 
         if ($request->ajax()) {
-            $query = Announcement::query()->orderBy('id', 'desc');
+            $query = Announcement::with(['bank', 'product', 'category'])->orderBy('id', 'desc');
 
             if ($request->date) {
                 $now = Carbon::now();
@@ -87,10 +91,34 @@ class AnnouncementController extends Controller
                 $query->where('title', 'like', '%' . $request->title . '%');
             }
 
+            if ($request->announcement_category_id) {
+                $query->where('announcement_category_id', $request->announcement_category_id);
+            }
+
+            if ($request->bank_id) {
+                $query->where('bank_id', $request->bank_id);
+            }
+
+            if ($request->product_id) {
+                $query->where('product_id', $request->product_id);
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->editColumn('title', function ($row) {
                     return $row->title ? $row->title : '-';
+                })
+                ->editColumn('category', function ($row) {
+                    return $row->category ? $row->category->name : '-';
+                })
+                ->editColumn('bank', function ($row) {
+                    return $row->bank ? $row->bank->name : '-';
+                })
+                ->editColumn('product', function ($row) {
+                    if ($row->product) {
+                        return $row->product->name . ($row->product->group ? ' (' . $row->product->group . ')' : '');
+                    }
+                    return '-';
                 })
                 ->editColumn('message', function ($row) {
                     if ($row->message) {
@@ -120,14 +148,20 @@ class AnnouncementController extends Controller
                 ->make(true);
         }
 
-        return view('Frontend.Announcement.index', compact('Route'));
+        $banks = Bank::orderBy('name')->get();
+        $categories = AnnouncementCategory::where('is_active', true)->orderBy('name')->get();
+        $products = \App\Models\Product::orderBy('name')->get();
+
+        return view('Frontend.Announcement.index', compact('Route', 'banks', 'categories', 'products'));
     }
 
     public function create()
     {
         $Route = 'Announcement';
+        $banks = Bank::orderBy('name')->get();
+        $categories = AnnouncementCategory::where('is_active', true)->orderBy('name')->get();
 
-        return view('Frontend.Announcement.create', compact('Route'));
+        return view('Frontend.Announcement.create', compact('Route', 'banks', 'categories'));
     }
 
     public function store(Request $request)
@@ -160,17 +194,35 @@ class AnnouncementController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
-            'message' => 'required|string',
+            'title' => 'required|string|max:50',
+            'message' => 'nullable|string',
+            'bank_id' => 'required|exists:banks,id',
+            'product_id' => 'required|exists:products,id',
+            'announcement_category_id' => 'required|exists:announcement_categories,id',
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
             'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'starts_at' => 'required',
+            'expires_at' => 'required',
         ], [
+            'title.required' => 'Title is required.',
+            'title.max' => 'Title must be less than 50 characters.',
             'attachments.*.file' => 'Each attachment must be a valid file.',
             'attachments.*.mimes' => 'Each attachment must be one of the following types: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv.',
             'attachments.*.max' => 'Each attachment must not be larger than 2MB.',
             'message_attachment.file' => 'Message attachment must be a valid file.',
             'message_attachment.mimes' => 'Message attachment must be one of the following types: jpg, jpeg, png.',
             'message_attachment.max' => 'Message attachment must not be larger than 2MB.',
+            'bank_id.required' => 'Please select a bank.',
+            'bank_id.exists' => 'Selected bank is invalid.',
+            'product_id.required' => 'Please select a bank product.',
+            'product_id.exists' => 'Selected bank product is invalid.',
+            'announcement_category_id.required' => 'Please select an announcement category.',
+            'announcement_category_id.exists' => 'Selected announcement category is invalid.',
+            'starts_at.required' => 'Start date is required.',
+            'starts_at.date' => 'Start date must be a valid date.',
+            'expires_at.required' => 'Expiry date is required.',
+            'expires_at.date' => 'Expiry date must be a valid date.',
+            
         ]);
 
         // Handle message_attachment upload
@@ -178,29 +230,32 @@ class AnnouncementController extends Controller
         if ($request->hasFile('message_attachment')) {
             $messageAttachment = $request->file('message_attachment');
             $messageAttachmentName = time() . '_' . uniqid() . '.' . $messageAttachment->getClientOriginalExtension();
-            $messageAttachment->move(public_path('attachments'), $messageAttachmentName);
-            $messageAttachmentPath = 'attachments/' . $messageAttachmentName;
+            $messageAttachment->move(public_path('uploads/attachments'), $messageAttachmentName);
+            $messageAttachmentPath = 'uploads/attachments/' . $messageAttachmentName;
         }
 
         // Create the announcement
         $announcement = Announcement::create([
             'title' => $request->title,
-            'message' => $request->message,
+            'message' => $request->message ?? null,
             'created_by' => Auth::id(),
             'starts_at' => $startsAt,
             'expires_at' => $expiresAt,
             'is_active' => $request->has('is_active'),
             'message_attachment' => $messageAttachmentPath,
+            'bank_id' => $request->bank_id,
+            'product_id' => $request->product_id,
+            'announcement_category_id' => $request->announcement_category_id,
         ]);
 
         // Handle file uploads - store in announcement_attachments table
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
                 $attachmentName = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('attachments'), $attachmentName);
+                $file->move(public_path('uploads/attachments'), $attachmentName);
                 \App\Models\AnnouncementAttachment::create([
                     'announcement_id' => $announcement->id,
-                    'attachment' => 'attachments/' . $attachmentName,
+                    'attachment' => 'uploads/attachments/' . $attachmentName,
                     'created_by' => Auth::id(),
                     'original_name' => $file->getClientOriginalName(),
                 ]);
@@ -216,8 +271,12 @@ class AnnouncementController extends Controller
         
         // Load attachments relationship
         $announcement->load('attachments');
+        $banks = Bank::orderBy('name')->get();
+        $categories = AnnouncementCategory::where('is_active', true)->orderBy('name')->get();
+        $bankProductIds = BankProduct::where('bank_id', $announcement->bank_id)->pluck('product_id')->toArray();
+        $products = Product::whereIn('id', $bankProductIds)->orderBy('name')->get();
 
-        return view('Frontend.Announcement.edit', compact('Route', 'announcement'));
+        return view('Frontend.Announcement.edit', compact('Route', 'announcement', 'banks', 'categories', 'products'));
     }
 
     public function update(Request $request, Announcement $announcement)
@@ -250,10 +309,16 @@ class AnnouncementController extends Controller
         }
 
         $request->validate([
-            'title' => 'required|string|max:255',
-            'message' => 'required|string',
+            'title' => 'required|string|max:50',
+            'title.max' => 'Title must be less than 50 characters.',
+            'message' => 'nullable|string',
+            'bank_id' => 'required|exists:banks,id',
+            'product_id' => 'required|exists:products,id',
+            'announcement_category_id' => 'required|exists:announcement_categories,id',
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
             'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
+            'starts_at' => 'required',
+            'expires_at' => 'required',
         ], [
             'attachments.*.file' => 'Each attachment must be a valid file.',
             'attachments.*.mimes' => 'Each attachment must be one of the following types: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv.',
@@ -261,22 +326,35 @@ class AnnouncementController extends Controller
             'message_attachment.file' => 'Message attachment must be a valid file.',
             'message_attachment.mimes' => 'Message attachment must be one of the following types: jpg, jpeg, png.',
             'message_attachment.max' => 'Message attachment must not be larger than 2MB.',
+            'bank_id.required' => 'Please select a bank.',
+            'bank_id.exists' => 'Selected bank is invalid.',
+            'product_id.required' => 'Please select a bank product.',
+            'product_id.exists' => 'Selected bank product is invalid.',
+            'announcement_category_id.required' => 'Please select an announcement category.',
+            'announcement_category_id.exists' => 'Selected announcement category is invalid.',
+            'starts_at.required' => 'Start date is required.',
+            'starts_at.date' => 'Start date must be a valid date.',
+            'expires_at.required' => 'Expiry date is required.',
+            'expires_at.date' => 'Expiry date must be a valid date.',
         ]);
 
         // Handle message_attachment upload/update
         $updateData = [
             'title' => $request->title,
-            'message' => $request->message,
+            'message' => $request->message ?? null,
             'starts_at' => $startsAt,
             'expires_at' => $expiresAt,
             'is_active' => $request->has('is_active'),
+            'bank_id' => $request->bank_id,
+            'product_id' => $request->product_id,
+            'announcement_category_id' => $request->announcement_category_id,
         ];
 
         // If new message_attachment is uploaded
         if ($request->hasFile('message_attachment')) {
             // Delete old message_attachment if exists
             if ($announcement->message_attachment) {
-                $oldFilePath = public_path($announcement->message_attachment);
+                $oldFilePath = public_path('uploads/attachments/' . $announcement->message_attachment);
                 if (file_exists($oldFilePath)) {
                     @unlink($oldFilePath);
                 }
@@ -285,7 +363,7 @@ class AnnouncementController extends Controller
             // Upload new message_attachment
             $messageAttachment = $request->file('message_attachment');
             $messageAttachmentName = time() . '_' . uniqid() . '.' . $messageAttachment->getClientOriginalExtension();
-            $messageAttachment->move(public_path('attachments'), $messageAttachmentName);
+            $messageAttachment->move(public_path('uploads/attachments'), $messageAttachmentName);
             $updateData['message_attachment'] = 'attachments/' . $messageAttachmentName;
         } elseif ($request->has('delete_message_attachment') && $request->delete_message_attachment == '1') {
             // Delete message_attachment if requested
@@ -348,7 +426,7 @@ class AnnouncementController extends Controller
         
         try {
             // Find the announcement by ID
-            $announcement = Announcement::with('attachments', 'creator')->findOrFail($id);
+            $announcement = Announcement::with('attachments', 'creator', 'bank', 'product', 'category')->findOrFail($id);
             
             return view('Frontend.Announcement.show', compact('Route', 'announcement'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

@@ -31,7 +31,7 @@
 
     <div class="bank-card p-4">
         <div class="row">
-            <div class="col-lg-4 mb-2">
+            <div class="col-lg-3 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Date Range</label>
                     <select class="bank-detail-input form-select select" name="date" id="date">
@@ -54,10 +54,43 @@
                     <input type="text" class="form-control date-range-picker" id="date-range-picker" name="date_range" />
                 </div>
             </div>
-            <div class="col-lg-4 mb-2">
+            <div class="col-lg-3 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Title</label>
                     <input type="text" class="form-control" name="title" id="title" placeholder="Enter title">
+                </div>
+            </div>
+            <div class="col-lg-2 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Category</label>
+                    <select class="bank-detail-input form-select select" name="announcement_category_id" id="announcement_category_id">
+                        <option value="" selected disabled>Select Category</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-2 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Bank</label>
+                    <select class="bank-detail-input form-select select" name="bank_id" id="bank_id">
+                        <option value="" selected disabled>Select Bank</option>
+                        @foreach($banks as $bank)
+                            <option value="{{ $bank->id }}">{{ $bank->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-2 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Bank Product</label>
+                    <select class="bank-detail-input form-select select" name="product_id" id="product_id">
+                        <option value="" selected disabled>Select Product</option>
+                        @foreach($products as $product)
+                            <option value="{{ $product->id }}">{{ $product->name }}{{ $product->group ? ' ('.$product->group.')' : '' }}</option>
+                        @endforeach
+                    </select>
                 </div>
             </div>
             <div class="col-lg-12 mt-2">

@@ -69,7 +69,7 @@
     // Store DataTable instance globally
     var announcementTable = null;
 
-    function load_data(date = '', date_range = '', title = '') {
+    function load_data(date = '', date_range = '', title = '', category_id = '', bank_id = '', product_id = '') {
         announcementTable = $('.data-table').DataTable({
             debug: false,
             dom: 'Bfrtip<"bottom"l>',
@@ -176,6 +176,9 @@
                     date: date,
                     date_range: date_range,
                     title: title,
+                    announcement_category_id: category_id,
+                    bank_id: bank_id,
+                    product_id: product_id,
                 },
                 error: function (xhr, error, thrown) {
                     console.log(xhr.responseText);
@@ -192,6 +195,9 @@
                     searchable: false
                 },
                 { data: 'title', name: 'title' },
+                { data: 'category', name: 'category' },
+                { data: 'bank', name: 'bank' },
+                { data: 'product', name: 'product' },
                 { data: 'message', name: 'message' },
                 { data: 'starts_at', name: 'starts_at' },
                 { data: 'expires_at', name: 'expires_at' },
@@ -215,27 +221,90 @@
             allowClear: true
         });
 
+        // Load products when bank is selected
+        $('#bank_id').on('change', function() {
+            var bankId = $(this).val();
+            var productSelect = $('#product_id');
+            
+            if (bankId) {
+                $.ajax({
+                    url: '/getAllProduct',
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    data: { bank_id: bankId },
+                    success: function(response) {
+                        productSelect.empty().append($('<option>', {
+                            value: '',
+                            text: 'Select Product',
+                            disabled: true,
+                            selected: true
+                        }));
+
+                        $.each(response, function(key, value) {
+                            productSelect.append($('<option>', {
+                                value: value.id,
+                                text: value.name + (value.group ? ' (' + value.group + ')' : '')
+                            }));
+                        });
+                        
+                        productSelect.trigger('change');
+                    },
+                    error: function(xhr) {
+                        console.log(xhr.responseText);
+                    }
+                });
+            } else {
+                // Reset to all products if bank is cleared
+                productSelect.empty().append($('<option>', {
+                    value: '',
+                    text: 'Select Product',
+                    disabled: true,
+                    selected: true
+                }));
+                @foreach($products as $product)
+                    productSelect.append($('<option>', {
+                        value: '{{ $product->id }}',
+                        text: '{{ $product->name }}{{ $product->group ? ' ('.$product->group.')' : '' }}'
+                    }));
+                @endforeach
+                productSelect.trigger('change');
+            }
+        });
+
         $('#filter').click(function () {
             var date = $('#date').val();
             var date_range = $('#date-range-picker').val();
             var title = $('#title').val();
+            var category_id = $('#announcement_category_id').val();
+            var bank_id = $('#bank_id').val();
+            var product_id = $('#product_id').val();
 
-            if (date || title) {
+            if (date || title || category_id || bank_id || product_id) {
                 if (announcementTable) {
                     announcementTable.destroy();
                 }
-                load_data(date, date_range, title);
+                load_data(date, date_range, title, category_id, bank_id, product_id);
             } else {
                 alert('Select at least one filter!');
             }
         });
 
         $('#refresh').click(function () {
+            // Clear all filters
+            $('#date').val('').trigger('change');
+            $('#date-range-picker').val('');
+            $('#title').val('');
+            $('#announcement_category_id').val('').trigger('change');
+            $('#bank_id').val('').trigger('change');
+            $('#product_id').val('').trigger('change');
+            $('.date_range').hide();
+            
             if (announcementTable) {
-                announcementTable.ajax.reload(null, false);
-            } else {
-                window.location.reload();
+                announcementTable.destroy();
             }
+            load_data();
         });
     });
 </script>

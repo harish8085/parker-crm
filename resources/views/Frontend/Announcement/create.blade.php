@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{asset('assets/css/add.css')}}">
 <script src="https://cdn.ckeditor.com/4.22.1/standard/ckeditor.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 <style>
     .file-preview-item {
         display: inline-block;
@@ -52,6 +53,11 @@
         border-radius: 5px;
         margin-bottom: 5px;
     }
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+    }
 </style>
 @endsection
 
@@ -76,6 +82,42 @@
             <div class="mb-3">
                 <label class="form-label">Title</label>
                 <input type="text" name="title" class="form-control" value="{{ old('title') }}" required>
+            </div>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Announcement Category</label>
+                        <select name="announcement_category_id" id="announcement_category_id" class="form-select select" required>
+                            <option value="" disabled {{ old('announcement_category_id') ? '' : 'selected' }}>Select Category</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" {{ old('announcement_category_id') == $category->id ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Bank</label>
+                        <select name="bank_id" id="bank_id" class="form-select select" required>
+                            <option value="" disabled {{ old('bank_id') ? '' : 'selected' }}>Select Bank</option>
+                            @foreach($banks as $bank)
+                                <option value="{{ $bank->id }}" {{ old('bank_id') == $bank->id ? 'selected' : '' }}>
+                                    {{ $bank->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="mb-3">
+                        <label class="form-label">Bank Product</label>
+                        <select name="product_id" id="product_id" class="form-select select" required>
+                            <option value="" disabled selected>Select Product</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="row">
                 <div class="col-lg-6">
@@ -154,6 +196,7 @@
 
 @section('script')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.full.min.js"></script>
 <script>
     CKEDITOR.replace('announcement_message_create', {
         height: 200
@@ -162,6 +205,16 @@
 
 <script type="text/javascript">
     $(document).ready(function() {
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        $('.select').select2({
+            placeholder: 'Select an option',
+            width: '100%'
+        });
         // Check if datepicker is available, if not wait a bit
         if (typeof $.fn.datepicker === 'undefined') {
             console.error('Bootstrap datepicker is not loaded');
@@ -208,6 +261,49 @@
         $('#starts_at').on('clearDate', function(e) {
             $('#expires_at').datepicker('setStartDate', new Date());
         });
+
+        function loadProducts(bankId, selectedProductId = null) {
+            if (!bankId) {
+                $('#product_id').html('<option value="" disabled selected>Select Product</option>');
+                return;
+            }
+
+            $.ajax({
+                url: '/getAllProduct',
+                type: 'POST',
+                data: { bank_id: bankId },
+                success: function(response) {
+                    var select = $('#product_id');
+                    select.empty().append($('<option>', {
+                        value: '',
+                        text: 'Select Product',
+                        disabled: true,
+                        selected: true
+                    }));
+
+                    $.each(response, function(key, value) {
+                        select.append($('<option>', {
+                            value: value.id,
+                            text: value.name + (value.group ? ' (' + value.group + ')' : ''),
+                            selected: selectedProductId && selectedProductId == value.id
+                        }));
+                    });
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText);
+                }
+            });
+        }
+
+        $('#bank_id').on('change', function() {
+            loadProducts($(this).val());
+        });
+
+        const initialBankId = $('#bank_id').val();
+        const initialProductId = $('#product_id').val();
+        if (initialBankId) {
+            loadProducts(initialBankId, initialProductId);
+        }
 
         // File attachment preview functionality
         let selectedFiles = [];
