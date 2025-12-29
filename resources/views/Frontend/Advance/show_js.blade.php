@@ -115,6 +115,9 @@
                             html += '<th>App ID</th>';
                             html += '<th>Bank Name</th>';
                             html += '<th>Product Name</th>';
+                            html += '<th>Product %</th>';
+                            html += '<th>Disbursement Amount</th>';
+                            html += '<th>Advance Amount</th>';
                             html += '</tr>';
                             html += '</thead>';
                             html += '<tbody>';
@@ -123,6 +126,9 @@
                                 html += '<td><strong>' + (app.app_id || '-') + '</strong></td>';
                                 html += '<td>' + (app.bank_name || '-') + '</td>';
                                 html += '<td>' + (app.product_name || '-') + '</td>';
+                                html += '<td>' + (app.product_percent || '-') + '</td>';
+                                html += '<td>₹' + (app.disburse_amount || '0.00') + '</td>';
+                                html += '<td>₹' + (app.advance_payment_amount || '-') + '</td>';
                                 html += '</tr>';
                             });
                             html += '</tbody>';

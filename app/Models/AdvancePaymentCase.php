@@ -14,6 +14,8 @@ class AdvancePaymentCase extends Model
     protected $fillable = [
         'advance_amount_log_id',
         'application_id',
+        'product',
+        'product_percent',
         'advance_payment_amount',
         'status',
     ];

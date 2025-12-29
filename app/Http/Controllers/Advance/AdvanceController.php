@@ -193,6 +193,12 @@ class AdvanceController extends Controller
 
             // If there are specific cases selected, create records in advance_payment_cases
             if ($validated['case_type'] === 'case' && !empty($validated['application_ids']) && $advanceAmountLog) {
+                // Load applications with product relationship to get product names
+                $applicationsWithDetails = Application::with('product')
+                    ->whereIn('id', $validated['application_ids'])
+                    ->get()
+                    ->keyBy('id');
+
                 foreach ($validated['application_ids'] as $applicationId) {
                     $caseAmount = $perCaseAmounts[$applicationId] ?? null;
                     if ($caseAmount === null) {
@@ -200,9 +206,23 @@ class AdvanceController extends Controller
                         continue;
                     }
 
+                    $application = $applicationsWithDetails->get($applicationId);
+                    $productName = $application && $application->product ? $application->product->name : null;
+                    
+                    // Get product percent from BankProduct
+                    $productPercent = null;
+                    if ($application) {
+                        $bankProduct = BankProduct::where('bank_id', $application->bank_id)
+                            ->where('product_id', $application->product_id)
+                            ->first();
+                        $productPercent = $bankProduct ? $bankProduct->percent : null;
+                    }
+
                     \App\Models\AdvancePaymentCase::create([
                         'advance_amount_log_id' => $advanceAmountLog->id,
                         'application_id' => $applicationId,
+                        'product' => $productName,
+                        'product_percent' => $productPercent,
                         'advance_payment_amount' => $caseAmount,
                         'status' => 'active',
                     ]);
@@ -638,15 +658,35 @@ class AdvanceController extends Controller
                 \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $latestLog->id)->delete();
 
                 if ($validated['case_type'] === 'case' && !empty($validated['application_ids'])) {
+                    // Load applications with product relationship to get product names
+                    $applicationsWithDetails = Application::with('product')
+                        ->whereIn('id', $validated['application_ids'])
+                        ->get()
+                        ->keyBy('id');
+
                     foreach ($validated['application_ids'] as $applicationId) {
                         $caseAmount = $perCaseAmounts[$applicationId] ?? null;
                         if ($caseAmount === null) {
                             continue;
                         }
 
+                        $application = $applicationsWithDetails->get($applicationId);
+                        $productName = $application && $application->product ? $application->product->name : null;
+                        
+                        // Get product percent from BankProduct
+                        $productPercent = null;
+                        if ($application) {
+                            $bankProduct = BankProduct::where('bank_id', $application->bank_id)
+                                ->where('product_id', $application->product_id)
+                                ->first();
+                            $productPercent = $bankProduct ? $bankProduct->percent : null;
+                        }
+
                         \App\Models\AdvancePaymentCase::create([
                             'advance_amount_log_id' => $latestLog->id,
                             'application_id' => $applicationId,
+                            'product' => $productName,
+                            'product_percent' => $productPercent,
                             'advance_payment_amount' => $caseAmount,
                             'status' => 'active',
                         ]);
@@ -669,14 +709,18 @@ class AdvanceController extends Controller
     public function getLogApplicationIds($logId)
     {
         try {
-            $log = AdvanceAmountLog::with(['paymentCases.application.bank', 'paymentCases.application.product'])->findOrFail($logId);
+            $log = AdvanceAmountLog::with(['paymentCases.application.bank'])->findOrFail($logId);
             
             $applications = $log->paymentCases->map(function ($paymentCase) {
                 if ($paymentCase->application && $paymentCase->application->app_id) {
+                    $disburseAmount = $paymentCase->application->disburse_amount ?? 0;
                     return [
                         'app_id' => $paymentCase->application->app_id,
                         'bank_name' => $paymentCase->application->bank ? $paymentCase->application->bank->name : '-',
-                        'product_name' => $paymentCase->application->product ? $paymentCase->application->product->name : '-',
+                        'product_name' => $paymentCase->product ? $paymentCase->product : '-',
+                        'product_percent' => $paymentCase->product_percent ? number_format($paymentCase->product_percent, 2) . '%' : '-',
+                        'disburse_amount' => number_format($disburseAmount, 2),
+                        'advance_payment_amount' => $paymentCase->advance_payment_amount ? number_format($paymentCase->advance_payment_amount, 2) : '-',
                     ];
                 }
                 return null;
