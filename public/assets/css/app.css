@@ -141,8 +141,8 @@ li.nav-item.dropdown.list-item {
 a.nav-links {
     color: white;
     text-decoration: none;
-    font-size: 18px;
-    /* text-align: center; */
+    font-size: 16px;
+    text-align: justify;
     display: flex;
     margin-left: 30px;
 }

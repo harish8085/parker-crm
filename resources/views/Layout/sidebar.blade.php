@@ -13,13 +13,13 @@
                     <a class="nav-links {{(Request::path() == 'dashboard')?'active-li':''}}" href="{{url('dashboard')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'dashboard')?'assets/images/home-active.svg':'assets/images/home.svg')}}" alt="error">Dashboard</a>
                 </li>
-                
+
                 <li class="list-item {{(Request::path() == 'announcements')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'announcements')?'active-li':''}}" href="{{url('announcements')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'announcements')?'assets/images/announcement-active.svg':'assets/images/announcement.svg')}}" alt="error">Announcement
                     </a>
                 </li>
-                
+
                 @if(auth()->user()->hasPermission('application','view'))
                 <li class="list-item {{(Request::path() == 'application')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'application')?'active-li':''}}" href="{{url('application')}}">
@@ -73,6 +73,14 @@
                 </li>
                 @endif
 
+                @if(auth()->user()->hasPermission('sample-sheet','view'))
+                <li class="list-item {{(Request::path() == 'sample-sheet')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'sample-sheet')?'active-li':''}}" href="{{url('sample-sheet')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'sample-sheet')?'assets\images\sample-sheet-active.svg':'assets\images\sample-sheet.svg')}}" alt="error">Sample Sheet
+                    </a>
+                </li>
+                @endif
+
                 @if(auth()->user()->hasPermission('sheet-matching','view'))
                 <li class="list-item {{(Request::path() == 'sheet-matching')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'sheet-matching')?'active-li':''}}" href="{{url('sheet-matching')}}">
@@ -112,7 +120,7 @@
                     </a>
                 </li>
                 @endif
-                
+
                 @if(auth()->user()->roles[0]->id ==2 || auth()->user()->roles[0]->id ==6)
 
                 <li class="list-item {{(Request::path() == 'link-bank')?'active-li':''}}">
@@ -205,9 +213,9 @@
 
                     </ul>
                 </li>
-               
+
                 @endif
-               
+
             </ul>
         </div>
     </div>

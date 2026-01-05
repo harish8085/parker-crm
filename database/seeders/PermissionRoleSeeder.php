@@ -112,6 +112,13 @@ class PermissionRoleSeeder extends Seeder
                 'view'   => 1,
                 'delete' => 1,
             ],
+            [
+                'name'   => 'sample-sheet',
+                'create' => 1,
+                'update' => 1,
+                'view'   => 1,
+                'delete' => 1,
+            ],
             // Add more permissions as needed
         ];
 

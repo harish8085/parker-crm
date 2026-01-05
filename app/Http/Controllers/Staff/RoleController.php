@@ -164,7 +164,8 @@ class RoleController extends Controller
                 'sales-person',
                 'sheet-matching',
                 'staff',
-                'services'
+                'services',
+                'sample-sheet'
             ];
             foreach ($newPermissions as $permissionName) {
                 $permission = new Permission();
