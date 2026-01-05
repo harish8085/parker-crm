@@ -45,6 +45,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/encrypt', function () {
     $encrypted = Crypt::encryptString('MPIndRic00016');
@@ -63,6 +64,21 @@ Route::post('/resend-otp', [AuthController::class, 'resendOtp']);
 Route::get('/getDistrict/{state_code}', [Controller::class, 'getDistrict']);
 Route::post('/login', [AuthController::class, 'Login']);
 Route::get('/logout', [AuthController::class, 'Logout']);
+
+Route::get('/test-email', function () {
+    $to = 'anamika.hira@parkersconsultings.com'; // Change to desired email address
+    $subject = 'Test Email from Application';
+    $data = [
+        'body' => 'This is a test email sent from your parkersconsultings application.'
+    ];
+    Mail::raw($data['body'], function ($message) use ($to, $subject) {
+        $message->to($to)
+            ->subject($subject);
+    });
+    return 'Test email sent to ' . $to;
+});
+
+
 
 Route::middleware([CheckLogin::class])->group(function () {
 

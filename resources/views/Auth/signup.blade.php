@@ -122,6 +122,21 @@
                             <div class="invalid-feedback">Please enter a valid verification code.</div>
                             <small class="form-text text-muted">Enter the code provided by your administrator.</small>
                         </div>
+
+                        <div class="form-group">
+                            <label class="form-label">GST Number</label>
+                            <input class="form-control" type="text" name="gst_number" id="gst_number" 
+                                   placeholder="Enter GST number" value="{{old('gst_number')}}" maxlength="15">
+                            <div class="invalid-feedback">Please enter a valid 15-character GST number.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">GST Certificate <span class="required gst-cert-required" style="display: none;">*</span></label>
+                            <input class="form-control" type="file" name="gst_certificate" id="gst_certificate" 
+                                   accept="image/jpeg,image/jpg,image/png">
+                            <small class="form-text text-muted">Accepted formats: JPEG, JPG, PNG</small>
+                            <div class="invalid-feedback">Please upload a valid image file.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -319,6 +334,12 @@
 
         // State-District AJAX functionality
         $(document).ready(function() {
+            // Check if GST number is already filled (from old input) and show required indicator
+            var initialGstNumber = $('#gst_number').val().trim();
+            if (initialGstNumber && initialGstNumber.length > 0) {
+                $('.gst-cert-required').show();
+                $('#gst_certificate').attr('data-required', 'true');
+            }
             
             $('#state').change(function() {
                 var stateId = $(this).val();
@@ -349,6 +370,7 @@
             var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             var ifscRegex = /^[A-Z]{4}[0][A-Z0-9]{6}$/;
             var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            var gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 
             // Real-time validation
             $('#pan_number').on('input', function() {
@@ -458,6 +480,49 @@
                 }
             });
 
+            // GST number validation and conditional requirement for GST certificate
+            $('#gst_number').on('input', function() {
+                var value = $(this).val().toUpperCase();
+                $(this).val(value);
+                if (value && value.length > 0) {
+                    if (value.length !== 15 || !gstRegex.test(value)) {
+                        $(this).removeClass('is-valid').addClass('is-invalid');
+                    } else {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                    }
+                    // Show required indicator for GST certificate
+                    $('.gst-cert-required').show();
+                    $('#gst_certificate').attr('data-required', 'true');
+                } else {
+                    $(this).removeClass('is-invalid is-valid');
+                    // Hide required indicator for GST certificate
+                    $('.gst-cert-required').hide();
+                    $('#gst_certificate').removeAttr('data-required');
+                    $('#gst_certificate').removeClass('is-invalid is-valid');
+                }
+            });
+
+            // GST certificate validation
+            $('#gst_certificate').on('change', function() {
+                var file = this.files[0];
+                var gstNumber = $('#gst_number').val().trim();
+                
+                if (gstNumber && gstNumber.length > 0) {
+                    if (!file) {
+                        $(this).removeClass('is-valid').addClass('is-invalid');
+                    } else {
+                        var validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        if (validTypes.includes(file.type)) {
+                            $(this).removeClass('is-invalid').addClass('is-valid');
+                        } else {
+                            $(this).removeClass('is-valid').addClass('is-invalid');
+                        }
+                    }
+                } else {
+                    $(this).removeClass('is-invalid is-valid');
+                }
+            });
+
             // Form submission validation
             $('#submitBtn').click(function(event) {
                 event.preventDefault();
@@ -474,6 +539,24 @@
                         $(this).removeClass('is-invalid').addClass('is-valid');
                     }
                 });
+
+                // Conditional validation: GST certificate is required if GST number is provided
+                var gstNumber = $('#gst_number').val().trim();
+                if (gstNumber && gstNumber.length > 0) {
+                    var gstCertificate = $('#gst_certificate')[0].files[0];
+                    if (!gstCertificate) {
+                        $('#gst_certificate').removeClass('is-valid').addClass('is-invalid');
+                        isValid = false;
+                    } else {
+                        var validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                        if (validTypes.includes(gstCertificate.type)) {
+                            $('#gst_certificate').removeClass('is-invalid').addClass('is-valid');
+                        } else {
+                            $('#gst_certificate').removeClass('is-valid').addClass('is-invalid');
+                            isValid = false;
+                        }
+                    }
+                }
 
                 // Check terms checkbox
                 if (!$('#terms').is(':checked')) {

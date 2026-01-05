@@ -67,27 +67,20 @@
         <h4 class="mb-0">Add Announcement</h4>
     </div>
     <div class="card-body">
-        @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-        @endif
-
         <form action="{{ url('/announcements/create') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="mb-3">
                 <label class="form-label">Title</label>
-                <input type="text" name="title" class="form-control" value="{{ old('title') }}" required>
+                <input type="text" name="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" >
+                @error('title')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
             </div>
             <div class="row">
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label">Announcement Category</label>
-                        <select name="announcement_category_id" id="announcement_category_id" class="form-select select" required>
+                        <select name="announcement_category_id" id="announcement_category_id" class="form-select select @error('announcement_category_id') is-invalid @enderror" >
                             <option value="" disabled {{ old('announcement_category_id') ? '' : 'selected' }}>Select Category</option>
                             @foreach($categories as $category)
                                 <option value="{{ $category->id }}" {{ old('announcement_category_id') == $category->id ? 'selected' : '' }}>
@@ -95,12 +88,15 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('announcement_category_id')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label">Bank</label>
-                        <select name="bank_id" id="bank_id" class="form-select select" required>
+                        <select name="bank_id" id="bank_id" class="form-select select @error('bank_id') is-invalid @enderror" >
                             <option value="" disabled {{ old('bank_id') ? '' : 'selected' }}>Select Bank</option>
                             @foreach($banks as $bank)
                                 <option value="{{ $bank->id }}" {{ old('bank_id') == $bank->id ? 'selected' : '' }}>
@@ -108,39 +104,48 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('bank_id')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label">Bank Product</label>
-                        <select name="product_id" id="product_id" class="form-select select" required>
+                        <select name="product_id" id="product_id" class="form-select select @error('product_id') is-invalid @enderror" >
                             <option value="" disabled selected>Select Product</option>
                         </select>
+                        @error('product_id')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-6">
                     <div class="mb-3">
-                        <label class="form-label">Start Date & Time (optional)</label>
+                        <label class="form-label">Start Date</label>
                         <div class="input-group date">
-                            <input type="text" class="form-control" name="starts_at" id="starts_at" value="{{ old('starts_at') }}" autocomplete="off">
+                            <input type="text" class="form-control @error('starts_at') is-invalid @enderror" name="starts_at" id="starts_at" value="{{ old('starts_at') }}" autocomplete="off">
                             <div class="input-group-addon">
                                 <span class="glyphicon glyphicon-th"></span>
                             </div>
                         </div>
+                        @error('starts_at')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                 </div>
                 <div class="col-lg-6">
                     <div class="mb-3">
-                        <label class="form-label">Expiry Date & Time</label>
+                        <label class="form-label">Expiry Date & Time (optional)</label>
                         <div class="input-group date">
                             <input type="text" class="form-control" name="expires_at" id="expires_at" value="{{ old('expires_at') }}" autocomplete="off">
                             <div class="input-group-addon">
                                 <span class="glyphicon glyphicon-th"></span>
                             </div>
-                        </div>
+                        </div>                    
                     </div>
                 </div>
             </div>
@@ -149,12 +154,18 @@
                 <div class="col-12">
                     <div class="mb-3">
                         <label class="form-label" for="attachment">Attachments (Image, PDF, or Document)</label>
-                        <input type="file" name="attachments[]" id="attachment" class="form-control" multiple
+                        <input type="file" name="attachments[]" id="attachment" class="form-control @error('attachments.*') is-invalid @enderror @error('attachments') is-invalid @enderror" multiple
                             accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" />
                         <small class="form-text text-muted">
                             Allowed file types: images (JPG, PNG, GIF), PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV.<br>
                             You can select multiple files. Max file size may apply.
                         </small>
+                        @error('attachments.*')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                        @error('attachments')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                         <div id="file-preview-container" class="mt-3"></div>
                     </div>
                 </div>
@@ -163,16 +174,22 @@
 
             <div class="mb-3">
                 <label class="form-label">Message</label>
-                <textarea name="message" id="announcement_message_create" class="form-control" rows="4" required>{{ old('message') }}</textarea>
+                <textarea name="message" id="announcement_message_create" class="form-control @error('message') is-invalid @enderror" rows="4" >{{ old('message') }}</textarea>
+                @error('message')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
             </div>
 
             <div class="mb-3">
                 <label class="form-label" for="message_attachment">Message Attachment (Image Only)</label>
-                <input type="file" name="message_attachment" id="message_attachment" class="form-control"
+                <input type="file" name="message_attachment" id="message_attachment" class="form-control @error('message_attachment') is-invalid @enderror"
                     accept=".jpg,.jpeg,.png" />
                 <small class="form-text text-muted">
                     Allowed file types: JPG, JPEG, PNG only. Single file upload. Max file size may apply.
                 </small>
+                @error('message_attachment')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
                 <div id="message-attachment-preview" class="mt-3"></div>
             </div>
 
@@ -227,7 +244,8 @@
             autoclose: true,
             todayHighlight: true,
             startDate: new Date(), // Prevent selecting past dates
-            orientation: 'bottom auto'
+            orientation: 'bottom auto',
+            format: 'dd-mm-yyyy'
         });
 
         // Initialize Expiry Date picker - must be >= start date
@@ -236,7 +254,8 @@
             autoclose: true,
             todayHighlight: true,
             startDate: new Date(), // Initially set to today
-            orientation: 'bottom auto'
+            orientation: 'bottom auto',
+            format: 'dd-mm-yyyy'
         });
 
         // Update expiry date minimum when start date changes

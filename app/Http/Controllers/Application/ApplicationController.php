@@ -683,13 +683,21 @@ class ApplicationController extends Controller
                 $query->where('id', $salesroleId);
             })->get();
         } else {
-            $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-            $channel_assign = json_decode($channel_assign, true);
-            $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
+            // $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
+            // $channel_assign = json_decode($channel_assign, true);
+            // $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
+            //     $query->where('id', $channelroleId);
+            // })->get();
+
+            // $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
+            //     $query->where('id', $salesroleId);
+            // })->get();
+
+            $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->get();
 
-            $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
+            $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
         }

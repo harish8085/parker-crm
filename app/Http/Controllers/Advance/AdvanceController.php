@@ -39,8 +39,8 @@ class AdvanceController extends Controller
         if ($request->ajax()) {
             $query = Advance::with('user')->orderBy('id', 'desc');           
 
-            if ($request->status !== null && $request->status !== '') {
-                $query->where('advance_status', $request->status);
+            if ($request->user_id !== null && $request->user_id !== '') {
+                $query->where('user_id', $request->user_id);
             }
 
             return DataTables::of($query)
@@ -337,6 +337,7 @@ class AdvanceController extends Controller
             ->where('status', 'pending')
             ->whereNotNull('app_id')
             ->where('app_id', '!=', '')
+            ->whereDoesntHave('advancePaymentCase')
             ->orderBy('id', 'desc')
             ->get([
                 'id', 'app_id', 'customer_name', 'customer_firm_name', 
@@ -721,6 +722,7 @@ class AdvanceController extends Controller
                         'product_percent' => $paymentCase->product_percent ? number_format($paymentCase->product_percent, 2) . '%' : '-',
                         'disburse_amount' => number_format($disburseAmount, 2),
                         'advance_payment_amount' => $paymentCase->advance_payment_amount ? number_format($paymentCase->advance_payment_amount, 2) : '-',
+                        'disbursement_date' => $paymentCase->application->disbursement_date ? date('d-m-Y', strtotime($paymentCase->application->disbursement_date)) : '-',
                     ];
                 }
                 return null;

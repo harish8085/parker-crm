@@ -118,6 +118,7 @@
                             html += '<th>Product %</th>';
                             html += '<th>Disbursement Amount</th>';
                             html += '<th>Advance Amount</th>';
+                            html += '<th>Disbursement Date</th>';
                             html += '</tr>';
                             html += '</thead>';
                             html += '<tbody>';
@@ -129,6 +130,7 @@
                                 html += '<td>' + (app.product_percent || '-') + '</td>';
                                 html += '<td>₹' + (app.disburse_amount || '0.00') + '</td>';
                                 html += '<td>₹' + (app.advance_payment_amount || '-') + '</td>';
+                                html += '<td>' + (app.disbursement_date || '-') + '</td>';
                                 html += '</tr>';
                             });
                             html += '</tbody>';

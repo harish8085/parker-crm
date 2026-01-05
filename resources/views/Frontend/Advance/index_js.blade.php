@@ -57,35 +57,10 @@
 
 </script>
 
-<!-- Date picker -->
-<script type="text/javascript">
-    $(document).ready(function () {
-        // Initialize the date range picker
-        $('#date-range-picker').daterangepicker({
-            opens: 'right',
-            locale: {
-                format: 'YYYY-MM-DD',
-                separator: ' to '
-            }
-        });
-
-        // Show or hide the date range picker based on the selected option
-        $('#date').on('change', function () {
-            var val = this.value;
-            if (val == 'custom') {
-                $('.date_range').show(); // Show date range picker
-            } else {
-                $('.date_range').hide(); // Hide date range picker
-            }
-        });
-    });
-</script>
-
-
 <!-- Datatable -->
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
-    function load_data(date = '', date_range = '', status = '') {
+    function load_data(user_id = '') {
 
         var table = $('.data-table').DataTable({
             debug: false, // Disable debugging
@@ -110,14 +85,9 @@
                 },
                 customize: function (csv) {
                     var header = '';
-                    var date = $("#date option:selected").html();
-                    if (date == "custom") {
-                        var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
-                    }
-                    if (date || date_range || status) {
-                        if (date) header += 'Date: ' + date + '\n';
-                        if (date_range) header += 'Date Range: ' + date_range + '\n';
-                        if (status) header += 'Status: ' + (status == 1 ? 'Active' : 'Inactive') + '\n';
+                    var user_id = $("#user_id option:selected").html();
+                    if (user_id) {
+                        header += 'Channel Partner: ' + user_id + '\n';
                     }
                     return header + csv; // Prepend the filter information to the CSV content
                 }
@@ -138,14 +108,9 @@
                     var sheet = xlsx.xl.worksheets['sheet1.xml']; // Access the sheet XML
                     // Construct the custom header
                     var header = '';
-                    var date = $("#date option:selected").html();
-                    if (date == "custom") {
-                        var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
-                    }
-                    if (date || date_range || status) {
-                        if (date) header += 'Date: ' + date + '\n';
-                        if (date_range) header += 'Date Range: ' + date_range + '\n';
-                        if (status) header += 'Status: ' + (status == 1 ? 'Active' : 'Inactive') + '\n';
+                    var user_id = $("#user_id option:selected").html();
+                    if (user_id) {
+                        header += 'Channel Partner: ' + user_id + '\n';
                     }
                     // Add the header in the first row
                     var rows = $('row', sheet); // Get all rows
@@ -173,15 +138,10 @@
                 },
                 customize: function (win) {
                     var filters = '';
-                    var date = $("#date option:selected").html();
-                    if (date == "custom") {
-                        var date_range = $("#date-range-picker").val(); // Adjust according to your HTML structure
-                    }
-                    if (date || date_range || status) {
+                    var user_id = $("#user_id option:selected").html();
+                    if (user_id) {
                         filters += '<h4>Filters Applied:</h4>';
-                        if (date) filters += '<p>Date: ' + date + '</p>';
-                        if (date_range) filters += '<p>Date Range: ' + date_range + '</p>';
-                        if (status) filters += '<p>Status: ' + (status == 1 ? 'Active' : 'Inactive') + '</p>';
+                        filters += '<p>Channel Partner: ' + user_id + '</p>';
                     }
 
                     $(win.document.body).prepend(filters);
@@ -193,9 +153,7 @@
             ajax: {
                 url: "{{ route('advance.index') }}",
                 data: {
-                    date: date,
-                    date_range: date_range,
-                    status: status,
+                    user_id: user_id,
                 },
                 error: function (xhr, error, thrown) {
                     console.log(xhr.responseText);
@@ -229,29 +187,53 @@
     $(document).ready(function () {
         load_data();
 
-        $('.select').select2({
+        // Initialize Select2 for regular selects
+        $('.select').not('.user-select').select2({
             placeholder: "Select an option",
             allowClear: true
         });
 
-        $('#filter').click(function () {
-            var date = $('#date').val();
-            var date_range = $('#date-range-picker').val();
-            var status = $('#status').val();
+        // Initialize Select2 with AJAX search for Channel Partner
+        $('.user-select').select2({
+            placeholder: 'Select Channel Partner',
+            allowClear: true,
+            minimumInputLength: 1,
+            ajax: {
+                url: '{{ route('advance.users.search') }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data
+                    };
+                },
+                cache: true
+            }
+        });
 
-            if (date || status) {
+        $('#filter').click(function () {
+            var user_id = $('#user_id').val();
+
+            if (user_id) {
                 $('.data-table').DataTable().destroy();
-                load_data(date, date_range, status);
+                load_data(user_id);
             } else {
                 bootbox.alert({
-                    message: 'Select at least one filter!',
+                    message: 'Please select a Channel Partner!',
                     className: 'bootbox-warning'
                 });
             }
         });
 
         $('#refresh').click(function () {
-            window.location.reload();
+            $('#user_id').val(null).trigger('change');
+            $('.data-table').DataTable().destroy();
+            load_data();
         });
     });
 </script>

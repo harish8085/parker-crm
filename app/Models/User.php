@@ -39,6 +39,9 @@ class User extends Authenticatable
         'password',
         'otp',
         'otp_expires_at',
+        'gst_number',
+        'gest_certificate',
+        'remember_token',
     ];
 
     /**

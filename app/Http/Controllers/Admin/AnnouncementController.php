@@ -166,33 +166,6 @@ class AnnouncementController extends Controller
 
     public function store(Request $request)
     {
-        // Validate dates in m-d-yyyy format
-        $startsAt = null;
-        if ($request->starts_at) {
-            try {
-                $startsAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->starts_at);
-            } catch (\Exception $e) {
-                return redirect()->back()->withErrors(['starts_at' => 'Invalid start date format. Please use MM-DD-YYYY format.'])->withInput();
-            }
-        }
-        
-        // Expires at is required
-        if (!$request->expires_at) {
-            return redirect()->back()->withErrors(['expires_at' => 'Expiry date is required.'])->withInput();
-        }
-        
-        $expiresAt = null;
-        try {
-            $expiresAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->expires_at);
-        } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['expires_at' => 'Invalid expiry date format. Please use MM-DD-YYYY format.'])->withInput();
-        }
-        
-        // Validate expiry date is after or equal to start date
-        if ($startsAt && $expiresAt && $expiresAt->lt($startsAt)) {
-            return redirect()->back()->withErrors(['expires_at' => 'Expiry date must be greater than or equal to start date.'])->withInput();
-        }
-
         $request->validate([
             'title' => 'required|string|max:50',
             'message' => 'nullable|string',
@@ -202,7 +175,7 @@ class AnnouncementController extends Controller
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
             'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
             'starts_at' => 'required',
-            'expires_at' => 'required',
+            'expires_at' => 'nullable',
         ], [
             'title.required' => 'Title is required.',
             'title.max' => 'Title must be less than 50 characters.',
@@ -219,11 +192,38 @@ class AnnouncementController extends Controller
             'announcement_category_id.required' => 'Please select an announcement category.',
             'announcement_category_id.exists' => 'Selected announcement category is invalid.',
             'starts_at.required' => 'Start date is required.',
-            'starts_at.date' => 'Start date must be a valid date.',
-            'expires_at.required' => 'Expiry date is required.',
+            'starts_at.date' => 'Start date must be a valid date.',            
             'expires_at.date' => 'Expiry date must be a valid date.',
             
         ]);
+        // Validate dates in m-d-yyyy format
+        $startsAt = null;
+        if ($request->starts_at) {
+            try {
+                $startsAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->starts_at);
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['starts_at' => 'Invalid start date format. Please use MM-DD-YYYY format.'])->withInput();
+            }
+        }
+        
+       
+         
+        
+        $expiresAt = null;
+        if ($request->expires_at) {
+        try {
+                $expiresAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->expires_at);
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['expires_at' => 'Invalid expiry date format. Please use MM-DD-YYYY format.'])->withInput();
+            }
+        }
+        
+        // Validate expiry date is after or equal to start date
+        if ($startsAt && $expiresAt && $expiresAt->lt($startsAt)) {
+            return redirect()->back()->withErrors(['expires_at' => 'Expiry date must be greater than or equal to start date.'])->withInput();
+        }
+
+        
 
         // Handle message_attachment upload
         $messageAttachmentPath = null;
@@ -281,33 +281,6 @@ class AnnouncementController extends Controller
 
     public function update(Request $request, Announcement $announcement)
     {
-        // Validate dates in m-d-yyyy format
-        $startsAt = null;
-        if ($request->starts_at) {
-            try {
-                $startsAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->starts_at);
-            } catch (\Exception $e) {
-                return redirect()->back()->withErrors(['starts_at' => 'Invalid start date format. Please use MM-DD-YYYY format.'])->withInput();
-            }
-        }
-        
-        // Expires at is required
-        if (!$request->expires_at) {
-            return redirect()->back()->withErrors(['expires_at' => 'Expiry date is required.'])->withInput();
-        }
-        
-        $expiresAt = null;
-        try {
-            $expiresAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->expires_at);
-        } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['expires_at' => 'Invalid expiry date format. Please use MM-DD-YYYY format.'])->withInput();
-        }
-        
-        // Validate expiry date is after or equal to start date
-        if ($startsAt && $expiresAt && $expiresAt->lt($startsAt)) {
-            return redirect()->back()->withErrors(['expires_at' => 'Expiry date must be greater than or equal to start date.'])->withInput();
-        }
-
         $request->validate([
             'title' => 'required|string|max:50',
             'title.max' => 'Title must be less than 50 characters.',
@@ -318,7 +291,7 @@ class AnnouncementController extends Controller
             'attachments.*' => 'nullable|file|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv|max:2048',
             'message_attachment' => 'nullable|file|mimes:jpg,jpeg,png|max:2048',
             'starts_at' => 'required',
-            'expires_at' => 'required',
+            'expires_at' => 'nullable',
         ], [
             'attachments.*.file' => 'Each attachment must be a valid file.',
             'attachments.*.mimes' => 'Each attachment must be one of the following types: jpg, jpeg, png, gif, pdf, doc, docx, xls, xlsx, ppt, pptx, txt, csv.',
@@ -334,9 +307,35 @@ class AnnouncementController extends Controller
             'announcement_category_id.exists' => 'Selected announcement category is invalid.',
             'starts_at.required' => 'Start date is required.',
             'starts_at.date' => 'Start date must be a valid date.',
-            'expires_at.required' => 'Expiry date is required.',
             'expires_at.date' => 'Expiry date must be a valid date.',
         ]);
+        // Validate dates in m-d-yyyy format
+        $startsAt = null;
+        if ($request->starts_at) {
+            try {
+                $startsAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->starts_at);
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['starts_at' => 'Invalid start date format. Please use MM-DD-YYYY format.'])->withInput();
+            }
+        }
+        
+         
+        
+        $expiresAt = null;
+        if ($request->expires_at) {
+        try {
+                $expiresAt = \Carbon\Carbon::createFromFormat('m-d-Y', $request->expires_at);
+            } catch (\Exception $e) {
+                return redirect()->back()->withErrors(['expires_at' => 'Invalid expiry date format. Please use MM-DD-YYYY format.'])->withInput();
+            }
+        }
+        
+        // Validate expiry date is after or equal to start date
+        if ($startsAt && $expiresAt && $expiresAt->lt($startsAt)) {
+            return redirect()->back()->withErrors(['expires_at' => 'Expiry date must be greater than or equal to start date.'])->withInput();
+        }
+
+        
 
         // Handle message_attachment upload/update
         $updateData = [

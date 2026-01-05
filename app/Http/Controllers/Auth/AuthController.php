@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\WelComeEmailJob;
 use App\Models\User;
 use App\Models\Service;
 use App\Models\MasterCode;
@@ -20,6 +21,7 @@ use App\Mail\OtpVerificationMail;
 use App\Mail\WelcomeMail;
 use App\Models\ChannelUser;
 use App\Models\BankData;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -59,7 +61,7 @@ class AuthController extends Controller
                         $type = ['sales'];
                         break;
                     default:
-                        $type = ['admin', 'staff','channel','sales'];
+                        $type = ['admin', 'staff','channel','sales','maker','checker'];
                         break;
                 }
                 $userdata = array(
@@ -179,13 +181,19 @@ class AuthController extends Controller
 
     public function register(Request $request)
     {
+        // Conditional validation: GST certificate is required if GST number is provided
+        $gstCertificateRule = 'nullable|image|mimes:jpeg,jpg,png|max:2048';
+        if ($request->filled('gst_number') && !empty(trim($request->gst_number))) {
+            $gstCertificateRule = 'required|image|mimes:jpeg,jpg,png|max:2048';
+        }
+
         $request->validate([
             'first_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'required|string|min:10|max:10|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'pan_number' => 'required|string',
-            'aadhar_number' => 'required|string',
+            'pan_number' => 'required|string|unique:users,pan_number',
+            'aadhar_number' => 'required|string|unique:users,aadhar_number',
             'verification_code' => 'required|string',
             'address_1' => 'required|string|max:255',
             'address_2' => 'required|string|max:255',
@@ -203,6 +211,8 @@ class AuthController extends Controller
             'aadhar_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'pan_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
             'passbook_photo' => 'nullable|image|mimes:jpeg,jpg,png|max:2048',
+            'gst_number' => 'nullable|string|max:15|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/|unique:users,gst_number',
+            'gst_certificate' => $gstCertificateRule,
         ], [
             // Personal Details
             'first_name.required' => 'Channel name is required.',
@@ -291,10 +301,24 @@ class AuthController extends Controller
             'pan_photo.image' => 'PAN photo must be an image file.',
             'pan_photo.mimes' => 'PAN photo must be a JPEG, JPG, or PNG file.',
             'pan_photo.max' => 'PAN photo size must not exceed 2MB.',
+
             
             'passbook_photo.image' => 'Passbook photo must be an image file.',
             'passbook_photo.mimes' => 'Passbook photo must be a JPEG, JPG, or PNG file.',
             'passbook_photo.max' => 'Passbook photo size must not exceed 2MB.',
+            
+            'gst_number.string' => 'GST number must be a valid text.',
+            'gst_number.max' => 'GST number must be exactly 15 characters.',
+            'gst_number.regex' => 'GST number format is invalid. Please enter a valid 15-character GST number.',
+            
+            'gst_certificate.required' => 'GST certificate is required when GST number is provided.',
+            'gst_certificate.image' => 'GST certificate must be an image file.',
+            'gst_certificate.mimes' => 'GST certificate must be a JPEG, JPG, or PNG file.',
+            'gst_certificate.max' => 'GST certificate size must not exceed 2MB.',
+
+            'pan_number.unique' => 'This PAN number is already registered. Please use a different PAN number.',
+            'aadhar_number.unique' => 'This Aadhar number is already registered. Please use a different Aadhar number.',
+            'gst_number.unique' => 'This GST number is already registered. Please use a different GST number.',
         ]);
 
         // Validate verification code against master code
@@ -318,6 +342,7 @@ class AuthController extends Controller
         $aadharPhotoPath = null;
         $panPhotoPath = null;
         $passbookPhotoPath = null;
+        $gstCertificatePath = null;
 
         try {
             if ($request->hasFile('aadhar_photo')) {
@@ -330,6 +355,10 @@ class AuthController extends Controller
 
             if ($request->hasFile('passbook_photo')) {
                 $passbookPhotoPath = $request->file('passbook_photo')->store('uploads/bankdata/passbook', 'public');
+            }
+
+            if ($request->hasFile('gst_certificate')) {
+                $gstCertificatePath = $request->file('gst_certificate')->store('uploads/bankdata/gst', 'public');
             }
 
             // Wrap all database operations in a transaction
@@ -355,9 +384,12 @@ class AuthController extends Controller
                     'account_number' => $request->account_number,
                     'ifsc_code' => $request->ifsc_code,
                     'service_type' => $request->service_type,
+                    'gst_number' => $request->gst_number ? strtoupper($request->gst_number) : null,
+                    'gest_certificate' => $gstCertificatePath,
                     'user_type' => 'channel',
                     'status' => 1,
-                    'Emp_Id' => $request->state.'_'.$request->district.'_'.$request->first_name
+                    'Emp_Id' => $request->state.'_'.$request->district.'_'.$request->first_name,
+                    'remember_token' => Str::random(20),
 
                 ]);
 
@@ -381,6 +413,7 @@ class AuthController extends Controller
                 $bankData->passbook_photo = $passbookPhotoPath;
                 $bankData->is_default = 1; // Set as default bank account
                 $bankData->status = 1; // Active status
+
                 $bankData->save();
 
                 //Save associate channel
@@ -394,7 +427,8 @@ class AuthController extends Controller
 
                 // Send welcome email with terms & conditions and verification link
                 try {
-                    Mail::to($user->email)->send(new WelcomeMail($user));
+                    $verificationLink = url('/verify-email?token=' . Crypt::encryptString($user->remember_token));
+                    Mail::to($user->email)->send(new WelcomeMail($user, $verificationLink));
                 } catch (\Exception $e) {
                     \Log::error('Failed to send welcome email', [
                         'user_id' => $user->id,
@@ -402,6 +436,7 @@ class AuthController extends Controller
                         'error' => $e->getMessage()
                     ]);
                 }
+                
 
                 flash()
                     ->success('Registration successful! Please check your email for terms & conditions and verification link.')
@@ -422,6 +457,9 @@ class AuthController extends Controller
                 }
                 if ($passbookPhotoPath && Storage::disk('public')->exists($passbookPhotoPath)) {
                     Storage::disk('public')->delete($passbookPhotoPath);
+                }
+                if ($gstCertificatePath && Storage::disk('public')->exists($gstCertificatePath)) {
+                    Storage::disk('public')->delete($gstCertificatePath);
                 }
 
                 throw $e; // Re-throw to be caught by outer catch block
@@ -501,6 +539,7 @@ class AuthController extends Controller
 
     public function verifyOtp(Request $request)
     {
+        
         $request->validate([
             'otp' => 'required|string|size:6|regex:/^[0-9]{6}$/',
             'user_id' => 'required|exists:users,id',
@@ -508,6 +547,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::findOrFail($request->user_id);
+       
 
         // Verify email matches user
         if ($user->email !== $request->email) {
@@ -520,20 +560,22 @@ class AuthController extends Controller
         $user->refresh();
 
         // Check if OTP exists and is not expired
-        if (!$user->otp || !$user->otp_expires_at) {
+        if (!$user->otp) {
             return redirect()->back()
                 ->withErrors(['otp' => 'OTP not found. Please request a new one.'])
                 ->withInput();
         }
+        
 
         // Check if OTP has expired
-        if (Carbon::now()->greaterThan($user->otp_expires_at)) {
-            return redirect()->back()
-                ->withErrors(['otp' => 'OTP has expired. Please request a new one.'])
-                ->withInput();
-        }
+        // if (Carbon::now()->greaterThan($user->otp_expires_at)) {
+        //     return redirect()->back()
+        //         ->withErrors(['otp' => 'OTP has expired. Please request a new one.'])
+        //         ->withInput();
+        // }
 
         // Verify OTP
+       
         if ($user->otp !== $request->otp) {
             return redirect()->back()
                 ->withErrors(['otp' => 'Invalid OTP. Please try again.'])
@@ -543,20 +585,12 @@ class AuthController extends Controller
         // OTP verified successfully - clear OTP from database
         $user->update([
             'otp' => null,
-            'otp_expires_at' => null
+            'otp_expires_at' => null,
+            'remember_token' => null,
+            'status' => 1,
         ]);
 
-        // Send welcome email
-        try {
-            Mail::to($user->email)->send(new WelcomeMail($user));
-        } catch (\Exception $e) {
-            \Log::error('Failed to send welcome email', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'error' => $e->getMessage()
-            ]);
-        }
-
+       
         // Auto login the user
         Auth::login($user);
 
@@ -574,16 +608,16 @@ class AuthController extends Controller
                 $type = ['admin', 'staff'];
                 break;
             case 'parker':
-                $type = ['admin', 'staff', 'channel', 'sales'];
+                $type = ['admin', 'staff', 'channel', 'sales','Associate_Channel', 'Maker', 'Checker'];
                 break;
             case 'partner':
-                $type = ['channel'];
+                $type = ['channel','Associate_Channel', 'Maker', 'Checker'];
                 break;
             case 'sales-team':
                 $type = ['sales'];
                 break;
             default:
-                $type = ['admin', 'staff', 'channel', 'sales'];
+                $type = ['admin', 'staff', 'channel', 'sales','Associate_Channel', 'Maker', 'Checker'];
                 break;
         }
 
@@ -655,24 +689,17 @@ class AuthController extends Controller
 
         try {
             // Decrypt the token
-            $decryptedData = Crypt::decryptString($request->token);
-            $data = explode('|', $decryptedData);
+            $decryptedData = Crypt::decryptString($request->token);            
             
-            if (count($data) !== 2) {
+            if (!$decryptedData) {
                 flash()
                     ->error('Invalid verification link.')
                     ->flash();
                 return redirect('/');
-            }
-
-            $user_id = $data[0];
-            $email = $data[1];
-
+            } 
             // Find the user
-            $user = User::where('id', $user_id)
-                        ->where('email', $email)
+            $user = User::where('remember_token', $decryptedData)
                         ->first();
-
             if (!$user) {
                 flash()
                     ->error('Invalid verification link. User not found.')
@@ -692,7 +719,8 @@ class AuthController extends Controller
             // Store OTP in database
             $user->update([
                 'otp' => $otp,
-                'otp_expires_at' => $otpExpiresAt
+                'otp_expires_at' => $otpExpiresAt,
+                'remember_token' => null
             ]);
             
             // Send OTP email

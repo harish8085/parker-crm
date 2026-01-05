@@ -67,4 +67,8 @@ class Application extends Model
     {
         return $this->belongsTo(BankMIS::class, 'bank_mis_id');
     }
+    public function advancePaymentCase()
+    {
+        return $this->hasOne(AdvancePaymentCase::class, 'application_id');
+    }
 }

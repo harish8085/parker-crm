@@ -14,16 +14,17 @@ class WelcomeMail extends Mailable
     use Queueable, SerializesModels;
 
     public $user;
-    
+    public $verificationLink;
 
     /**
      * Create a new message instance.
      *
      * @return void
      */
-    public function __construct($user)
+    public function __construct($user, $verificationLink)
     {
         $this->user = $user;        
+        $this->verificationLink = $verificationLink;
     }
 
     /**
@@ -34,8 +35,9 @@ class WelcomeMail extends Mailable
     public function build()
     {
         $user = $this->user;
+        $verificationLink = $this->verificationLink;
         $mail = $this->subject('Welcome to ' . env('APP_NAME'))
-                    ->view('emails.maker-checker-welcome',compact('user') );
+                    ->view('emails.welcome',compact('user', 'verificationLink') );
         return $mail;
     }
 }

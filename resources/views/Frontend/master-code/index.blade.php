@@ -5,29 +5,90 @@
 <link rel="stylesheet" href="{{ asset('assets/css/settlement.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/paginate.css') }}">
 <style>
-    .mc-grid{gap:22px}
-    .qr-side{background:#f3f6ff;border:1px solid #e6ecff;border-radius:10px;padding:20px}
-    .qr-title{font-size:14px;font-weight:600;color:#6b7280;text-align:center;margin-bottom:10px}
-    .qr-card{background:#fff;border-radius:10px;padding:10px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
-    .qr-actions .btn{min-width:130px}
-    @media(min-width:992px){.left-pane{padding-right:18px}}
-    .success-pill{display:inline-block;background:#22c55e;color:#fff;border-radius:6px;padding:6px 12px;font-size:12px}
-    .field-hint{font-size:12px;color:#8a94a6}
+    .mc-grid {
+        gap: 22px
+    }
+
+    .qr-side {
+        background: #f3f6ff;
+        border: 1px solid #e6ecff;
+        border-radius: 10px;
+        padding: 20px
+    }
+
+    .qr-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #6b7280;
+        text-align: center;
+        margin-bottom: 10px
+    }
+
+    .qr-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 10px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .08)
+    }
+
+    .qr-actions .btn {
+        min-width: 130px
+    }
+
+    @media(min-width:992px) {
+        .left-pane {
+            padding-right: 18px
+        }
+    }
+
+    .success-pill {
+        display: inline-block;
+        background: #22c55e;
+        color: #fff;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 12px
+    }
+
+    .field-hint {
+        font-size: 12px;
+        color: #8a94a6
+    }
+
     /* mock-style panels */
-    .panel-box{background:#fff;border:2px solid #12182610;border-radius:8px;box-shadow:0 4px 14px rgba(18,24,38,0.06)}
-    .panel-pad{padding:24px}
-    .inner-field{max-width:720px}
-    .inner-field .form-control{height:44px}
-    .update-wrap{max-width:260px}
+    .panel-box {
+        background: #fff;
+        border: 2px solid #12182610;
+        border-radius: 8px;
+        box-shadow: 0 4px 14px rgba(18, 24, 38, 0.06)
+    }
+
+    .panel-pad {
+        padding: 24px
+    }
+
+    .inner-field {
+        max-width: 720px
+    }
+
+    .inner-field .form-control {
+        height: 44px
+    }
+
+    .update-wrap {
+        max-width: 260px
+    }
 </style>
 @endsection
 @section('body')
 @php
-    // Encrypt the master code before embedding
-    $encryptedCode = '';
-    if (!empty($masterCode)) {
-        $encryptedCode = \Illuminate\Support\Facades\Crypt::encryptString($masterCode);
-    }
+// Encrypt the master code before embedding
+$encryptedCode = '';
+$signupUrl = '';
+if (!empty($masterCode)) {
+$encryptedCode = \Illuminate\Support\Facades\Crypt::encryptString($masterCode);
+$signupUrl = url(route('signup')) . '?code=' . urlencode($encryptedCode);
+}
 @endphp
 <div class="card">
     <div class="application-header">
@@ -43,12 +104,12 @@
             @csrf
             <div class="row">
                 @if(!empty($masterCode))
-            <div class="col-lg-3 mb-3">
+                <div class="col-lg-3 mb-3">
                     <div class="panel-box panel-pad h-100 d-flex flex-column align-items-left justify-content-center">
-                       
+
                         <div class="qr-card mb-2">
-                          
-                            <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ route('signup') . '?code=' . urlencode($encryptedCode) }}" alt="QR Code" width="220" height="220">
+
+                            <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($signupUrl) }}" alt="QR Code" width="220" height="220">
                         </div>
                         <div class="qr-actions d-flex gap-2 mt-1">
                             <a id="download-qr" class="btn btn-sm btn-outline-primary" href="{{ route('master-code.download') }}">Download PNG</a>
@@ -57,7 +118,7 @@
                     </div>
                 </div>
                 @endif
-                
+
                 <div class="col-lg-6 mb-3">
                     <div class="panel-box panel-pad">
                         <div class="bank-detail-inputs inner-field">
@@ -74,42 +135,44 @@
                             </button>
                         </div>
                         @endif
-                    <div class="mt-3">
-                        <button type="button" class=" btn btn-sm btn-outline-primary w-100" id="share-link-btn">
-                            <img src="{{ asset('assets/images/share-icon.svg') }}" alt="Share" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;" onmouseover="Share this link with your team">Share Link
-                        </button>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            document.getElementById('share-link-btn').addEventListener('click', async function() {
-                                const url = "{{ route('signup') . '?code=' . urlencode($encryptedCode ?? '') }}";
-                                @if(!empty($masterCode))
-                                if (navigator.share) {
-                                    navigator.share({
-                                        title: 'Signup Link',
-                                        text: 'Here is the signup link with master code:',
-                                        url: url
-                                    });
-                                } else if (navigator.clipboard) {
-                                    try {
-                                        await navigator.clipboard.writeText(url);
-                                        alert('Link copied to clipboard!');
-                                    } catch (e) {
+                        <div class="mt-3">
+                            <button type="button" class=" btn btn-sm btn-outline-primary w-100" id="share-link-btn">
+                                <img src="{{ asset('assets/images/share-icon.svg') }}" alt="Share" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;" onmouseover="Share this link with your team">Share Link
+                            </button>
+                        </div>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                document.getElementById('share-link-btn').addEventListener('click', async function() {
+
+                                    const url = "{{ $signupUrl ?? '' }}";                                   
+
+                                    @if(!empty($masterCode))
+                                    if (navigator.share) {
+                                        navigator.share({
+                                            title: 'Signup Link',
+                                            text: 'Please click here to signup: ' + url,
+                                            url: url
+                                        });
+                                    } else if (navigator.clipboard) {
+                                        try {
+                                            await navigator.clipboard.writeText(url);
+                                            alert('Link copied to clipboard!');
+                                        } catch (e) {
+                                            prompt('Copy this link:', url);
+                                        }
+                                    } else {
                                         prompt('Copy this link:', url);
                                     }
-                                } else {
-                                    prompt('Copy this link:', url);
-                                }
-                                @else
-                                alert('No master code found!');
-                                @endif
+                                    @else
+                                    alert('No master code found!');
+                                    @endif
+                                });
                             });
-                        });
-                    </script>
+                        </script>
                     </div>
                 </div>
 
-                
+
             </div>
         </form>
     </div>
@@ -117,4 +180,3 @@
 @endsection
 @section('script')
 @endsection
-

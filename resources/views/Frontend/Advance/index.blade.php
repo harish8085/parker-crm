@@ -5,11 +5,6 @@
 <link rel="stylesheet" href="{{ asset('assets/css/settlement.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/paginate.css') }}">
 <style>
-    .date_range {
-        display: none;
-        /* Hidden by default */
-    }
-
     /* Toggle Switch Styles */
     .toggle-switch {
         position: relative;
@@ -84,8 +79,24 @@
     </div>
 
     <!-- filter form -->
- 
-
+    <div class="bank-card p-4">
+        <div class="row">
+            <div class="col-lg-4 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label">Channel Partner</label>
+                    <select class="bank-detail-input form-select select user-select" name="user_id" id="user_id" data-placeholder="Select Channel Partner">
+                        <option value="">Select Channel Partner</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-12 mt-2">
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-primary me-2" type="button" name="filter" id="filter">Filter</button>
+                    <button class="btn btn-secondary" type="button" id="refresh">Refresh</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="table-responsive p-4" id="dataTable">
         @include('Frontend.Advance.Table._table')
