@@ -2,6 +2,7 @@
 @section('style')
 <link rel="stylesheet" href="{{asset('assets/css/manage-user.css')}}">
 <link rel="stylesheet" href="{{asset('assets/css/custom-table.css')}}">
+<link rel="stylesheet" href="{{ asset('assets/css/commen.css') }}">
 
 <style>
     .date_range {
@@ -20,7 +21,10 @@
         <div class="user-btn-container">
             @if(auth()->user()->hasPermission('channel','create'))
             <a href="{{url('/channel/create')}}">
-                <button class="settlement-header-btn"><img class="application-header-icon" src="{{asset('assets/images/add-table-icon.svg')}}">Add</button>
+                <button class="settlement-header-btn add-bank-target-res1"><img class="application-header-icon" src="{{asset('assets/images/add-table-icon.svg')}}">Add</button>
+            </a>
+             <a href="{{url('/channel/create')}}">
+                <button class="settlement-header-btn add-bank-target-res2"><img class="application-header-icon" src="{{asset('assets/images/add-table-icon.svg')}}">Add</button>
             </a>
             @endif
         </div>
@@ -32,7 +36,7 @@
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Date Range</label>
-                    <select class="bank-detail-input form-select select" required name="date" id="date">
+                    <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
                         <option value="" selected disabled></option>
                         <option value="custom">Custom</option>
                         <option value="today">Today</option>
