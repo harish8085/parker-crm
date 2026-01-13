@@ -1037,6 +1037,7 @@ class ApplicationController extends Controller
                 'xlsx_file' => 'required|file|mimes:xlsx',
                 'bank_id' => 'required',
                 'product_id' => 'required',
+                'bank_mis_month' => 'required',
             ]);
 
             $bank_id = $request->bank_id;
@@ -1045,6 +1046,7 @@ class ApplicationController extends Controller
             $tempFilePath = $file->storeAs('tmp', 'uploaded.xlsx');
 
             $group = Product::where('id', $product_id)->value('group');
+            $bank_mis_month = $request->bank_mis_month;
             $excel = SimpleExcelReader::create(storage_path('app/' . $tempFilePath));
             $rows = $excel->getRows()->toArray();
 
@@ -1058,6 +1060,9 @@ class ApplicationController extends Controller
             $keysMapping = $sheetData->toArray();
             unset($keysMapping['id'], $keysMapping['bank_id'], $keysMapping['product_id'], $keysMapping['group'], $keysMapping['created_at'], $keysMapping['updated_at']);
 
+            $successCount = 0;
+            $duplicateAppIds = [];  // Track app_ids that already exist
+
             foreach ($rows as $row) {
                 if ($row) {
                     // Extract values based on mapped keys
@@ -1068,6 +1073,15 @@ class ApplicationController extends Controller
                     foreach ($keysMapping as $excelKey => $dataKey) {
                         if (isset($row[$dataKey])) {
                             $data[$excelKey] = $row[$dataKey];
+                        }
+                    }
+
+                    // Check if app_id already exists in BankMIS table
+                    if (isset($data['app_id']) && !empty($data['app_id'])) {
+                        $appIdExists = BankMIS::where('app_id', $data['app_id'])->exists();
+                        if ($appIdExists) {
+                            $duplicateAppIds[] = $data['app_id'];
+                            continue;  // Skip this row if app_id already exists
                         }
                     }
 
@@ -1092,7 +1106,10 @@ class ApplicationController extends Controller
                         }
                     }
 
-                    // Check if the record already exists based on all relevant fields
+                    // Attach selected month to data so it is saved and used in duplicate checks
+                    $data['bank_mis_month'] = $bank_mis_month;
+
+                    // Check if the record already exists based on all relevant fields (including month)
                     $existingMIS = BankMIS::where('bank_id', $data['bank_id'])
                         ->where('product_id', $data['product_id'])
                         ->where('app_id', $data['app_id'] ?? NULL)
@@ -1109,6 +1126,7 @@ class ApplicationController extends Controller
                         ->where('disbAmount', $data['disbAmount'] ?? NULL)
                         ->where('case_location', $data['case_location'] ?? NULL)
                         ->where('otc_pdd_status', $data['otc_pdd_status'] ?? NULL)
+                        ->where('bank_mis_month', $data['bank_mis_month'] ?? NULL)
                         ->first();
 
                     // If the record exists, skip inserting it
@@ -1121,6 +1139,7 @@ class ApplicationController extends Controller
                     $bank->bank_id = $data['bank_id'];
                     $bank->product_id = $data['product_id'];
                     $bank->app_id = isset($data['app_id']) ? $data['app_id'] : NULL;
+                    $bank->bank_mis_month = $data['bank_mis_month'] ?? NULL;
                     $bank->payout_rate = ($data['payout_rate'] != '') ? round(floatval($data['payout_rate']), 2) : NULL;
                     $bank->location = isset($data['location']) ? $data['location'] : NULL;
                     $bank->payout_amount = isset($data['payout_amount']) ? floatval($data['payout_amount']) : NULL;
@@ -1139,13 +1158,23 @@ class ApplicationController extends Controller
                     // Update the group field in the second save
                     $bank->group = $group;
                     $bank->save();
+                    
+                    $successCount++;  // Increment success count
                 }
             }
 
             // Dispatch Job for processing
             ProcessMISDataJob::dispatch($bank_id, $product_id);
 
-            return redirect()->to('/bank_mis')->with('success', 'File uploaded successfully. Data processing will continue in the background.');
+            // Prepare response message with duplicate app_ids warning if any
+            $successMessage = 'File uploaded successfully. Data processing will continue in the background.';
+            if (!empty($duplicateAppIds)) {
+                $duplicateList = implode(', ', $duplicateAppIds);
+                $warningMessage = "The following application number(s) already exist and were not added: $duplicateList. Please check your application numbers.";
+                return redirect()->to('/bank_mis')->with('success', $successMessage)->with('warning', $warningMessage);
+            }
+
+            return redirect()->to('/bank_mis')->with('success', $successMessage);
         } catch (\Throwable $th) {
             return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
         }

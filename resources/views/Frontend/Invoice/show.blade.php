@@ -5,7 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 @endsection
 @section('body')
-<h2>View Bank MIS</h2>
+<h2>Generate Invoice</h2>
 
 <div class="bank-card">
     <div class="card-top-border">Basic Details</div>

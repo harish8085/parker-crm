@@ -112,6 +112,27 @@ class PermissionRoleSeeder extends Seeder
                 'view'   => 1,
                 'delete' => 1,
             ],
+            [
+                'name'   => 'invoice',
+                'create' => 1,
+                'update' => 1,
+                'view'   => 1,
+                'delete' => 1,
+            ],
+            [
+                'name'   => 'mis_tracker',
+                'create' => 1,
+                'update' => 1,
+                'view'   => 1,
+                'delete' => 1,
+            ],
+             [
+                'name'   => 'invoice_payment',
+                'create' => 1,
+                'update' => 1,
+                'view'   => 1,
+                'delete' => 1,
+            ],
             // Add more permissions as needed
         ];
 
@@ -223,6 +244,7 @@ class PermissionRoleSeeder extends Seeder
                 'view'   => 0,
                 'delete' => 0,
             ],
+           
             // Add more permissions as needed
         ];
 
