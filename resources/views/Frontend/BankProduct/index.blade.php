@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="{{ asset('assets/css/custom-table.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/settlement.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/paginate.css') }}">
-
+<link rel="stylesheet" href="{{ asset('assets/css/commen.css') }}">
 <style>
     .date_range {
         display: none;
@@ -18,8 +18,11 @@
     <div class="application-header">
         <h3 class="application-heading">All Bank Product</h3>
         <div class="btn-container">
-            <button class="application-header-btn" data-bs-toggle="modal" data-bs-target="#createBankProduct">
+            <button class="application-header-btn add-bank-target-res1" data-bs-toggle="modal" data-bs-target="#createBankProduct">
                 <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">Add Product
+            </button>
+            <button class="application-header-btn add-bank-target-res2" data-bs-toggle="modal" data-bs-target="#createBankProduct">
+                <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">
             </button>
         </div>
     </div>
@@ -30,7 +33,7 @@
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label">Date Range</label>
-                    <select class="bank-detail-input form-select select" required name="date" id="date">
+                    <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
                         <option value="" selected disabled></option>
                         <option value="custom">Custom</option>
                         <option value="today">Today</option>

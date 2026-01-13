@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ asset('assets/css/custom-table.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/settlement.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/paginate.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/commen.css') }}">
 
 <style>
     .date_range {
@@ -29,7 +30,12 @@
         <div class="btn-container">
             @if(auth()->user()->hasPermission('upload-mis','create'))
             <a href="{{ url('/upload-mis/create') }}" style="text-decoration: none;">
-                <button class="application-header-btn">
+                <button class="application-header-btn  add-bank-target-res1">
+                    <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload Bank MIS
+                </button>
+            </a>
+            <a href="{{ url('/upload-mis/create') }}" style="text-decoration: none;">
+                <button class="application-header-btn  add-bank-target-res2">
                     <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload Bank MIS
                 </button>
             </a>
@@ -43,7 +49,7 @@
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label mb-2">Date Range</label>
-                    <select class="bank-detail-input form-select select" required name="date" id="date">
+                    <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
                         <option value="" selected disabled></option>
                         <option value="custom">Custom</option>
                         <option value="today">Today</option>

@@ -1,0 +1,81 @@
+ h3 {
+     margin-bottom: 0 !important;
+ }
+
+ .settlement-btn-container {
+     display: flex !important;
+
+ }
+
+ .add-bank-target-res1 {
+     display: block;
+ }
+
+ .add-bank-target-res2 {
+     display: none;
+ }
+
+ @media (max-width: 1470px) {
+     .date-filter+.select2-container {
+         width: 300px !important;
+     }
+
+     .date_range input {
+         width: 300px !important;
+     }
+
+     .bank-detail-inputs .select2-container {
+         width: 300px !important;
+     }
+ }
+
+ @media (max-width: 1200px) {
+
+     .date-filter+.select2-container {
+         width: 200px !important;
+     }
+
+     .date_range input {
+         width: 200px !important;
+     }
+
+     .bank-detail-inputs .select2-container {
+         width: 200px !important;
+     }
+ }
+
+ @media (max-width: 768px) {
+
+     .add-bank-target-res1 {
+         display: none;
+     }
+
+     .add-bank-target-res2 {
+         display: block;
+     }
+ }
+
+ @media (max-width: 768px) {
+     .application-header {
+         display: flex !important;
+         flex-direction: row;
+         align-items: center !important;
+         justify-content: space-between !important;
+         width: 100%;
+     }
+
+     h3 {
+         font-size: 18px !important;
+         margin-bottom: 0 !important;
+     }
+
+     .btn-container {
+         display: flex;
+         justify-content: flex-end;
+         flex-shrink: 0;
+         width: auto !important;
+     }
+ }
+
+
+
