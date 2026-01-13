@@ -164,8 +164,8 @@ h3.settlement-heading {
         padding: 12px 10px;
         font-size: 14px;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        /* overflow: hidden;
+        text-overflow: ellipsis; */
     }
 
     .settlement-header {
