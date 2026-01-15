@@ -279,7 +279,7 @@ class InvoiceController extends Controller
         }
     
         // Calculate total disburse amount
-        $totalDisburseAmount = $bankMisRecords->sum('disbAmount');
+        $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
     
         // Format data for modal display
         $cases = $bankMisRecords->map(function ($record) {
@@ -288,16 +288,20 @@ class InvoiceController extends Controller
                 'app_id' => $record->app_id,
                 'bank_name' => $record->bank->name ?? '-',
                 'product_name' => $record->product->name ?? '-',
-                'month' => $record->bank_mis_month ?? '-',
+                'payout_rate' => $record->payout_rate ?? '-',
+                // formate month as M-Y format ex
+                'month' => $record-> bank_mis_month? \Carbon\Carbon::parse($record->bank_mis_month)->format('M') : '-',
+                'month_year' => $record-> bank_mis_month? \Carbon\Carbon::parse($record->bank_mis_month)->format('M-Y') : '-',
                 'group' => $record->group ?? '-',
                 'customer_name' => $record->customer_name ?? '-',
+                'payoutAmount' => $record->payout_amount ?? 0,
                 'disbAmount' => $record->disbAmount ?? 0,
             ];
         })->toArray();
     
         return response()->json([
             'cases' => $cases,
-            'totalDisburseAmount' => $totalDisburseAmount,
+            'totalPayoutAmount' => $totalPayoutAmount,
             'success' => true
         ]);
     }

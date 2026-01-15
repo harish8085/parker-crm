@@ -100,6 +100,7 @@
                 <label class="bank-input-label">Case State<span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="text" name="case_state" id="case_state" placeholder="Enter case state">
             </div> -->
+            
 
 
             <div class="bank-detail-inputs">
@@ -220,13 +221,12 @@
 
 <!-- select search -->
 <script>
-    $('.select').select2({
-        placeholder: "Select an option",
-        allowClear: true
-    });
-</script>
-<script>
     $(document).ready(function() {
+        // Initialize Select2 for all select elements
+        $('.select').select2({
+            placeholder: "Select an option",
+            allowClear: true
+        });
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

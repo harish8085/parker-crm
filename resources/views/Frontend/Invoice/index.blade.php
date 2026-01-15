@@ -184,10 +184,70 @@
         </div>
     </div>
 </div>
-<div class="modal fade" id="invoiceModal" style="margin-top: 200px;">
+<div class="modal fade" id="invoiceModal" data-bs-backdrop="static" data-bs-keyboard="false" style="margin-top: 200px; width:100%;" >
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content" style="">
             <!-- Content will be inserted here -->
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="invoic_input_Modal" data-bs-backdrop="static" data-bs-keyboard="false" style="width:100%;" >
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="margin-top: 200px;">
+            <div class="modal-header" style="height: 50px;">
+                <h5 class="modal-title">Invoice Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 20px 25px; max-height: 400px; overflow-y: auto;">
+                <form id="invoiceInputForm">
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Invoice No <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter invoice no (15-16 digits)" name="invoice_no" id="invoice_no" pattern="\d{15,16}" maxlength="16" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Date <span class="required">*</span></label>
+                            <input type="date" class="form-control" name="invoice_date" id="invoice_date" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Bank GST No <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter bank GST no" name="bank_gst_no" id="bank_gst_no" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Bank HSN Code <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter bank HSN code" name="bank_hsn_code" id="bank_hsn_code" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Bank Address</label>
+                            <textarea class="form-control" placeholder="Enter bank address" name="bank_address" id="bank_address" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">DSA PAN</label>
+                            <input type="text" class="form-control" placeholder="Enter DSA PAN" name="dsa_pan" id="dsa_pan">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">DSA GST No</label>
+                            <input type="text" class="form-control" placeholder="Enter DSA GST no" name="dsa_gst_no" id="dsa_gst_no">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitInvoiceInput()">Submit</button>
+            </div>
         </div>
     </div>
 </div>
@@ -227,7 +287,7 @@
                                                                 <h5 class="modal-title">Generate Invoice - Case Details</h5>
                                                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                                         </div>
-                                                        <div class="modal-body">
+                                                        <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
                                                                 <table class="table table-striped table-hover">
                                                                         <thead class="table-light">
                                                                                 <tr>
@@ -235,9 +295,13 @@
                                                                                         <th>Bank Name</th>
                                                                                         <th>Product Name</th>
                                                                                         <th>Month</th>
+                                                                                        <th>Date</th>
+                                                                                        <th>Rate</th>
                                                                                         <th>Group</th>
                                                                                         <th>Customer Name</th>
+                                                                                        <th>Payout Amount</th>
                                                                                         <th>Disburse Amount</th>
+                                                                                       
                                                                                 </tr>
                                                                         </thead>
                                                                         <tbody>
@@ -251,8 +315,11 @@
                                                                         <td>${caseItem.bank_name}</td>
                                                                         <td>${caseItem.product_name}</td>
                                                                         <td>${caseItem.month}</td>
+                                                                        <td>${caseItem.month_year}</td>
+                                                                        <td>${caseItem.payout_rate}</td>
                                                                         <td>${caseItem.group}</td>
                                                                         <td>${caseItem.customer_name}</td>
+                                                                        <td>₹${parseFloat(caseItem.payoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                                                         <td>₹${parseFloat(caseItem.disbAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                                                 </tr>
                                                         `;
@@ -263,12 +330,12 @@
                                                                         </tbody>
                                                                 </table>
                                                                 <div class="alert alert-info mt-3">
-                                                                        <strong>Total Disburse Amount: </strong>₹${parseFloat(response.totalDisburseAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                                        <strong>Total PayoutAmount Amount: </strong>₹${parseFloat(response.totalPayoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                                                 </div>
                                                         </div>
                                                         <div class="modal-footer">
                                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                <button type="button" class="btn btn-primary" onclick="confirmInvoiceGeneration()">Generate Invoice</button>
+                                                                <button type="button" class="btn btn-primary" onclick="openInvoiceInputModal()">Generate</button>
                                                         </div>
                                                 `;
 
@@ -284,6 +351,47 @@
                 console.log('Error:', xhr.responseText);
             }
         });
+    });
+
+    // Function to open invoice input modal
+    function openInvoiceInputModal() {
+        // Close the current modal
+        $('#invoiceModal').modal('hide');
+        
+        // Reset the form
+        document.getElementById('invoiceInputForm').reset();
+        
+        // Open the new modal
+        $('#invoic_input_Modal').modal('show');
+    }
+
+    // Add this function to handle form submission
+    function submitInvoiceInput() {
+        const form = document.getElementById('invoiceInputForm');
+        
+        if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        // Here you can add your AJAX call to submit the form
+        console.log('Invoice input submitted');
+        alert('Invoice submitted successfully!');
+        
+        // Reset the form
+        form.reset();
+        form.classList.remove('was-validated');
+        
+        // Close the modal
+        $('#invoic_input_Modal').modal('hide');
+    }
+
+    // Reset form when modal is closed via close button
+    $('#invoic_input_Modal').on('hidden.bs.modal', function () {
+        document.getElementById('invoiceInputForm').reset();
+        document.getElementById('invoiceInputForm').classList.remove('was-validated');
     });
 </script>
 @endsection
