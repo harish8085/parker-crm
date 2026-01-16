@@ -31,6 +31,7 @@ use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
 use App\Http\Controllers\MISTracker\MISTrackerController;
 use App\Http\Controllers\Bank_MIS\InvoiceController as Bank_MISInvoiceController;
+use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
@@ -101,10 +102,14 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/invoice/view/{id}', [InvoiceController::class, 'show'])->name('invoice.show');
     Route::delete('/invoice/delete/{bank}', [InvoiceController::class, 'destroy'])->name('invoice.destroy');
     Route::post('/invoice/generateInvoice', [InvoiceController::class, 'generate'])->name('invoice.generate');
+    Route::post('/invoice/store', [InvoiceController::class, 'store'])->name('invoice.store');
+
+
 
     //mis tracker
     Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
-
+    
+    Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
 
 });
 

@@ -191,7 +191,7 @@
         </div>
     </div>
 </div>
-<div class="modal fade" id="invoic_input_Modal" data-bs-backdrop="static" data-bs-keyboard="false" style="width:100%;" >
+<div class="modal fade" id=" invoic_input_Modal" data-bs-backdrop="static" data-bs-keyboard="false" style="width:100%;" >
     <div class="modal-dialog modal-lg">
         <div class="modal-content" style="margin-top: 200px;">
             <div class="modal-header" style="height: 50px;">
@@ -257,19 +257,22 @@
 @section('script')
 @include('Frontend.Bank_MIS.index_js')
 <script>
+    // Store selected IDs globally to use in submit function
+    let selectedMisIds = [];
+
     document.getElementById('generateInvoiceBtn').addEventListener('click', function() {
-        console.log('Generate Invoice button clicked'); // Debug log
-        const selectedIds = $('.rowCheckbox:checked')
+        console.log('Generate Invoice button clicked');
+        selectedMisIds = $('.rowCheckbox:checked')
             .map(function() {
                 return $(this).val();
             })
             .get();
 
-        if (selectedIds.length === 0) {
+        if (selectedMisIds.length === 0) {
             alert('Please select at least one case.');
             return;
         }
-        console.log('Generate Invoice button clicked1111'); // Debug log
+
         $.ajax({
             url: '/invoice/generateInvoice',
             type: 'POST',
@@ -277,67 +280,65 @@
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
             data: {
-                mis_ids: selectedIds
+                mis_ids: selectedMisIds
             },
             success: function(response) {
                 if (response.success) {
-                    // Build modal HTML
                     let modalHTML = `
-                                                        <div class="modal-header" style="height: 50px;">
-                                                                <h5 class="modal-title">Generate Invoice - Case Details</h5>
-                                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                        </div>
-                                                        <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-                                                                <table class="table table-striped table-hover">
-                                                                        <thead class="table-light">
-                                                                                <tr>
-                                                                                        <th>Application No</th>
-                                                                                        <th>Bank Name</th>
-                                                                                        <th>Product Name</th>
-                                                                                        <th>Month</th>
-                                                                                        <th>Date</th>
-                                                                                        <th>Rate</th>
-                                                                                        <th>Group</th>
-                                                                                        <th>Customer Name</th>
-                                                                                        <th>Payout Amount</th>
-                                                                                        <th>Disburse Amount</th>
-                                                                                       
-                                                                                </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                `;
+                        <div class="modal-header" style="height: 50px;">
+                            <h5 class="modal-title">Generate Invoice - Case Details</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Application No</th>
+                                        <th>Bank Name</th>
+                                        <th>Product Name</th>
+                                        <th>Month</th>
+                                        <th>Date</th>
+                                        <th>Rate</th>
+                                        <th>Group</th>
+                                        <th>Customer Name</th>
+                                        <th>Payout Amount</th>
+                                        <th>Disburse Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
 
-                    // Add case rows
                     response.cases.forEach(function(caseItem) {
                         modalHTML += `
-                                                                <tr>
-                                                                        <td>${caseItem.app_id}</td>
-                                                                        <td>${caseItem.bank_name}</td>
-                                                                        <td>${caseItem.product_name}</td>
-                                                                        <td>${caseItem.month}</td>
-                                                                        <td>${caseItem.month_year}</td>
-                                                                        <td>${caseItem.payout_rate}</td>
-                                                                        <td>${caseItem.group}</td>
-                                                                        <td>${caseItem.customer_name}</td>
-                                                                        <td>₹${parseFloat(caseItem.payoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                                                        <td>₹${parseFloat(caseItem.disbAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                                                                </tr>
-                                                        `;
+                            <tr>
+                                <td>${caseItem.app_id}</td>
+                                <td>${caseItem.bank_name}</td>
+                                <td>${caseItem.product_name}</td>
+                                <td>${caseItem.month}</td>
+                                <td>${caseItem.month_year}</td>
+                                <td>${caseItem.payout_rate}</td>
+                                <td>${caseItem.group}</td>
+                                <td>${caseItem.customer_name}</td>
+                                <td>₹${parseFloat(caseItem.payoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>₹${parseFloat(caseItem.disbAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                            </tr>
+                        `;
                     });
 
-                    // Add total row
+                    const totalPaymentAmount = response.totalPayoutAmount + (0.18 * response.totalPayoutAmount) - (0.02 * response.totalPayoutAmount);
+
                     modalHTML += `
-                                                                        </tbody>
-                                                                </table>
-                                                                <div class="alert alert-info mt-3">
-                                                                        <strong>Total PayoutAmount Amount: </strong>₹${parseFloat(response.totalPayoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                                </div>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                                <button type="button" class="btn btn-primary" onclick="openInvoiceInputModal()">Generate</button>
-                                                        </div>
-                                                `;
+                                </tbody>
+                            </table>
+                            <div class="alert alert-info mt-3">
+                                <strong>Total Payment Amount (Total Payout Amount + 18% GST - TDS 2%): </strong>₹${parseFloat(totalPaymentAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="openInvoiceInputModal()">Generate</button>
+                        </div>
+                    `;
 
                     $('#invoiceModal .modal-content').html(modalHTML);
                     $('#invoiceModal').modal('show');
@@ -353,19 +354,12 @@
         });
     });
 
-    // Function to open invoice input modal
     function openInvoiceInputModal() {
-        // Close the current modal
         $('#invoiceModal').modal('hide');
-        
-        // Reset the form
         document.getElementById('invoiceInputForm').reset();
-        
-        // Open the new modal
         $('#invoic_input_Modal').modal('show');
     }
 
-    // Add this function to handle form submission
     function submitInvoiceInput() {
         const form = document.getElementById('invoiceInputForm');
         
@@ -375,20 +369,49 @@
             form.classList.add('was-validated');
             return;
         }
-        
-        // Here you can add your AJAX call to submit the form
-        console.log('Invoice input submitted');
-        alert('Invoice submitted successfully!');
-        
-        // Reset the form
-        form.reset();
-        form.classList.remove('was-validated');
-        
-        // Close the modal
-        $('#invoic_input_Modal').modal('hide');
+
+        // Collect form data
+        const formData = {
+            invoice_no: document.getElementById('invoice_no').value,
+            invoice_date: document.getElementById('invoice_date').value,
+            bank_gst_no: document.getElementById('bank_gst_no').value,
+            bank_hsn_code: document.getElementById('bank_hsn_code').value,
+            bank_address: document.getElementById('bank_address').value,
+            dsa_pan: document.getElementById('dsa_pan').value,
+            dsa_gst_no: document.getElementById('dsa_gst_no').value,
+            mis_ids: selectedMisIds,
+            _token: $('meta[name="csrf-token"]').attr('content')
+        };
+
+        // Send AJAX request to save invoice
+        $.ajax({
+            url: '/invoice/store',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    alert('Invoice saved successfully!');
+                    form.reset();
+                    form.classList.remove('was-validated');
+                    $('#invoic_input_Modal').modal('hide');
+                    
+                    // Reload table or redirect
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                const errorMessage = xhr.responseJSON?.message || 'An error occurred while saving the invoice.';
+                alert('Error: ' + errorMessage);
+                console.log('Error:', xhr.responseText);
+            }
+        });
     }
 
-    // Reset form when modal is closed via close button
     $('#invoic_input_Modal').on('hidden.bs.modal', function () {
         document.getElementById('invoiceInputForm').reset();
         document.getElementById('invoiceInputForm').classList.remove('was-validated');

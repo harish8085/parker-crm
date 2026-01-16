@@ -12,6 +12,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
+use App\Models\InvoicePaymentView;
+
 class InvoiceController extends Controller
 {
      public function index(Request $request){
@@ -22,9 +24,26 @@ class InvoiceController extends Controller
         $bank = Bank::all();
         $product = Product::all();
 
-        if ($request->ajax()) {
-            $query = BankMIS::with(['bank','product']);
+        $invoicedAppIds = InvoicePaymentView::get()
+                ->map(function($invoice) {
+                    // Split the comma-separated application numbers
+                    return explode(',', $invoice->application_no);
+                })
+                ->flatten()
+                ->map(function($appId) {
+                    return trim($appId);
+                })
+                ->unique()
+                ->toArray();
 
+            $query = BankMIS::with(['bank','product'])->whereNotIn('app_id', $invoicedAppIds);
+
+            // Filter/remove out records that already have invoices
+            $query->whereNotIn('app_id', $invoicedAppIds);
+            
+
+        if ($request->ajax()) {
+            print_r($request->all());exit;
             if ($request->date) {
                 $now = Carbon::now();
                 if ($request->date == 'today') {
@@ -179,50 +198,9 @@ class InvoiceController extends Controller
         return view('Frontend.Invoice.index',compact('channels','sales','bank','product'));
     }
 
-    public function add()
-    {
-        $Route = 'BankMIS';
-        $user = Auth::user();
-        $banks = BankMIS::get();
-        $channelroleId = 2;
-        $salesroleId = 3;
-
-        if ($user->roles[0]->id == 1) {
-            $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
-
-            $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-            $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
-
-            $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } else {
-            $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-            $channel_assign = json_decode($channel_assign, true);
-            $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
-
-            $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        }
-
-        $states = getState();
-
-        return view('Frontend.Bank_MIS.create', compact('Route', 'channels', 'sales', 'banks', 'states'));
-    }
 
 
-    public function filter(Request $request)
-    {
+    public function filter(Request $request){
         $Route = 'BankMIS';
         $user = Auth::user();
         $query = BankMIS::query();
@@ -244,8 +222,9 @@ class InvoiceController extends Controller
         $query->orderBy('id', 'desc');
         // Execute the query and fetch results
         $bank = $query->paginate(25);
-        return view('Frontend.Bank_MIS.Table.bankMis_table', compact('Route', 'bank'));
+        return view('Frontend.Invoice.Table.invoice_table', compact('Route', 'bank'));
     }
+
 
     public function show($id){
         $Route = 'Edit Bank MIS';
@@ -255,8 +234,7 @@ class InvoiceController extends Controller
         return view('Frontend.Invoice.show',compact('bank_mis','bank','product'));
     }
 
-    public function destroy(BankMIS $bank)
-    {
+    public function destroy(BankMIS $bank){
         $bank->delete();
         return true;
     }
@@ -306,4 +284,66 @@ class InvoiceController extends Controller
         ]);
     }
     
+    public function store(Request $request)
+    {
+        // Validate the input
+        $validated = $request->validate([
+            'invoice_no' => 'required|string|min:15|max:16',
+            'invoice_date' => 'required|string',
+            'bank_gst_no' => 'required|string',
+            'bank_hsn_code' => 'required|string',
+            'bank_address' => 'nullable|string',
+            'dsa_pan' => 'nullable|string',
+            'dsa_gst_no' => 'nullable|string',
+            'mis_ids' => 'required|array',
+            'mis_ids.*' => 'integer',
+        ]);
+
+        try {
+            // Get BankMIS records with their relationships
+            $bankMisRecords = BankMIS::with(['bank', 'product'])
+                ->whereIn('id', $validated['mis_ids'])
+                ->get();
+
+            if ($bankMisRecords->isEmpty()) {
+                return response()->json(['message' => 'No records found.'], 404);
+            }
+
+            // Get bank name from first record
+            $bankName = $bankMisRecords->first()->bank->name ?? '-';
+
+            // Collect all application numbers
+            $applicationNumbers = $bankMisRecords->pluck('app_id')->implode(',');
+
+            // Calculate total payout amount with GST (18%) and minus TDS (2%)
+            $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
+            $paymentAmount = $totalPayoutAmount + (0.18 * $totalPayoutAmount) - (0.02 * $totalPayoutAmount);
+
+            // Save to invoice_payment_view table
+            $invoicePayment = InvoicePaymentView::create([
+                'bank_name' => $bankName,
+                'bank_address' => $validated['bank_address'] ?? '',
+                'invoice_no' => $validated['invoice_no'],
+                'invoice_date' => $validated['invoice_date'],
+                'bank_gst_no' => $validated['bank_gst_no'],
+                'bank_hsn_code' => $validated['bank_hsn_code'],
+                'dsa_pan' => $validated['dsa_pan'] ?? '',
+                'dsa_gst_no' => $validated['dsa_gst_no'] ?? '',
+                'application_no' => $applicationNumbers,
+                'payment_amount' => round($paymentAmount, 2),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice saved successfully!',
+                'data' => $invoicePayment
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving invoice: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
