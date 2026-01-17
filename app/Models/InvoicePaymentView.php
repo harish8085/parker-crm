@@ -15,6 +15,8 @@ class InvoicePaymentView extends Model
         'bank_name',
         'bank_address',
         'invoice_no',
+        'bank_mis_month',
+        'group_name',
         'invoice_date',
         'bank_gst_no',
         'bank_hsn_code',
@@ -22,12 +24,21 @@ class InvoicePaymentView extends Model
         'dsa_gst_no',
         'application_no',
         'payment_amount',
-        'CGST_amount',
-        'SGST_amount',
-        'IGST_amount',
+        'CGST',
+        'SGST',
+        'IGST',
         'invoive_value',
         'taxable_value',
-        'payment_recevied_bank'
+        'payment_recevied_bank',
+        'remaining_amount',
+        'payment_status',
+        'company_name',
+       
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**

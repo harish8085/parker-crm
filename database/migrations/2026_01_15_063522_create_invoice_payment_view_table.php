@@ -16,23 +16,27 @@ class CreateInvoicePaymentViewTable extends Migration
         Schema::create('invoice_payment_view', function (Blueprint $table) {
             $table->id();
             $table->string('invoice_no');
-            $table->string('invoice_date');
+            $table->string('invoice_date')->nullable();
             $table->string('bank_name');
-            $table->string('bank_address');
+            $table->string('group_name')->nullable();
+            $table->string('bank_mis_month')->nullable();
+            $table->string('bank_address')->nullable();
             $table->string('payment_amount');
-            $table->string('bank_gst_no');
-            $table->string('bank_hsn_code');
-            $table->string('dsa_pan');
-            $table->string('dsa_gst_no');
+            $table->string('bank_gst_no')->nullable();
+            $table->string('bank_hsn_code')->nullable();
+            $table->string('dsa_pan')->nullable();
+            $table->string('dsa_gst_no')->nullable();
             $table->string('application_no');
-            $table->string('CGST_amount')->nullable();
-            $table->string('SGST_amount')->nullable();
-            $table->string('IGST_amount')->nullable();
+            $table->string('CGST')->nullable();
+            $table->string('SGST')->nullable();
+            $table->string('IGST')->nullable();
             $table->string('invoive_value')->nullable();
             $table->string('taxable_value')->nullable();
             $table->string('payment_recevied_bank')->nullable();
             $table->string('remaining_amount')->nullable();
             $table->string('payment_status')->nullable();
+            $table->text('company_name')->nullable();
+
 
             $table->timestamps();
         });

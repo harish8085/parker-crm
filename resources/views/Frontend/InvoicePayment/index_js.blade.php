@@ -1,26 +1,7 @@
 <script>
 $(document).ready(function() {
-    // Delete button functionality
-    $(document).on('click', '.delete-btn', function() {
-        var bankId = $(this).data('bank-id');
-        if (confirm('Are you sure you want to delete this bank mis?')) {
-            $.ajax({
-                url: '/invoice/delete/' + bankId,
-                type: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-                    alert('Invoice deleted successfully.');
-                    location.reload();
-                },
-                error: function(xhr, status, error) {
-                    console.log('Error:', xhr.responseText);
-                    alert('An error occurred while deleting the invoice.');
-                }
-            });
-        }
-    });
+    // Initialize DataTable
+    load_data();
 
     // Show/hide the action button based on selected checkboxes
     const $actionButton = $('#actionButton');
@@ -44,17 +25,14 @@ $(document).ready(function() {
 
     // Date range picker initialization
     $('#date-range-picker').daterangepicker({
-        opens: 'right',
         locale: {
-            format: 'YYYY-MM-DD',
-            separator: ' to '
+            format: 'YYYY-MM-DD'
         }
     });
 
     // Show or hide the date range picker based on the selected option
     $('#date').on('change', function() {
-        var val = this.value;
-        if (val == 'custom') {
+        if ($(this).val() === 'custom') {
             $('.date_range').show();
         } else {
             $('.date_range').hide();
@@ -63,81 +41,56 @@ $(document).ready(function() {
 
     // Master checkbox functionality for bulk selection
     $(document).on('change', '#masterCheckbox', function() {
-        const isChecked = this.checked;
+        const isChecked = $(this).prop('checked');
         $('.rowCheckbox').prop('checked', isChecked);
         updateButtonVisibility();
     });
+
+    // Filter button
+    $('#filter').click(function() {
+        const date = $('#date').val();
+        const dateRange = $('#date-range-picker').val();
+        const bankName = $('#bank_name').val();
+        
+        load_data(date, dateRange, bankName);
+    });
+
+    // Refresh button
+    $('#refresh').click(function() {
+        window.location.reload();
+    });
+
+    $('.select').select2({
+        allowClear: true
+    });
 });
 
-// Function to confirm invoice generation
-function confirmInvoiceGeneration(selectedIds) {
-    console.log('Confirming invoice generation for IDs:', selectedIds);
-    // Add your logic here to actually generate the invoice
-    alert('Invoice generation confirmed!');
-    $('#invoiceModal').modal('hide');
-}
-</script>
-
-<!-- DataTable -->
-<script type="text/javascript">
+// DataTable initialization function
 $.fn.dataTable.ext.errMode = 'none';
 
-function load_data(date = '', date_range = '', bank_name = '', product_name = '') {
-    var table = $('.data-table').DataTable({
-        debug: false,
-        dom: 'Bfrtip<"bottom"l>',
-        lengthMenu: [
-            [10, 25, 50, 100, 500, -1],
-            [10, 25, 50, 100, 500, 'All']
-        ],
-        buttons: [
-            {
-                extend: 'csvHtml5',
-                text: 'CSV',
-                title: 'Invoice-Payment-Details'
-            },
-            {
-                extend: 'excelHtml5',
-                text: 'Excel',
-                title: 'Invoice-Payment-Details'
-            },
-            {
-                extend: 'print',
-                text: 'Print'
-            }
-        ],
+function load_data(date = '', dateRange = '', bankName = '') {
+    if ($.fn.dataTable.isDataTable('#bankMisTable')) {
+        $('#bankMisTable').DataTable().destroy();
+    }
+
+    var table = $('#bankMisTable').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: "{{ route('invoice_payment.index') }}",
-            data: {
-                date: date,
-                date_range: date_range,
-                bank_name: bank_name,
-                product_name: product_name,
+            url: '{{ route("invoice_payment.index") }}',
+            type: 'GET',
+            data: function(d) {
+                d.date = date;
+                d.date_range = dateRange;
+                d.bank_name = bankName;
             },
             error: function(xhr, error, thrown) {
-                console.log(xhr.responseText);
-            },
+                console.log('DataTable Error:', error, thrown);
+            }
         },
         columns: [
-            {
-                data: 'checkbox',
-                orderable: false,
-                searchable: false,
-                render: function(data, type, row) {
-                    return '<input type="checkbox" class="rowCheckbox" value="' + row.id + '">';
-                }
-            },
-            {
-                data: null,
-                name: 'srno',
-                render: function(data, type, row, meta) {
-                    return meta.row + 1 + meta.settings._iDisplayStart;
-                },
-                orderable: false,
-                searchable: false
-            },
+            { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false },
+            { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
             { data: 'bank_name', name: 'bank_name' },
             { data: 'bank_address', name: 'bank_address' },
             { data: 'invoice_no', name: 'invoice_no' },
@@ -146,41 +99,22 @@ function load_data(date = '', date_range = '', bank_name = '', product_name = ''
             { data: 'bank_hsn_code', name: 'bank_hsn_code' },
             { data: 'dsa_pan', name: 'dsa_pan' },
             { data: 'dsa_gst_no', name: 'dsa_gst_no' },
+            { data: 'CGST', name: 'CGST' },
+            { data: 'SGST', name: 'SGST' },
+            { data: 'IGST', name: 'IGST' },
+            { data: 'payment_recevied_bank', name: 'payment_recevied_bank' },
+            { data: 'taxable_value', name: 'taxable_value' },
+            { data: 'invoive_value', name: 'invoive_value' },
             { data: 'payment_amount', name: 'payment_amount' },
-            {
-                data: 'action',
-                name: 'action',
-                orderable: false,
-                searchable: false
-            }
-        ]
+            { data: 'payment_status', name: 'payment_status' },
+            { data: 'remaining_amount', name: 'remaining_amount' },
+            { data: 'action', name: 'action', orderable: false, searchable: false }
+        ],
+        order: [[1, 'desc']],
+        pageLength: 25,
+        dom: 'rtip'
     });
+
+    return table;
 }
-
-$(document).ready(function() {
-    load_data();
-
-    $('.select').select2({
-        placeholder: "Select an option",
-        allowClear: true
-    });
-
-    $('#filter').click(function() {
-        var date = $('#date').val();
-        var date_range = $('#date-range-picker').val();
-        var bank_name = $('#bank_name').val();
-        var product_name = $('#product_name').val();
-
-        if (date || bank_name || product_name) {
-            $('.data-table').DataTable().destroy();
-            load_data(date, date_range, bank_name, product_name);
-        } else {
-            alert('Select at least one filter!');
-        }
-    });
-
-    $('#refresh').click(function() {
-        window.location.reload();
-    });
-});
 </script>

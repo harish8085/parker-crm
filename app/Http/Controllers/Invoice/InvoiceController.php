@@ -239,87 +239,47 @@ class InvoiceController extends Controller
         return true;
     }
 
-    public function generate(Request $request)
-    {
-        $misIds = $request->mis_ids;
-    
-        if (!$misIds || !is_array($misIds)) {
-            return response()->json(['message' => 'No data selected.'], 400);
-        }
-    
-        // Get BankMIS records with their relationships
-        $bankMisRecords = BankMIS::with(['bank', 'product'])
-            ->whereIn('id', $misIds)
-            ->get();
-    
-        if ($bankMisRecords->isEmpty()) {
-            return response()->json(['message' => 'No records found.'], 404);
-        }
-    
-        // Calculate total disburse amount
-        $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
-    
-        // Format data for modal display
-        $cases = $bankMisRecords->map(function ($record) {
-            return [
-                'id' => $record->id,
-                'app_id' => $record->app_id,
-                'bank_name' => $record->bank->name ?? '-',
-                'product_name' => $record->product->name ?? '-',
-                'payout_rate' => $record->payout_rate ?? '-',
-                // formate month as M-Y format ex
-                'month' => $record-> bank_mis_month? \Carbon\Carbon::parse($record->bank_mis_month)->format('M') : '-',
-                'month_year' => $record-> bank_mis_month? \Carbon\Carbon::parse($record->bank_mis_month)->format('M-Y') : '-',
-                'group' => $record->group ?? '-',
-                'customer_name' => $record->customer_name ?? '-',
-                'payoutAmount' => $record->payout_amount ?? 0,
-                'disbAmount' => $record->disbAmount ?? 0,
-            ];
-        })->toArray();
-    
-        return response()->json([
-            'cases' => $cases,
-            'totalPayoutAmount' => $totalPayoutAmount,
-            'success' => true
-        ]);
-    }
-    
     public function store(Request $request)
     {
-        // Validate the input
         $validated = $request->validate([
             'invoice_no' => 'required|string|min:15|max:16',
-            'invoice_date' => 'required|string',
+            'invoice_date' => 'required|date',
             'bank_gst_no' => 'required|string',
             'bank_hsn_code' => 'required|string',
             'bank_address' => 'nullable|string',
+            'in_state' => 'required|in:yes,no',
+            'taxable_value' => 'required|numeric|min:0',
+            'invoive_value' => 'required|numeric|min:0',
+            'payment_recevied_bank' => 'required|string',
+            'mis_date' => 'required|string',
+            'product_name' => 'nullable|string',
+            'company_name' => 'nullable|string',
+            'group' => 'nullable|string',
             'dsa_pan' => 'nullable|string',
             'dsa_gst_no' => 'nullable|string',
+            'cgst' => 'required|numeric|min:0',
+            'sgst' => 'required|numeric|min:0',
+            'igst' => 'required|numeric|min:0',
+            'payment_amount' => 'required|numeric|min:0',
             'mis_ids' => 'required|array',
             'mis_ids.*' => 'integer',
         ]);
 
         try {
-            // Get BankMIS records with their relationships
             $bankMisRecords = BankMIS::with(['bank', 'product'])
                 ->whereIn('id', $validated['mis_ids'])
                 ->get();
 
             if ($bankMisRecords->isEmpty()) {
-                return response()->json(['message' => 'No records found.'], 404);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No records found.'
+                ], 404);
             }
 
-            // Get bank name from first record
             $bankName = $bankMisRecords->first()->bank->name ?? '-';
-
-            // Collect all application numbers
             $applicationNumbers = $bankMisRecords->pluck('app_id')->implode(',');
 
-            // Calculate total payout amount with GST (18%) and minus TDS (2%)
-            $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
-            $paymentAmount = $totalPayoutAmount + (0.18 * $totalPayoutAmount) - (0.02 * $totalPayoutAmount);
-
-            // Save to invoice_payment_view table
             $invoicePayment = InvoicePaymentView::create([
                 'bank_name' => $bankName,
                 'bank_address' => $validated['bank_address'] ?? '',
@@ -330,7 +290,18 @@ class InvoiceController extends Controller
                 'dsa_pan' => $validated['dsa_pan'] ?? '',
                 'dsa_gst_no' => $validated['dsa_gst_no'] ?? '',
                 'application_no' => $applicationNumbers,
-                'payment_amount' => round($paymentAmount, 2),
+                'taxable_value' => $validated['taxable_value'],
+                'invoive_value' => $validated['invoive_value'],
+                'payment_recevied_bank' => $validated['payment_recevied_bank'],
+                'CGST' => $validated['cgst'],
+                'SGST' => $validated['sgst'],
+                'IGST' => $validated['igst'],
+                'payment_amount' => $validated['payment_amount'],
+                'payment_status' => 'pending',
+                'mis_date' => $validated['mis_date'],
+                'group' => $validated['group'] ?? '',
+                'company_name' => $validated['company_name'] ?? '',
+
             ]);
 
             return response()->json([
@@ -345,5 +316,55 @@ class InvoiceController extends Controller
                 'message' => 'Error saving invoice: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function generate(Request $request)
+    {
+        $misIds = $request->mis_ids;
+
+        if (!$misIds || !is_array($misIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request.'
+            ], 400);
+        }
+
+        // Get BankMIS records with their relationships
+        $bankMisRecords = BankMIS::with(['bank', 'product'])
+            ->whereIn('id', $misIds)
+            ->get();
+
+        if ($bankMisRecords->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No records found.'
+            ], 404);
+        }
+
+        // Calculate total payout amount
+        $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
+
+        // Format data for modal display
+        $cases = $bankMisRecords->map(function ($record) {
+            return [
+                'id' => $record->id,
+                'app_id' => $record->app_id,
+                'bank_name' => $record->bank->name ?? '-',
+                'product_name' => $record->product->name ?? '-',
+                'month' => $record->month ?? '-',
+                'month_year' => $record->month_year ?? '-',
+                'payout_rate' => $record->payout_rate ?? '-',
+                'group' => $record->group ?? '-',
+                'customer_name' => $record->customer_name ?? '-',
+                'payoutAmount' => $record->payout_amount ?? 0,
+                'disbAmount' => $record->disbAmount ?? 0,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'success' => true,
+            'cases' => $cases,
+            'totalPayoutAmount' => $totalPayoutAmount
+        ]);
     }
 }

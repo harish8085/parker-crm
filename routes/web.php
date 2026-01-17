@@ -96,7 +96,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/bank_mis/delete/bulk', [BankMisController::class, 'bulkDelete'])->name('bank-mis.bulk-delete');
 
     // Invoice Route
-     Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice.index');
+    Route::get('/invoice', [InvoiceController::class, 'index'])->name('invoice.index');
     Route::get('/invoice/view/filter', [InvoiceController::class, 'filter']);
     Route::get('/invoice/create', [InvoiceController::class, 'add']);
     Route::get('/invoice/view/{id}', [InvoiceController::class, 'show'])->name('invoice.show');
@@ -108,9 +108,13 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     //mis tracker
     Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
-    
-    Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
 
+    Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
+    Route::post('/invoice_payment/filter', [InvoicePaymentController::class, 'filter'])->name('invoice_payment.filter');
+    Route::get('/invoice_payment/view/{id}', [InvoicePaymentController::class, 'show'])->name('invoice_payment.show');
+    Route::get('/invoice_payment/edit/{id}', [InvoicePaymentController::class, 'edit'])->name('invoice_payment.edit');
+    Route::put('/invoice_payment/{id}', [InvoicePaymentController::class, 'update'])->name('invoice_payment.update');
+    Route::delete('/invoice_payment/{id}', [InvoicePaymentController::class, 'destroy'])->name('invoice_payment.destroy');
 });
 
 
