@@ -14,13 +14,18 @@
       <th class="table-header">CGST (9%)</th>
       <th class="table-header">SGST (9%)</th>
       <th class="table-header">IGST (18%)</th>
+      <th class="table-header">TDS</th>
       <th class="table-header">Invoice Value</th>
       <th class="table-header">Bank GST No</th>
       <th class="table-header">DSA GST No</th>
+      <th class="table-header">Company Name</th>
       <th class="table-header">Payment Received Bank</th>
       <th class="table-header">Payment Amount</th>
       <th class="table-header">Payment Status</th>
+      <th class="table-header">Payment Received</th>
       <th class="table-header">Remaining Amount</th>
+      <th class="table-header">Payment Date 1</th>
+      <th class="table-header">Payment Date 2</th>
       <th class="table-header">Action</th>
     </tr>
   </thead>

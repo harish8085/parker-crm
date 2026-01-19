@@ -19,7 +19,7 @@ class CreateInvoicePaymentViewTable extends Migration
             $table->string('invoice_date')->nullable();
             $table->string('bank_name');
             $table->string('group_name')->nullable();
-            $table->string('bank_mis_month')->nullable();
+            $table->string('mis_month')->nullable();
             $table->string('bank_address')->nullable();
             $table->string('payment_amount');
             $table->string('bank_gst_no')->nullable();
@@ -30,14 +30,16 @@ class CreateInvoicePaymentViewTable extends Migration
             $table->string('CGST')->nullable();
             $table->string('SGST')->nullable();
             $table->string('IGST')->nullable();
-            $table->string('invoive_value')->nullable();
+            $table->string('TDS')->nullable();
+            $table->string('invoice_value')->nullable();
             $table->string('taxable_value')->nullable();
-            $table->string('payment_recevied_bank')->nullable();
+            $table->string('payment_received_bank')->nullable();
             $table->string('remaining_amount')->nullable();
             $table->string('payment_status')->nullable();
             $table->text('company_name')->nullable();
-
-
+            $table->string('payment_paid')->nullable();
+            $table->string('payment_date1')->nullable();
+            $table->string('payment_date2')->nullable();
             $table->timestamps();
         });
     }

@@ -66,6 +66,17 @@
                     </select>
                 </div>
             </div>
+            <div class="col-lg-4 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label mb-2">Payment Status</label>
+                    <select class="bank-detail-input form-select select" required name="payment_status" id="payment_status">
+                        <option value="">Select Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                        <option value="paid">Received</option>
+                    </select>
+                </div>
+            </div>
 
             <div class="col-lg-12 mt-2">
                 <div class="d-flex justify-content-end">
@@ -91,95 +102,120 @@
 @endsection
 
 @section('modal')
-<div class="modal" id="myModal">
+<!-- Edit Invoice Payment Modal -->
+<div class="modal" id="editPaymentModal">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <!-- Modal Header -->
             <div class="modal-header" style="padding: 2px 15px;">
-                <h5 class="modal-title">Filter</h5>
+                <h5 class="modal-title">Edit Invoice Payment</h5>
                 <button type="button" class="btn custom-close-btn" data-bs-dismiss="modal">
                     <img src="{{ asset('assets/images/cancel-icon.svg') }}" alt="Cancel">
                 </button>
             </div>
-            <!-- Modal body -->
             <div class="modal-body" style="padding: 20px 25px;">
-                <form id="filterForm">
-                    <div class="row">
-                        <div class="col-12 p-2">
-                            <label class="input-label">Select User Type<span class="required">*</span></label>
-                            <div class="roles-dropdown">
-                                <select class="form-select" name="user_type" id="user_type">
-                                    <option value="" selected>Select User Type</option>
-                                    <option value="channel">Channel Partner</option>
-                                    <option value="sales">Sales Person</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row sales">
-                        <div class="col-12 p-2">
-                            <label class="input-label">Select Sales Person<span class="required">*</span></label>
-                            <select class="form-select" name="sales_id" id="sales_id">
-                                <option value="" selected disabled>Select Sales Person</option>
-                                @foreach($sales as $sale)
-                                <option value="{{ $sale->id }}">{{ $sale->first_name }} {{ $sale->last_name }}</option>
-                                @endforeach
-                            </select>
+                <form id="editPaymentForm">
+                    @csrf
+                    <input type="hidden" id="paymentId" name="payment_id">
+
+                    <!-- Remaining Amount Display -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Remaining Amount</label>
+                            <input type="text" class="form-control" id="remainingAmountDisplay" readonly style="background-color: #f5f5f5;">
                         </div>
                     </div>
 
-                    <div class="row channel">
-                        <div class="col-12 p-2">
-                            <label class="input-label">Select Channel Partner<span class="required">*</span></label>
-                            <div class="roles-dropdown">
-                                <select class="form-select" name="channel_id" id="channel_id">
-                                    <option value="" selected disabled>Select Channel Partner</option>
-                                    @foreach($channels as $channel)
-                                    <option value="{{ $channel->id }}">{{ $channel->first_name }}</option>
-                                    @endforeach
-                                </select>
+                    <!-- Use Remaining Amount Checkbox -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="useRemainingCheckbox">
+                                <label class="form-check-label" for="useRemainingCheckbox">
+                                    Use remaining amount as payment paid
+                                </label>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-12 p-2">
-                            <label class="input-label">From Date <span class="required">*</span></label>
-                            <input type="date" class="form-control" placeholder="Enter from date" name="from" id="from">
+
+                    <!-- Payment Paid -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Payment Paid <span class="required">*</span></label>
+                            <input type="number" class="form-control" id="paymentPaid" name="payment_paid" step="0.01" min="0" required>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-12 p-2">
-                            <label class="input-label">To Date<span class="required">*</span></label>
-                            <input type="date" class="form-control" placeholder="Enter from date" name="to" id="to">
+
+                    <!-- Payment Date 1 -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Payment Date 1 <span class="required">*</span></label>
+                            <input type="date" class="form-control" id="paymentDate1" name="payment_date1" required>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-12 p-2">
-                            <label class="input-label">Status<span class="required">*</span></label>
-                            <div class="roles-dropdown">
-                                <select class="form-select" name="status" id="status">
-                                    <option selected>All</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="rejected">Rejected</option>
-                                    <option value="completed">Completed</option>
-                                </select>
-                            </div>
+
+                    <!-- Payment Date 2 -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Payment Date 2</label>
+                            <input type="date" class="form-control" id="paymentDate2" name="payment_date2">
                         </div>
                     </div>
                     <div class="save-btn-container">
-                        <button type="submit" class="save-btn">Save</button>
+                        <button type="submit" class="save-btn">Update Payment</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
-@endsection
+<!-- aplication case list modal -->
+<div class="modal fade" id="invoiceCasesModal" tabindex="-1" aria-labelledby="invoiceCasesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Application No</th>
+                        <th>Bank Name</th>
+                        <th>Product Name</th>
+                        <th>Month</th>
+                        <th>Date</th>
+                        <th>Rate</th>
+                        <th>Group</th>
+                        <th>Customer Name</th>
+                        <th>Payout Amount</th>
+                        <th>Disburse Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Dynamic rows will be appended here -->
+                </tbody>
+            </table>
 
 
-@section('script')
-@include('Frontend.InvoicePayment.index_js')
-<script>
-    
-</script>
-@endsection
+        </div>
+    </div>
+
+
+    @endsection
+
+
+    @section('script')
+    @include('Frontend.InvoicePayment.index_js')
+    <script>
+        function viewInvoiceCasesList(id) {
+            $.ajax({
+                url: '/invoice_payment/view/' + id,
+                type: 'GET',
+                success: function(response) {
+                    $('#invoiceCasesModal .modal-content').html(response);
+                    $('#invoiceCasesModal').modal('show');
+                    
+                },
+                error: function(xhr) {
+                    alert('An error occurred while fetching invoice cases.');
+                }
+            });
+        }
+    </script>
+    @endsection

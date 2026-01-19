@@ -15,7 +15,7 @@ class InvoicePaymentView extends Model
         'bank_name',
         'bank_address',
         'invoice_no',
-        'bank_mis_month',
+        'mis_month',
         'group_name',
         'invoice_date',
         'bank_gst_no',
@@ -27,12 +27,16 @@ class InvoicePaymentView extends Model
         'CGST',
         'SGST',
         'IGST',
-        'invoive_value',
+        'TDS',
+        'invoice_value',
         'taxable_value',
-        'payment_recevied_bank',
+        'payment_received_bank',
         'remaining_amount',
         'payment_status',
+        'payment_paid',
         'company_name',
+        'payment_date1',
+        'payment_date2',
        
     ];
 

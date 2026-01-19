@@ -145,7 +145,7 @@
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Invoice No <span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Enter invoice no (15-16 digits)" name="invoice_no" id="invoice_no" pattern="\d{15,16}" maxlength="16" required>
+                            <input type="text" class="form-control" placeholder="Enter invoice no" name="invoice_no" id="invoice_no"  maxlength="17" required>
                         </div>
                     </div>
                     <div class="row">
@@ -163,14 +163,14 @@
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Taxable Value <span class="required">*</span></label>
-                            <input type="number" class="form-control" placeholder="Enter taxable value" name="taxable_value" id="taxable_value" step="0.01" required>
+                            <input type="number" class="form-control" placeholder="Enter taxable value" name="taxable_value" id="taxable_value" step="0.01" required oninput="calculateInvoiceValue()">
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">In-State <span class="required">*</span></label>
-                            <select class="form-select" name="in_state" id="in_state" required onchange="updateGSTFields()">
+                            <select class="form-select" name="in_state" id="in_state" required onchange="updateGSTFields() , calculateInvoiceValue()">
                                 <option value="">Select Option</option>
                                 <option value="yes">Yes (CGST + SGST)</option>
                                 <option value="no">No (IGST)</option>
@@ -180,15 +180,15 @@
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Invoice Value <span class="required">*</span></label>
-                            <input type="number" class="form-control" placeholder="Enter invoice value" name="invoive_value" id="invoive_value" step="0.01" required>
+                            <input type="number" class="form-control" placeholder="Enter invoice value" name="invoice_value" id="invoice_value" step="0.01" required>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Payment Received Bank <span class="required">*</span></label>
-                            <select class="form-select" name="payment_recevied_bank" id="payment_recevied_bank" required>
-                                    <option value="">Select Option</option>
-                                </select>
+                            <select class="form-select" name="payment_received_bank" id="payment_received_bank" required>
+                                <option value="">Select Option</option>
+                            </select>
                         </div>
                     </div>
                 </form>
@@ -260,7 +260,7 @@
         // IN aadrika we have sbi , axis , yes bank, ICICI
         // IN finance solution we have hdfc
 
-        const paymentBankField = document.getElementById('payment_recevied_bank');
+        const paymentBankField = document.getElementById('payment_received_bank');
         paymentBankField.innerHTML = '<option value="">Select Option</option>'; // Reset options
         let paymentbanks = [];
         if (companyName === "Parker's Consulting & Ventures Pvt. Ltd.") {
@@ -278,7 +278,7 @@
         });
 
 
-        
+
     }
 
     function validateAndShowListingModal() {
@@ -301,9 +301,8 @@
             bank_address: document.getElementById('bank_address').value,
             in_state: document.getElementById('in_state').value,
             taxable_value: parseFloat(document.getElementById('taxable_value').value),
-            invoive_value: parseFloat(document.getElementById('invoive_value').value),
-            payment_recevied_bank: document.getElementById('payment_recevied_bank').value,
-            dsa_pan: document.getElementById('dsa_pan').value,
+            invoice_value: parseFloat(document.getElementById('invoice_value').value),
+            payment_received_bank: document.getElementById('payment_received_bank').value,
             dsa_gst_no: document.getElementById('dsa_gst_no').value
         };
 
@@ -451,13 +450,17 @@
 
         const tdsAmount = totalPayoutAmount * 0.02;
         const finalPaymentAmount = totalPayoutAmount + (cgst + sgst + igst) - tdsAmount;
-
+        console.log('Submitting Invoice Data:', currentResponse);
         const submitData = {
             ...invoiceFormData,
             cgst: cgst.toFixed(2),
             sgst: sgst.toFixed(2),
             igst: igst.toFixed(2),
+            tds: tdsAmount.toFixed(2),
+            mis_month: currentResponse.cases[0].month_year,// Assuming all selected cases are from the same month
+            group_name: currentResponse.cases[0].group, // Assuming all selected cases are from the same group
             payment_amount: finalPaymentAmount.toFixed(2),
+            remaining_amount: finalPaymentAmount.toFixed(2),
             mis_ids: selectedMisIds,
             _token: $('meta[name="csrf-token"]').attr('content')
         };
@@ -487,6 +490,26 @@
                 console.log('Error:', xhr.responseText);
             }
         });
+    }
+
+
+    function calculateInvoiceValue() {
+        const taxableValue = parseFloat(document.getElementById('taxable_value').value) || 0;
+        const inState = document.getElementById('in_state').value;
+
+        let cgst = 0,
+            sgst = 0,
+            igst = 0;
+
+        if (inState === 'yes') {
+            cgst = taxableValue * 0.09;
+            sgst = taxableValue * 0.09;
+        } else if (inState === 'no') {
+            igst = taxableValue * 0.18;
+        }
+
+        const invoiceValue = taxableValue + cgst + sgst + igst;
+        document.getElementById('invoice_value').value = invoiceValue.toFixed(2);
     }
 
     $('#invoic_input_Modal').on('hidden.bs.modal', function() {

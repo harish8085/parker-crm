@@ -43,7 +43,6 @@ class InvoiceController extends Controller
             
 
         if ($request->ajax()) {
-            print_r($request->all());exit;
             if ($request->date) {
                 $now = Carbon::now();
                 if ($request->date == 'today') {
@@ -242,25 +241,25 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'invoice_no' => 'required|string|min:15|max:16',
+            'invoice_no' => 'required|string',
             'invoice_date' => 'required|date',
             'bank_gst_no' => 'required|string',
             'bank_hsn_code' => 'required|string',
             'bank_address' => 'nullable|string',
             'in_state' => 'required|in:yes,no',
             'taxable_value' => 'required|numeric|min:0',
-            'invoive_value' => 'required|numeric|min:0',
-            'payment_recevied_bank' => 'required|string',
-            'mis_date' => 'required|string',
-            'product_name' => 'nullable|string',
+            'invoice_value' => 'required|numeric|min:0',
+            'payment_received_bank' => 'required|string',
+            'mis_month' => 'nullable|string',
             'company_name' => 'nullable|string',
-            'group' => 'nullable|string',
-            'dsa_pan' => 'nullable|string',
+            'group_name' => 'nullable|string',
             'dsa_gst_no' => 'nullable|string',
             'cgst' => 'required|numeric|min:0',
             'sgst' => 'required|numeric|min:0',
             'igst' => 'required|numeric|min:0',
+            'tds' => 'nullable|numeric|min:0',
             'payment_amount' => 'required|numeric|min:0',
+            'remaining_amount' => 'nullable|numeric|min:0',
             'mis_ids' => 'required|array',
             'mis_ids.*' => 'integer',
         ]);
@@ -287,21 +286,21 @@ class InvoiceController extends Controller
                 'invoice_date' => $validated['invoice_date'],
                 'bank_gst_no' => $validated['bank_gst_no'],
                 'bank_hsn_code' => $validated['bank_hsn_code'],
-                'dsa_pan' => $validated['dsa_pan'] ?? '',
                 'dsa_gst_no' => $validated['dsa_gst_no'] ?? '',
                 'application_no' => $applicationNumbers,
                 'taxable_value' => $validated['taxable_value'],
-                'invoive_value' => $validated['invoive_value'],
-                'payment_recevied_bank' => $validated['payment_recevied_bank'],
+                'invoice_value' => $validated['invoice_value'],
+                'payment_received_bank' => $validated['payment_received_bank'],
                 'CGST' => $validated['cgst'],
                 'SGST' => $validated['sgst'],
                 'IGST' => $validated['igst'],
+                'TDS' => $validated['tds'] ?? 0,
                 'payment_amount' => $validated['payment_amount'],
+                'remaining_amount' => $validated['remaining_amount'] ?? 0,
                 'payment_status' => 'pending',
-                'mis_date' => $validated['mis_date'],
-                'group' => $validated['group'] ?? '',
+                'mis_month' => $validated['mis_month']?? '',
+                'group_name' => $validated['group_name'] ?? '',
                 'company_name' => $validated['company_name'] ?? '',
-
             ]);
 
             return response()->json([
@@ -343,7 +342,7 @@ class InvoiceController extends Controller
 
         // Calculate total payout amount
         $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
-
+        
         // Format data for modal display
         $cases = $bankMisRecords->map(function ($record) {
             return [
@@ -351,8 +350,8 @@ class InvoiceController extends Controller
                 'app_id' => $record->app_id,
                 'bank_name' => $record->bank->name ?? '-',
                 'product_name' => $record->product->name ?? '-',
-                'month' => $record->month ?? '-',
-                'month_year' => $record->month_year ?? '-',
+                'month' => $record->bank_mis_month ?? '-',
+                'month_year' => $record->bank_mis_month ?? '-',
                 'payout_rate' => $record->payout_rate ?? '-',
                 'group' => $record->group ?? '-',
                 'customer_name' => $record->customer_name ?? '-',

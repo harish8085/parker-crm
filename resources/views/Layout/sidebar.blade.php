@@ -67,14 +67,14 @@
                 @if(auth()->user()->hasPermission('mis_tracker','view'))
                 <li class="list-item {{(Request::path() == 'mis_tracker')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker-blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
                     </a>
                 </li>
                 @endif
                 @if(auth()->user()->hasPermission('invoice_payment','view'))
                 <li class="list-item {{(Request::path() == 'invoice_payment')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'invoice_payment')?'active-li':''}}" href="{{url('invoice_payment')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice_payment')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
                     </a>
                 </li>
                 @endif
