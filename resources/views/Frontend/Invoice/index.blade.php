@@ -127,7 +127,9 @@
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Company GST No</label>
-                            <input type="text" class="form-control" placeholder="Enter DSA GST no" name="dsa_gst_no" id="dsa_gst_no">
+                            <select class="form-select" name="dsa_gst_no" id="dsa_gst_no" required>
+
+                            </select>
                         </div>
                     </div>
                     <div class="row">
@@ -145,7 +147,7 @@
                     <div class="row">
                         <div class="col-12 p-2">
                             <label class="input-label">Invoice No <span class="required">*</span></label>
-                            <input type="text" class="form-control" placeholder="Enter invoice no" name="invoice_no" id="invoice_no"  maxlength="17" required>
+                            <input type="text" class="form-control" placeholder="Enter invoice no" name="invoice_no" id="invoice_no" maxlength="17" required>
                         </div>
                     </div>
                     <div class="row">
@@ -203,7 +205,7 @@
 
 <!-- Invoice Listing Modal (appears second) -->
 <div class="modal fade" id="invoiceModal" data-bs-backdrop="static" data-bs-keyboard="false" style="margin-top: 200px; width:100%;">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <!-- Content will be inserted here -->
         </div>
@@ -213,7 +215,7 @@
 @endsection
 
 @section('script')
-@include('Frontend.Bank_MIS.index_js')
+@include('Frontend.Invoice.index_js')
 <script>
     // Store selected IDs and form data globally
     let selectedMisIds = [];
@@ -221,7 +223,6 @@
     let currentResponse = {}; // Add this to store the response globally
 
     document.getElementById('generateInvoiceBtn').addEventListener('click', function() {
-        console.log('Generate Invoice button clicked');
         selectedMisIds = $('.rowCheckbox:checked')
             .map(function() {
                 return $(this).val();
@@ -233,9 +234,38 @@
             return;
         }
 
-        // Open the invoice input form modal first
-        document.getElementById('invoiceInputForm').reset();
-        $('#invoic_input_Modal').modal('show');
+        // Fetch total payout BEFORE showing invoice input modal
+        $.ajax({
+            url: '/invoice/generateInvoice',
+            type: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            data: {
+                mis_ids: selectedMisIds
+            },
+            success: function(response) {
+                if (response.success) {
+                    currentResponse = response;
+
+                    // ✅ AUTO-FILL TOTAL PAYOUT
+                    const totalPayout = parseFloat(response.totalPayoutAmount).toFixed(2);
+
+                    document.getElementById('invoiceInputForm').reset();
+
+                    // Fill values
+                    $('#taxable_value').val(totalPayout);
+                    $('#invoice_value').val(totalPayout);
+
+                    $('#invoic_input_Modal').modal('show');
+                } else {
+                    alert(response.message || 'Failed to calculate payout.');
+                }
+            },
+            error: function() {
+                alert('Failed to fetch payout amount.');
+            }
+        });
     });
 
     function updateGSTFields() {
@@ -247,14 +277,23 @@
     function updateGSTNO_paymentBank() {
         const companyName = document.getElementById('company_name').value;
         const gstNoField = document.getElementById('dsa_gst_no');
+        let gstNoFieldNo = [];
+        gstNoField.innerHTML = '<option value="">Select Option</option>'; // Reset options
 
-        const gstNumbers = {
-            "Parker's Consulting & Ventures Pvt. Ltd.": '23AALCP8380J1ZY',
-            "Aadrika Informative Services Pvt. LTD": '23AAOCA6070B1Z0',
-            "Finance Solution Services": '23BQCPS2686D2ZU'
-        };
+        if (companyName === "Parker's Consulting & Ventures Pvt. Ltd.") {
+            gstNoFieldNo = ["23AALCP8380J1ZY", "09AALCP8380J1ZO", "27AALCP8380J1ZQ"];
+        } else if (companyName === "Aadrika Informative Services Pvt. LTD") {
+            gstNoFieldNo = ["23AAOCA6070B1Z0", "07AAOCA6070B1ZU", "04AAOCA6070B1Z0"];
+        } else if (companyName === "Finance Solution Services") {
+            gstNoFieldNo = ["23BQCPS2686D2ZU"];
+        }
+        gstNoFieldNo.forEach(function(gstNo) {
+            const option = document.createElement('option');
+            option.value = gstNo;
+            option.text = gstNo;
+            gstNoField.appendChild(option);
+        });
 
-        gstNoField.value = gstNumbers[companyName] || '';
 
         // in parker we have icici , kotak,idfc , hdfc,AU
         // IN aadrika we have sbi , axis , yes bank, ICICI
@@ -457,7 +496,7 @@
             sgst: sgst.toFixed(2),
             igst: igst.toFixed(2),
             tds: tdsAmount.toFixed(2),
-            mis_month: currentResponse.cases[0].month_year,// Assuming all selected cases are from the same month
+            mis_month: currentResponse.cases[0].month_year, // Assuming all selected cases are from the same month
             group_name: currentResponse.cases[0].group, // Assuming all selected cases are from the same group
             payment_amount: finalPaymentAmount.toFixed(2),
             remaining_amount: finalPaymentAmount.toFixed(2),

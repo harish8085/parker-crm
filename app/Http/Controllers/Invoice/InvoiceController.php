@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Invoice;
+
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Application;
@@ -16,7 +17,8 @@ use App\Models\InvoicePaymentView;
 
 class InvoiceController extends Controller
 {
-     public function index(Request $request){
+    public function index(Request $request)
+    {
         $Route = 'Invoice';
         $user = Auth::user();
         $channelroleId = 2;
@@ -25,22 +27,19 @@ class InvoiceController extends Controller
         $product = Product::all();
 
         $invoicedAppIds = InvoicePaymentView::get()
-                ->map(function($invoice) {
-                    // Split the comma-separated application numbers
-                    return explode(',', $invoice->application_no);
-                })
-                ->flatten()
-                ->map(function($appId) {
-                    return trim($appId);
-                })
-                ->unique()
-                ->toArray();
+            ->map(function ($invoice) {
+                // Split the comma-separated application numbers
+                return explode(',', $invoice->application_no);
+            })
+            ->flatten()
+            ->map(function ($appId) {
+                return trim($appId);
+            })
+            ->unique()
+            ->toArray();
 
-            $query = BankMIS::with(['bank','product'])->whereNotIn('app_id', $invoicedAppIds);
-
-            // Filter/remove out records that already have invoices
-            $query->whereNotIn('app_id', $invoicedAppIds);
-            
+        $query = BankMIS::with(['bank', 'product'])
+            ->whereNotIn('app_id', $invoicedAppIds);
 
         if ($request->ajax()) {
             if ($request->date) {
@@ -55,64 +54,64 @@ class InvoiceController extends Controller
                     $weekStartDate = $now->startOfWeek()->toDateString();
                     $weekEndDate = $now->endOfWeek()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                                  ->whereDate('created_at', '<=', $weekEndDate);
+                        ->whereDate('created_at', '<=', $weekEndDate);
                 } elseif ($request->date == 'last_week') {
                     $subWeek = $now->subWeek();
                     $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
                     $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                                  ->whereDate('created_at', '<=', $lastWeekEndDate);
+                        ->whereDate('created_at', '<=', $lastWeekEndDate);
                 } elseif ($request->date == 'this_month') {
                     $startOfMonth = $now->startOfMonth()->toDateString();
                     $endOfMonth = $now->endOfMonth()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                  ->whereDate('created_at', '<=', $endOfMonth);
+                        ->whereDate('created_at', '<=', $endOfMonth);
                 } elseif ($request->date == 'last_month') {
                     $subMonth = $now->subMonth();
                     $startOfMonth = $subMonth->startOfMonth()->toDateString();
                     $endOfMonth = $subMonth->endOfMonth()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                  ->whereDate('created_at', '<=', $endOfMonth);
+                        ->whereDate('created_at', '<=', $endOfMonth);
                 } elseif ($request->date == 'last_3_months') {
                     $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
                     $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                                  ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
                 } elseif ($request->date == 'last_6_months') {
                     $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
                     $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                                  ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
                 } elseif ($request->date == 'this_year') {
                     $thisYearStart = $now->startOfYear()->toDateString();
                     $thisYearEnd = $now->endOfYear()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                                  ->whereDate('created_at', '<=', $thisYearEnd);
+                        ->whereDate('created_at', '<=', $thisYearEnd);
                 } elseif ($request->date == 'last_year') {
                     $lastYear = $now->subYear();
                     $lastYearStart = $lastYear->startOfYear()->toDateString();
                     $lastYearEnd = $lastYear->endOfYear()->toDateString();
                     $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                                  ->whereDate('created_at', '<=', $lastYearEnd);
+                        ->whereDate('created_at', '<=', $lastYearEnd);
                 } elseif ($request->date == 'custom' && isset($request->date_range)) {
                     if (strpos($request->date_range, 'to') !== false) {
                         $dates = explode('to', $request->date_range);
                         $startDate = trim($dates[0]);
                         $endDate = trim($dates[1]);
                         $query = $query->whereDate('created_at', '>=', $startDate)
-                                      ->whereDate('created_at', '<=', $endDate);
+                            ->whereDate('created_at', '<=', $endDate);
                     } else {
                         throw new \Exception('Date range is not provided or is incorrectly formatted.');
                     }
                 }
             }
-            
+
             if ($request->bank_name) {
                 $query->whereHas('bank', function ($q) use ($request) {
                     $q->where('name', $request->bank_name);
                 });
             }
-    
+
             if ($request->product_name) {
                 $query->whereHas('product', function ($q) use ($request) {
                     $q->where('name', $request->product_name);
@@ -121,54 +120,54 @@ class InvoiceController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->editColumn('checkbox', function ($row) {
-                        return '<input type="checkbox" class="rowCheckbox" value="' . $row->id . '">';
-                    
+                    return '<input type="checkbox" class="rowCheckbox" value="' . $row->id . '">';
+
                     return '';
                 })
                 ->editColumn('bank_id', function ($row) {
-                    return $row->bank_id ? $row->bank->name : '-'; 
+                    return $row->bank_id ? $row->bank->name : '-';
                 })
                 ->editColumn('product_id', function ($row) {
-                    return $row->product_id ? $row->product->name : '-'; 
+                    return $row->product_id ? $row->product->name : '-';
                 })
                 ->editColumn('group', function ($row) {
-                    return $row->group ? $row->group : '-'; 
+                    return $row->group ? $row->group : '-';
                 })
                 ->editColumn('customer_name', function ($row) {
-                    return $row->customer_name ? $row->customer_name : '-'; 
+                    return $row->customer_name ? $row->customer_name : '-';
                 })
                 ->editColumn('customer_firm_name', function ($row) {
-                    return $row->customer_firm_name ? $row->customer_firm_name : '-'; 
+                    return $row->customer_firm_name ? $row->customer_firm_name : '-';
                 })
                 ->editColumn('location', function ($row) {
-                    return $row->location ? $row->location : '-'; 
+                    return $row->location ? $row->location : '-';
                 })
                 ->editColumn('case_location', function ($row) {
-                    return $row->case_location ? $row->case_location : '-'; 
+                    return $row->case_location ? $row->case_location : '-';
                 })
                 ->editColumn('disbAmount', function ($row) {
-                    return $row->disbAmount ? $row->disbAmount : '-'; 
+                    return $row->disbAmount ? $row->disbAmount : '-';
                 })
                 ->editColumn('payout_amount', function ($row) {
-                    return $row->payout_amount ? $row->payout_amount : '-'; 
+                    return $row->payout_amount ? $row->payout_amount : '-';
                 })
                 ->editColumn('payout_rate', function ($row) {
-                    return $row->payout_rate ? $row->payout_rate : '-'; 
+                    return $row->payout_rate ? $row->payout_rate : '-';
                 })
                 ->editColumn('pf', function ($row) {
-                    return $row->pf ? $row->pf : '-'; 
+                    return $row->pf ? $row->pf : '-';
                 })
                 ->editColumn('subvention', function ($row) {
-                    return $row->subvention ? $row->subvention : '-'; 
+                    return $row->subvention ? $row->subvention : '-';
                 })
                 ->editColumn('roi', function ($row) {
-                    return $row->roi ? $row->roi : '-'; 
+                    return $row->roi ? $row->roi : '-';
                 })
                 ->editColumn('insurance', function ($row) {
-                    return $row->insurance ? $row->insurance : '-'; 
+                    return $row->insurance ? $row->insurance : '-';
                 })
                 ->editColumn('otc_pdd_status', function ($row) {
-                    return $row->otc_pdd_status ? $row->otc_pdd_status : '-'; 
+                    return $row->otc_pdd_status ? $row->otc_pdd_status : '-';
                 })
                 ->addColumn('action', function ($row) {
                     $btn = '';
@@ -183,23 +182,24 @@ class InvoiceController extends Controller
                     // i want to add check box 
                     return $btn;
                 })
-                ->rawColumns(['checkbox','action'])
+                ->rawColumns(['checkbox', 'action'])
                 ->make(true);
         }
 
-            $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
+            $query->where('id', $channelroleId);
+        })->get();
 
-            $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        return view('Frontend.Invoice.index',compact('channels','sales','bank','product'));
+        $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
+            $query->where('id', $salesroleId);
+        })->get();
+        return view('Frontend.Invoice.index', compact('channels', 'sales', 'bank', 'product'));
     }
 
 
 
-    public function filter(Request $request){
+    public function filter(Request $request)
+    {
         $Route = 'BankMIS';
         $user = Auth::user();
         $query = BankMIS::query();
@@ -225,15 +225,17 @@ class InvoiceController extends Controller
     }
 
 
-    public function show($id){
+    public function show($id)
+    {
         $Route = 'Edit Bank MIS';
         $bank_mis = BankMIS::findOrFail($id);
-        $bank = Bank::where('id',$bank_mis->bank_id)->get();
-        $product = Product::where('id',$bank_mis->product_id)->get();
-        return view('Frontend.Invoice.show',compact('bank_mis','bank','product'));
+        $bank = Bank::where('id', $bank_mis->bank_id)->get();
+        $product = Product::where('id', $bank_mis->product_id)->get();
+        return view('Frontend.Invoice.show', compact('bank_mis', 'bank', 'product'));
     }
 
-    public function destroy(BankMIS $bank){
+    public function destroy(BankMIS $bank)
+    {
         $bank->delete();
         return true;
     }
@@ -298,7 +300,7 @@ class InvoiceController extends Controller
                 'payment_amount' => $validated['payment_amount'],
                 'remaining_amount' => $validated['remaining_amount'] ?? 0,
                 'payment_status' => 'pending',
-                'mis_month' => $validated['mis_month']?? '',
+                'mis_month' => $validated['mis_month'] ?? '',
                 'group_name' => $validated['group_name'] ?? '',
                 'company_name' => $validated['company_name'] ?? '',
             ]);
@@ -308,7 +310,6 @@ class InvoiceController extends Controller
                 'message' => 'Invoice saved successfully!',
                 'data' => $invoicePayment
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -342,7 +343,7 @@ class InvoiceController extends Controller
 
         // Calculate total payout amount
         $totalPayoutAmount = $bankMisRecords->sum('payout_amount');
-        
+
         // Format data for modal display
         $cases = $bankMisRecords->map(function ($record) {
             return [

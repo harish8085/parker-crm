@@ -181,6 +181,12 @@ class InvoicePaymentController extends Controller
                 ->editColumn('payment_paid', function ($row) {
                     return $row->payment_paid ? '₹' . number_format($row->payment_paid, 2) : '0';
                 })
+                ->editColumn('referance_no1', function ($row) {
+                    return $row->referance_no1 ? $row->referance_no1 : '-';
+                })
+                ->editColumn('referance_no2', function ($row) {
+                    return $row->referance_no2 ? $row->referance_no2 : '-';
+                })
                 ->editColumn('payment_date1', function ($row) {
                     return $row->payment_date1 ? $row->payment_date1 : '-';
                 })
@@ -190,9 +196,9 @@ class InvoicePaymentController extends Controller
                 ->addColumn('action', function ($row) {
                     $btn = '';
                     if (auth()->user()->hasPermission('invoice_payment', 'view')) {
-                        $btn .= "<a href='" . e(url('/invoice_payment/view/' . $row->id)) . "' onclick='viewInvoiceCasesList(" . $row->id . ")' style='cursor: pointer;'>
-                                        <img src='" . asset('assets/images/eye-icon.svg') . "' alt='View'>
-                                     </a>";
+                        $btn .= "<button type='button' class='btn btn-sm view-btn' data-id='" . $row->id . "' data-payment-paid='" . ($row->payment_paid ?? '') . "' data-payment-date1='" . ($row->payment_date1 ?? '') . "' data-payment-date2='" . ($row->payment_date2 ?? '') . "' data-remaining-amount='" . ($row->remaining_amount ?? '0') . "' style='background: none; border: none; cursor: pointer; padding: 0;'>
+                                    <img src='" . asset('assets/images/eye-icon.svg') . "' alt='View'>
+                                </button>";
                     }
                     if (auth()->user()->hasPermission('invoice_payment', 'update')) {
                         $btn .= "<button type='button' class='btn btn-sm edit-btn' data-id='" . $row->id . "' data-payment-paid='" . ($row->payment_paid ?? '') . "' data-payment-date1='" . ($row->payment_date1 ?? '') . "' data-payment-date2='" . ($row->payment_date2 ?? '') . "' data-remaining-amount='" . ($row->remaining_amount ?? '0') . "' style='background: none; border: none; cursor: pointer; padding: 0;'>
@@ -280,7 +286,10 @@ class InvoicePaymentController extends Controller
             'payment_date1' => 'nullable|date',
             'payment_date2' => 'nullable|date',
             'remaining_amount' => 'nullable|numeric|min:0',
+            'referance_no1' => 'nullable|string|max:255',
+            'referanc_no2' => 'nullable|string|max:255',
         ]);
+
 
         try {
             $invoicePayment = InvoicePaymentView::findOrFail($id);
@@ -289,7 +298,7 @@ class InvoicePaymentController extends Controller
             if (isset($validated['payment_paid'])) {
                 $validated['payment_paid'] = $invoicePayment->payment_paid + $validated['payment_paid'];
             }
-            
+
             // Update payment status based on remaining amount
             if (isset($validated['remaining_amount'])) {
                 if ($validated['remaining_amount'] == 0) {
@@ -298,7 +307,16 @@ class InvoicePaymentController extends Controller
                     $validated['payment_status'] = 'pending';
                 }
             }
-            
+
+            // save refrance no1 and refrance no2
+            // if (isset($validated['referance_no1'])) {   
+            //     $invoicePayment->refrance_no1 = $validated['referance_no1'];
+            // }
+
+            // if (isset($validated['referance_no2'])) {
+            //     $invoicePayment->refrance_no2 = $validated['referance_no2'];
+            // }
+
             $invoicePayment->update($validated);
 
             return response()->json([

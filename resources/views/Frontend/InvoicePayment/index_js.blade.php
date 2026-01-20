@@ -68,6 +68,8 @@
             const paymentDate1 = $(this).data('payment-date1');
             const paymentDate2 = $(this).data('payment-date2');
             const remainingAmount = $(this).data('remaining-amount');
+            const referanceNo1 = $(this).data('reference-no1');
+            const referanceNo2 = $(this).data('reference-no2'); 
 
             // Set form values
             $('#paymentId').val(id);
@@ -76,6 +78,8 @@
             $('#paymentDate2').val(paymentDate2 || '');
             $('#remainingAmountDisplay').val(remainingAmount || '0');
             $('#useRemainingCheckbox').prop('checked', false);
+            $('#referanceNo1').val(referanceNo1 || '');
+            $('#referanceNo2').val(referanceNo2 || '');
 
             // Open modal
             const modal = new bootstrap.Modal(document.getElementById('editPaymentModal'));
@@ -100,6 +104,8 @@
             const paymentPaid = $('#paymentPaid').val();
             const paymentDate1 = $('#paymentDate1').val();
             const paymentDate2 = $('#paymentDate2').val();
+            const referanceNo1 = $('#referanceNo1').val();
+            const referanceNo2 = $('#referanceNo2').val();
             const remainingAmount = $('#remainingAmountDisplay').val();
 
             // Validate payment_paid is not greater than remaining amount
@@ -121,6 +127,8 @@
                     payment_paid: paymentPaid,
                     payment_date1: paymentDate1,
                     payment_date2: paymentDate2,
+                    referance_no1: referanceNo1,
+                    referance_no2: referanceNo2,
                     remaining_amount: newRemainingAmount
                 },
                 success: function(response) {
@@ -290,6 +298,14 @@
                 {
                     data: 'remaining_amount',
                     name: 'remaining_amount'
+                },
+                {
+                    data: 'referance_no1',
+                    name: 'referance_no1'
+                },
+                {
+                    data: 'referance_no2',
+                    name: 'referance_no2'
                 },
                 {
                     data: 'payment_date1',

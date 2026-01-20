@@ -116,7 +116,7 @@
                 <form id="editPaymentForm">
                     @csrf
                     <input type="hidden" id="paymentId" name="payment_id">
-
+                    
                     <!-- Remaining Amount Display -->
                     <div class="row mb-3">
                         <div class="col-12">
@@ -142,6 +142,20 @@
                         <div class="col-12">
                             <label class="input-label">Payment Paid <span class="required">*</span></label>
                             <input type="number" class="form-control" id="paymentPaid" name="payment_paid" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <!-- Reference No 1 -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Reference No 1 <span class="required">*</span></label>
+                            <input type="text" class="form-control" id="referanceNo1" name="referance_no1" required>
+                        </div>
+                    </div>
+                    <!-- Reference No 2 -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="input-label">Reference No 2</label>
+                            <input type="text" class="form-control" id="referanceNo2" name="referance_no2">
                         </div>
                     </div>
 
@@ -172,50 +186,31 @@
 <div class="modal fade" id="invoiceCasesModal" tabindex="-1" aria-labelledby="invoiceCasesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <table class="table table-striped table-hover">
-                <thead class="table-light">
-                    <tr>
-                        <th>Application No</th>
-                        <th>Bank Name</th>
-                        <th>Product Name</th>
-                        <th>Month</th>
-                        <th>Date</th>
-                        <th>Rate</th>
-                        <th>Group</th>
-                        <th>Customer Name</th>
-                        <th>Payout Amount</th>
-                        <th>Disburse Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Dynamic rows will be appended here -->
-                </tbody>
-            </table>
-
-
+            <!-- Content will be loaded here via AJAX -->
         </div>
     </div>
+ 
+
+@endsection
 
 
-    @endsection
+@section('script')
+@include('Frontend.InvoicePayment.index_js')
+<script>
+    function viewInvoiceCasesList(id) {
+        $.ajax({
+            url: '/invoice_payment/view/' + id,
+            type: 'GET',
+            success: function(response) {
+                $('#invoiceCasesModal .modal-content').html(response);
+                $('#invoiceCasesModal').modal('show');
 
-
-    @section('script')
-    @include('Frontend.InvoicePayment.index_js')
-    <script>
-        function viewInvoiceCasesList(id) {
-            $.ajax({
-                url: '/invoice_payment/view/' + id,
-                type: 'GET',
-                success: function(response) {
-                    $('#invoiceCasesModal .modal-content').html(response);
-                    $('#invoiceCasesModal').modal('show');
-                    
-                },
-                error: function(xhr) {
-                    alert('An error occurred while fetching invoice cases.');
-                }
-            });
-        }
-    </script>
-    @endsection
+            },
+            error: function(xhr) {
+                alert('An error occurred while fetching invoice cases.');
+            }
+        });
+    }
+    
+</script>
+@endsection

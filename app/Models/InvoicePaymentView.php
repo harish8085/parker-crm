@@ -37,6 +37,8 @@ class InvoicePaymentView extends Model
         'company_name',
         'payment_date1',
         'payment_date2',
+        'referance_no1',
+        'referance_no2',
        
     ];
 
