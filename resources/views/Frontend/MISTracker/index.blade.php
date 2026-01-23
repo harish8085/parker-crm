@@ -73,3 +73,10 @@
 </div>
 <!-- /# row -->
 @endsection
+
+    @section('script')
+    @include('Frontend.MisTracker.index_js')
+    <script>
+
+    </script>
+    @endsection

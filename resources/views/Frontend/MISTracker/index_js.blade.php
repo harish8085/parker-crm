@@ -20,4 +20,28 @@
             }
         });
     });
+
+    // Show or hide the date range picker based on the selected option
+    $('#date').on('change', function() {
+        if ($(this).val() === 'custom') {
+            $('.date_range').show();
+        } else {
+            $('.date_range').hide();
+        }
+    });
+
+
+    // Filter button
+    $('#filter').click(function() {
+        const date = $('#date').val();
+        const dateRange = $('#date-range-picker').val();
+        const bankName = $('#bank_name').val();
+
+        load_data(date, dateRange, bankName, paymentStatus);
+    });
+
+    // Refresh button
+    $('#refresh').click(function() {
+        window.location.reload();
+    });
 </script>

@@ -8,12 +8,12 @@ use App\Models\Application;
 use App\Models\Bank;
 use App\Models\BankMIS;
 use App\Models\Product;
-use App\Models\StaffAssign;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use App\Models\InvoicePaymentView;
+use Illuminate\Support\Facades\Log;
 
 class InvoicePaymentController extends Controller
 {
@@ -196,15 +196,41 @@ class InvoicePaymentController extends Controller
                 ->addColumn('action', function ($row) {
                     $btn = '';
                     if (auth()->user()->hasPermission('invoice_payment', 'view')) {
-                        $btn .= "<button type='button' class='btn btn-sm view-btn' data-id='" . $row->id . "' data-payment-paid='" . ($row->payment_paid ?? '') . "' data-payment-date1='" . ($row->payment_date1 ?? '') . "' data-payment-date2='" . ($row->payment_date2 ?? '') . "' data-remaining-amount='" . ($row->remaining_amount ?? '0') . "' style='background: none; border: none; cursor: pointer; padding: 0;'>
+                        $btn .= "<button 
+                        type='button' 
+                        class='btn btn-sm view-btn' 
+                        data-row='" . htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') . "'
+                        style='background: none; border: none; cursor: pointer; padding: 0;'>
                                     <img src='" . asset('assets/images/eye-icon.svg') . "' alt='View'>
                                 </button>";
                     }
+
                     if (auth()->user()->hasPermission('invoice_payment', 'update')) {
-                        $btn .= "<button type='button' class='btn btn-sm edit-btn' data-id='" . $row->id . "' data-payment-paid='" . ($row->payment_paid ?? '') . "' data-payment-date1='" . ($row->payment_date1 ?? '') . "' data-payment-date2='" . ($row->payment_date2 ?? '') . "' data-remaining-amount='" . ($row->remaining_amount ?? '0') . "' style='background: none; border: none; cursor: pointer; padding: 0;'>
-                                    <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
-                                </button>";
+                        $btn .= "
+                        <button 
+                            type='button' 
+                            class='btn btn-sm edit-btn'
+                            data-row='" . htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8') . "'
+                            style='background: none; border: none; cursor: pointer; padding: 0;'>
+                            
+                            <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
+                        </button>";
                     }
+
+                    if (auth()->user()->hasPermission('invoice_payment', 'delete')) {
+                        $btn .= "
+                            <button 
+                                type='button' 
+                                class='btn btn-sm delete-btn' 
+                                data-id='{$row->id}'
+                                data-url='" . url('invoice_payment/' . $row->id) . "'
+                                 onclick='deleteInvoicePayment( $row->id)'
+                                style='background: none; border: none; cursor: pointer; padding: 0;'>
+                                <img src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete'>
+                            </button>";
+                    }
+
+
 
                     return $btn;
                 })
@@ -282,12 +308,22 @@ class InvoicePaymentController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'payment_paid' => 'nullable|numeric|min:0',
+            'payment_paid1' => 'nullable|min:0',
+            'payment_paid2' => 'nullable|min:0',
             'payment_date1' => 'nullable|date',
             'payment_date2' => 'nullable|date',
-            'remaining_amount' => 'nullable|numeric|min:0',
+            'remaining_amount' => 'nullable|min:0',
             'referance_no1' => 'nullable|string|max:255',
-            'referanc_no2' => 'nullable|string|max:255',
+            'referance_no2' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'dsa_gst_no' => 'nullable|string|max:255',
+            'bank_gst_no' => 'nullable|string|max:255',
+            'invoice_no' => 'nullable|string|max:255',
+            'invoice_date' => 'nullable|date',
+            'bank_address' => 'nullable|string|max:500',
+            'bank_hsn_code' => 'nullable|string|max:255',
+            'payment_received_bank' => 'nullable|string|max:255',
+
         ]);
 
 
@@ -296,7 +332,7 @@ class InvoicePaymentController extends Controller
 
             // add payment paid in to existing paid amount
             if (isset($validated['payment_paid'])) {
-                $validated['payment_paid'] = $invoicePayment->payment_paid + $validated['payment_paid'];
+                $validated['payment_paid'] = $invoicePayment->payment_paid + $validated['payment_paid1'] + $validated['payment_paid2'];
             }
 
             // Update payment status based on remaining amount
@@ -307,15 +343,6 @@ class InvoicePaymentController extends Controller
                     $validated['payment_status'] = 'pending';
                 }
             }
-
-            // save refrance no1 and refrance no2
-            // if (isset($validated['referance_no1'])) {   
-            //     $invoicePayment->refrance_no1 = $validated['referance_no1'];
-            // }
-
-            // if (isset($validated['referance_no2'])) {
-            //     $invoicePayment->refrance_no2 = $validated['referance_no2'];
-            // }
 
             $invoicePayment->update($validated);
 
@@ -347,5 +374,57 @@ class InvoicePaymentController extends Controller
                 'message' => 'Error deleting invoice payment: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    function getInvoiceCases(Request $request)
+    {
+        $applicationNos = $request->input('application_nos', []);
+        $invoicedApplications = [];
+        // i want whole row details of each application id which match with the app_id of bank_mis 
+
+        if (!$applicationNos || !is_array($applicationNos)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid request.'
+            ], 400);
+        }
+
+        // Get BankMIS records with their relationships
+        $invoicedApplications = BankMIS::with(['bank', 'product'])
+            ->whereIn('app_id', $applicationNos)
+            ->get();
+
+        if ($invoicedApplications->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No records found.'
+            ], 404);
+        }
+
+        // Calculate total payout amount
+        $totalPayoutAmount = $invoicedApplications->sum('payout_amount');
+
+        // Format data for modal display
+        $cases = $invoicedApplications->map(function ($record) {
+            return [
+                'id' => $record->id,
+                'app_id' => $record->app_id,
+                'bank_name' => $record->bank->name ?? '-',
+                'product_name' => $record->product->name ?? '-',
+                'month' => $record->bank_mis_month ?? '-',
+                'month_year' => $record->bank_mis_month ?? '-',
+                'payout_rate' => $record->payout_rate ?? '-',
+                'group' => $record->group ?? '-',
+                'customer_name' => $record->customer_name ?? '-',
+                'payoutAmount' => $record->payout_amount ?? 0,
+                'disbAmount' => $record->disbAmount ?? 0,
+            ];
+        })->toArray();
+
+        return response()->json([
+            'success' => true,
+            'cases' => $cases,
+            'totalPayoutAmount' => $totalPayoutAmount
+        ]);
     }
 }

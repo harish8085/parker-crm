@@ -1,4 +1,5 @@
 <script>
+    var totalPayoutAmount = 0;
     $(document).ready(function() {
         // Initialize DataTable
         load_data();
@@ -53,7 +54,7 @@
             const bankName = $('#bank_name').val();
             const paymentStatus = $('#payment_status').val();
 
-            load_data(date, dateRange, bankName , paymentStatus);
+            load_data(date, dateRange, bankName, paymentStatus);
         });
 
         // Refresh button
@@ -63,27 +64,121 @@
 
         // Edit button click - open modal with data
         $(document).on('click', '.edit-btn', function() {
-            const id = $(this).data('id');
-            const paymentPaid = $(this).data('payment-paid');
-            const paymentDate1 = $(this).data('payment-date1');
-            const paymentDate2 = $(this).data('payment-date2');
-            const remainingAmount = $(this).data('remaining-amount');
-            const referanceNo1 = $(this).data('reference-no1');
-            const referanceNo2 = $(this).data('reference-no2'); 
 
-            // Set form values
-            $('#paymentId').val(id);
-            $('#paymentPaid').val(paymentPaid || '');
-            $('#paymentDate1').val(paymentDate1 || '');
-            $('#paymentDate2').val(paymentDate2 || '');
-            $('#remainingAmountDisplay').val(remainingAmount || '0');
+            const row = $(this).data('row'); // already parsed by jQuery
+            totalPayoutAmount = row.payment_amount;
+            // Assign values
+
+            $('#paymentId').val(row.id);
+            $('#paymentPaid1').val(row.payment_paid1 ?? '');
+            $('#paymentPaid2').val(row.payment_paid2 ?? '');
+            $('#referanceNo1').val(row.referance_no1 ?? '');
+            $('#referanceNo2').val(row.referance_no2 ?? '');
+            $('#paymentDate1').val(row.payment_date1 ?? '');
+            $('#paymentDate2').val(row.payment_date2 ?? '');
+            $('#remainingAmountDisplay').val(row.remaining_amount ?? 0);
             $('#useRemainingCheckbox').prop('checked', false);
-            $('#referanceNo1').val(referanceNo1 || '');
-            $('#referanceNo2').val(referanceNo2 || '');
+            $('#reference_no1').val(row.reference_no1 ?? '');
+            $('#reference_no2').val(row.reference_no2 ?? '');
+            $('#company_name').val(row.company_name ?? '');
+            updateGSTNO_paymentBank();
+            $('#dsa_gst_no').val(row.dsa_gst_no ?? '');
+            $('#bank_gst_no').val(row.bank_gst_no ?? '');
+            $('#invoice_no').val(row.invoice_no ?? '');
+            $('#invoice_date').val(row.invoice_date ?? '');
+            $('#bank_address').val(row.bank_address ?? '');
+            $('#bank_hsn_code').val(row.bank_hsn_code ?? '');
+            $('#payment-received-bank').val(row.payment_received_bank ?? '');
+            console.log(row);
 
             // Open modal
-            const modal = new bootstrap.Modal(document.getElementById('editPaymentModal'));
-            modal.show();
+            new bootstrap.Modal(document.getElementById('editPaymentModal')).show();
+
+        });
+
+        // view button click - open modal with data 
+        $(document).on('click', '.view-btn', function() {
+            const row = $(this).data('row');
+            const applicationNos = row.application_no ? row.application_no.split(',') : [];
+
+            // 1. Show a loader or clear old content immediately so user knows something is happening
+            $('#invoiceCasesModal .modal-content').html('<div class="p-5 text-center">Loading...</div>');
+
+            ;
+
+            $.ajax({
+                url: '{{ route("invoice_payment.getInvoiceCases") }}',
+                type: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                data: {
+                    application_nos: applicationNos
+                },
+                success: function(response) {
+                    if (response.success) {
+
+                        // Use backticks (`) for the multi-line string
+                        let modalHTML = `
+                    <div class="modal-header" style="height: 50px;">
+                            <h5 class="modal-title">Generate Invoice - Case Details</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" style="max-height: 450px; overflow-y: auto;">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                      <th>Application No</th>
+                                        <th>Bank Name</th>
+                                        <th>Product Name</th>
+                                        <th>Month</th>
+                                        <th>Date</th>
+                                        <th>Rate</th>
+                                        <th>Group</th>
+                                        <th>Customer Name</th>
+                                        <th>Payout Amount</th>
+                                        <th>Disburse Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+                        response.cases.forEach(function(caseItem) {
+                            modalHTML += `
+                        <tr>
+                             <td>${caseItem.app_id}</td>
+                                <td>${caseItem.bank_name}</td>
+                                <td>${caseItem.product_name}</td>
+                                <td>${caseItem.month}</td>
+                                <td>${caseItem.month_year}</td>
+                                <td>${caseItem.payout_rate}</td>
+                                <td>${caseItem.group}</td>
+                                <td>${caseItem.customer_name}</td>
+                                <td>₹${parseFloat(caseItem.payoutAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                <td>₹${parseFloat(caseItem.disbAmount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        </tr>`;
+                        });
+
+                        modalHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>`;
+
+                        // Update the content ONLY once the HTML is ready
+                        $('#invoiceCasesModal .modal-content').html(modalHTML);
+                        // Initialize the modal ONCE at the start
+                        const myModal = new bootstrap.Modal(document.getElementById('invoiceCasesModal'));
+                        myModal.show()
+                    } else {
+                        $('#invoiceCasesModal .modal-content').html('<div class="alert alert-danger m-3">' + response.message + '</div>');
+                    }
+                },
+                error: function(xhr) {
+                    $('#invoiceCasesModal .modal-content').html('<div class="alert alert-danger m-3">Failed to load data.</div>');
+                }
+            });
         });
 
         // Checkbox to auto-fill payment paid with remaining amount
@@ -99,23 +194,65 @@
         // Form submission
         $(document).on('submit', '#editPaymentForm', function(e) {
             e.preventDefault();
+            
 
             const id = $('#paymentId').val();
-            const paymentPaid = $('#paymentPaid').val();
+            const paymentPaid1 = $('#paymentPaid1').val();
+            const paymentPaid2 = $('#paymentPaid2').val();
             const paymentDate1 = $('#paymentDate1').val();
             const paymentDate2 = $('#paymentDate2').val();
             const referanceNo1 = $('#referanceNo1').val();
-            const referanceNo2 = $('#referanceNo2').val();
-            const remainingAmount = $('#remainingAmountDisplay').val();
+            const referance_no2 = $('#referanceNo2').val();
+            const remainingAmount = parseFloat(totalPayoutAmount) - parseFloat(paymentPaid1);
+            const companyName = $('#company_name').val();
+            const dsaGSTNo = $('#dsa_gst_no').val();
+            const bankGSTNo = $('#bank_gst_no').val();
+            const invoiceNo = $('#invoice_no').val();
+            const invoiceDate = $('#invoice_date').val();
+            const bankAddress = $('#bank_address').val();
+            const bankHSNCode = $('#bank_hsn_code').val();
+            const payment_received_bank = $('#payment_received_bank').val();
 
-            // Validate payment_paid is not greater than remaining amount
-            if (parseFloat(paymentPaid) > parseFloat(remainingAmount)) {
-                alert('Payment Paid cannot be greater than Remaining Amount!');
-                return;
+            // Validate payment_paid1 & payment_paid2 is not greater than remaining amount
+            if (remainingAmount != 0) {
+                if (!paymentPaid2) {
+                    if (parseFloat(paymentPaid1) > parseFloat(remainingAmount)) {
+                        alert('Payment Received 1 cannot be greater than Remaining Amount.');
+                        return;
+                    }
+                } else {
+                    if (parseFloat(paymentPaid2) > parseFloat(remainingAmount)) {
+                        alert('Payment Received 2 cannot be greater than Remaining Amount.');
+                        return;
+                    }
+                }
             }
 
+
+
             // Calculate new remaining amount
-            const newRemainingAmount = parseFloat(remainingAmount) - parseFloat(paymentPaid);
+            let newRemainingAmount;
+
+            if (remainingAmount == 0) {
+                newRemainingAmount = 0;
+            } else {
+                if (paymentPaid2) {
+                    newRemainingAmount = parseFloat(remainingAmount) - parseFloat(paymentPaid2);
+                    if (newRemainingAmount != 0) {
+                        alert('payment received 2 should be equal to remaining amount');
+                        return;
+                    }
+                    if(!referance_no2){
+                        alert('Please Enter UTR No 2')
+                    }
+                    if(!paymentDate2){
+                        alert('Please Enter Payment Date 2')
+                    }
+                } else {
+                    newRemainingAmount = remainingAmount;
+                }
+            }
+            newRemainingAmount = parseInt(newRemainingAmount)
 
             $.ajax({
                 url: '{{ route("invoice_payment.update", ":id") }}'.replace(':id', id),
@@ -124,13 +261,23 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 data: {
-                    payment_paid: paymentPaid,
+                    payment_paid1: paymentPaid1,
+                    payment_paid2: paymentPaid2,
                     payment_date1: paymentDate1,
                     payment_date2: paymentDate2,
                     referance_no1: referanceNo1,
-                    referance_no2: referanceNo2,
-                    remaining_amount: newRemainingAmount
+                    referance_no2: referance_no2,
+                    remaining_amount: newRemainingAmount,
+                    company_name: companyName,
+                    dsa_gst_no: dsaGSTNo,
+                    bank_gst_no: bankGSTNo,
+                    invoice_no: invoiceNo,
+                    invoice_date: invoiceDate,
+                    bank_address: bankAddress,
+                    bank_hsn_code: bankHSNCode,
+                    payment_received_bank: payment_received_bank
                 },
+
                 success: function(response) {
                     // Close modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('editPaymentModal'));
@@ -158,10 +305,34 @@
         });
     });
 
+    // Delete function
+    function deleteInvoicePayment(id) {
+        if (confirm('Are you sure you want to delete this invoice payment?')) {
+            $.ajax({
+                url: '{{ route("invoice_payment.destroy", ":id") }}'.replace(':id', id),
+                type: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    alert('Invoice payment deleted successfully!');
+                    if ($.fn.dataTable.isDataTable('#bankMisTable')) {
+                        $('#bankMisTable').DataTable().ajax.reload();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log('Error:', xhr.responseText);
+                    alert('An error occurred while deleting the payment. Please try again.');
+                }
+            });
+        }
+    }
+
+
     // DataTable initialization function
     $.fn.dataTable.ext.errMode = 'none';
 
-    function load_data(date = '', dateRange = '', bankName = '' , paymentStatus = '') {
+    function load_data(date = '', dateRange = '', bankName = '', paymentStatus = '') {
         if ($.fn.dataTable.isDataTable('#bankMisTable')) {
             $('#bankMisTable').DataTable().destroy();
         }
@@ -292,8 +463,12 @@
                     name: 'payment_status'
                 },
                 {
-                    data: 'payment_paid',
-                    name: 'payment_paid'
+                    data: 'payment_paid1',
+                    name: 'payment_paid1'
+                },
+                {
+                    data: 'payment_paid2',
+                    name: 'payment_paid2'
                 },
                 {
                     data: 'remaining_amount',
@@ -329,59 +504,56 @@
 
         return table;
     }
-    
-
-      $(document).ready(function() {
-                load_data();
-
-                $(document).on('change', '.remark-dropdown', function() {
-                        let remark = $(this).val();
-                        let id = $(this).data('id');
-
-                        $.ajax({
-                                url: '{{ url("/application/update/remark") }}',
-                                method: 'POST',
-                                data: {
-                                        _token: '{{ csrf_token() }}',
-                                        id: id,
-                                        remark: remark,
-                                },
-                                success: function(response) {
-                                        if (response.success) {
-                                                alert(response.message); // You can toast this or silently succeed
-                                        }
-                                },
-                                error: function(xhr) {
-                                        alert('Something went wrong.');
-                                }
-                        });
-                });
 
 
-                $('.select').select2({
-                        placeholder: "Select an option",
-                        allowClear: true
-                });
+    $(document).ready(function() {
+        load_data();
 
-                $('#filter').click(function() {
-                        var date = $('#date').val();
-                        var date_range = $('#date-range-picker').val();
-                        var bank_name = $('#bank_name').val();
-                        var product_name = $('#payment_status').val();
+        $(document).on('change', '.remark-dropdown', function() {
+            let remark = $(this).val();
+            let id = $(this).data('id');
 
-                        if (date || partner_name || bank_name || product_name || status) {
-                                $('.data-table').DataTable().destroy();
-                                load_data(date, date_range, partner_name, bank_name, product_name, status);
-                        } else {
-                                alert('Select at least one filter!');
-                        }
-                });
-
-                $('#refresh').click(function() {
-                        window.location.reload();
-                });
+            $.ajax({
+                url: '{{ url("/application/update/remark") }}',
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    id: id,
+                    remark: remark,
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message); // You can toast this or silently succeed
+                    }
+                },
+                error: function(xhr) {
+                    alert('Something went wrong.');
+                }
+            });
         });
 
 
-        
+        $('.select').select2({
+            placeholder: "Select an option",
+            allowClear: true
+        });
+
+        $('#filter').click(function() {
+            var date = $('#date').val();
+            var date_range = $('#date-range-picker').val();
+            var bank_name = $('#bank_name').val();
+            var product_name = $('#payment_status').val();
+
+            if (date || partner_name || bank_name || product_name || status) {
+                $('.data-table').DataTable().destroy();
+                load_data(date, date_range, partner_name, bank_name, product_name, status);
+            } else {
+                alert('Select at least one filter!');
+            }
+        });
+
+        $('#refresh').click(function() {
+            window.location.reload();
+        });
+    });
 </script>

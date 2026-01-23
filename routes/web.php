@@ -115,6 +115,8 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/invoice_payment/edit/{id}', [InvoicePaymentController::class, 'edit'])->name('invoice_payment.edit');
     Route::put('/invoice_payment/{id}', [InvoicePaymentController::class, 'update'])->name('invoice_payment.update');
     Route::delete('/invoice_payment/{id}', [InvoicePaymentController::class, 'destroy'])->name('invoice_payment.destroy');
+
+    Route::post('/invoice_payment/getInvoiceCases', [InvoicePaymentController::class, 'getInvoiceCases'])->name('invoice_payment.getInvoiceCases');
 });
 
 

@@ -33,13 +33,13 @@ class InvoicePaymentView extends Model
         'payment_received_bank',
         'remaining_amount',
         'payment_status',
-        'payment_paid',
+        'payment_paid1',
+        'payment_paid2',
         'company_name',
         'payment_date1',
         'payment_date2',
         'referance_no1',
         'referance_no2',
-       
     ];
 
     protected $casts = [

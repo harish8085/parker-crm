@@ -37,7 +37,8 @@ class CreateInvoicePaymentViewTable extends Migration
             $table->string('remaining_amount')->nullable();
             $table->string('payment_status')->nullable();
             $table->text('company_name')->nullable();
-            $table->string('payment_paid')->nullable();
+            $table->string('payment_paid1')->nullable();
+            $table->string('payment_paid2')->nullable();
             $table->string('payment_date1')->nullable();
             $table->string('payment_date2')->nullable();
             $table->string('refrance_no1')->nullable();

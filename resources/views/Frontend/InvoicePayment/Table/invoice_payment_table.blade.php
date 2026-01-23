@@ -22,7 +22,8 @@
       <th class="table-header">Payment Received Bank</th>
       <th class="table-header">Payment Amount</th>
       <th class="table-header">Payment Status</th>
-      <th class="table-header">Payment Received</th>
+      <th class="table-header">Payment Received 1</th>
+      <th class="table-header">Payment Received 2</th>
       <th class="table-header">Remaining Amount</th>
       <th class="table-header">UTR NO 1</th>
       <th class="table-header">UTR NO 2</th>
