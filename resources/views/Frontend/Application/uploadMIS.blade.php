@@ -68,15 +68,14 @@
 </div>
 @endsection
 @section('modal')
-<div class="modal" id="myModal">
+<div class="modal" id="myModal" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-
             <!-- Modal Header -->
-            <div class="modal-header" style="padding: 2px 15px;">
-                <h5 class="modal-title">Select User</h5>
-                <button type="button" class="btn custom-close-btn" data-bs-dismiss="modal">
-                    <img src="{{asset('assets/images/cancel-icon.svg')}}" alt="Cancel">
+            <div class="modal-header" style="padding: 2px 15px; background : #052c65">
+                <h5 class="modal-title" style=" color : white">Select User</h5>
+                <button type="button" class="btn custom-close-btn" data-bs-dismiss="modal" onclick="refersh()">
+                    <img src="{{ asset('assets/images/cancel-icon.svg') }}" alt="Cancel">
                 </button>
             </div>
 
@@ -140,7 +139,6 @@
         $('.sales').hide()
         var role_id = `{{$role_id}}`
         var user_id = `{{$user_id}}`
-
 
         $('#submitBtn').click(function() {
             $('#submitBtn').hide()
@@ -208,6 +206,10 @@
 
         })
     });
+
+    function refersh() {
+        location.reload()
+    }
 </script>
 
 @endsection
