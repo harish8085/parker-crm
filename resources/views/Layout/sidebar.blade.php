@@ -197,6 +197,11 @@
                             <a class="dropdown-item nav-links {{(Request::path() == 'remark-status')?'active-li':''}}" href="{{url('remark-status')}}">Remark Status</a>
                         </li>
                         @endif
+                         @if(auth()->user()->roles[0]->id ==1 || auth()->user()->roles[0]->id ==2)
+                        <li class="dropdown-list-li {{(Request::path() == 'master-data')?'active-li':''}}">
+                            <a class="dropdown-item nav-links {{(Request::path() == 'master-data')?'active-li':''}}" href="{{url('master-data')}}">Master Data</a>
+                        </li>
+                        @endif
                         @if(auth()->user()->roles[0]->id ==1 || auth()->user()->roles[0]->id ==2)
                         <li class="dropdown-list-li {{(Request::path() == 'master-code')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'master-code')?'active-li':''}}" href="{{url('master-code')}}">Master Code</a>

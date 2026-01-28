@@ -28,6 +28,7 @@ use App\Http\Controllers\User\MakerCheckerController;
 use App\Http\Controllers\User\ChannelPartnerController;
 use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
+use App\Http\Controllers\User\MasterDataController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
@@ -111,9 +112,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::delete('/sheet-matching/delete/{sheet}', [SheetMatchingController::class, 'destroy'])->name('sheet-matching.destroy');
 
     Route::post('/getFileData', [SheetMatchingController::class, 'getFileData']);
-
     Route::post('/application/update/remark', [ApplicationController::class, 'updateRemark']);
-
     Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
     Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
 
@@ -320,4 +319,11 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::post('/announcement-categories/update/{announcementCategory}', [AnnouncementCategoryController::class, 'update']);
     Route::delete('/announcement-categories/delete/{announcementCategory}', [AnnouncementCategoryController::class, 'destroy']);
     Route::post('/announcement-categories/toggle-status/{announcementCategory}', [AnnouncementCategoryController::class, 'toggleStatus'])->name('announcement-categories.toggle-status');
+
+    // Master code
+    Route::get('/master-data', [MasterDataController::class, 'index'])->name('master-data.index');
+    Route::get('/master-data/{id}', [MasterDataController::class, 'edit']);
+    Route::post('/master-data/create', [MasterDataController::class, 'create'])->name('master-data.create');
+    Route::post('/master-data/update/{id}', [MasterDataController::class, 'update']);
+
 });
