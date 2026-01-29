@@ -24,7 +24,7 @@
         <div class="row">
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
-                    <label class="bank-input-label">Date Range</label>
+                    <label class="bank-input-label mb-2">Date Range</label>
                     <select class="bank-detail-input form-select select" required name="date" id="date">
                         <option value="" selected disabled></option>
                         <option value="custom">Custom</option>
@@ -41,19 +41,40 @@
                     </select>
                 </div>
                 <div class="bank-detail-inputs date_range">
-                    <label class="bank-input-label">Date Range</label>
+                    <label class="bank-input-label"><b>Date Range</b></label>
                     <input type="text" class="form-control date-range-picker" id="date-range-picker" name="date_range" />
                 </div>
 
             </div>
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
-                    <label class="bank-input-label">Bank Name</label>
+                    <label class="bank-input-label mb-2">Bank Name</label>
                     <select class="bank-detail-input form-select select" required name="bank_name" id="bank_name">
                         <option value="">Select Bank Name</option>
                         @foreach($banks as $b)
                         <option>{{$b->name}}</option>
                         @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label mb-2">Product Name</label>
+                    <select class="bank-detail-input form-select select" required name="product_name" id="product_name">
+                        <option value="">Select Product Name</option>
+                        @foreach($product as $p)
+                        <option>{{$p->name}}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-2">
+                <div class="bank-detail-inputs">
+                    <label class="bank-input-label mb-2">Product Name</label>
+                    <select class="bank-detail-input form-select select" required name="status" id="status">
+                        <option value="">Select Product Name</option>
+                        <option value="pending">Pending</option>
+                        <option value="received">Received</option>
                     </select>
                 </div>
             </div>
@@ -74,9 +95,9 @@
 <!-- /# row -->
 @endsection
 
-    @section('script')
-    @include('Frontend.MisTracker.index_js')
-    <script>
+@section('script')
+@include('Frontend.MisTracker.index_js')
+<script>
 
-    </script>
-    @endsection
+</script>
+@endsection

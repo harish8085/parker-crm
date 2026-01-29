@@ -16,6 +16,7 @@
                                 });
                         }
                 });
+
                 $(document).on('click', '.edit-dsacode-btn', async function() {
                         await performAjaxRequest('/dsa-code/update/' + $(this).data('dsacode-id'), 'GET', {}, async function(response) {
                                 await performAjaxRequest('/getProduct', 'POST', {
@@ -55,7 +56,6 @@
                         }, 1000);
 
                 });
-
 
                 $('#bank_id,#group').change(function() {
                         if ($('#bank_id').val() && $('#group').val()) {

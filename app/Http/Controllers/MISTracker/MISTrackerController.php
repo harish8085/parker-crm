@@ -8,18 +8,23 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use Carbon\Carbon;
 use App\Models\BankMisTracker;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Auth;
 
 class MISTrackerController extends Controller
 {
     public function index(Request $request)
     {
-        $Route = 'mis-tracker';
+        $Route = 'MisTracker';
         $banks = Bank::all();
         $product = Product::all();
-
+        $mistracker = BankMisTracker::all();
 
         if ($request->ajax()) {
-            $query = BankMisTracker::with(['bank', 'product']);
+
+            $query = BankMisTracker::query();
+
+            // DATE FILTER
             if ($request->date) {
                 $now = Carbon::now();
                 if ($request->date == 'today') {
@@ -95,85 +100,81 @@ class MISTrackerController extends Controller
                     $q->where('name', $request->product_name);
                 });
             }
+
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->editColumn('checkbox', function ($row) {
-                    return '<input type="checkbox" class="rowCheckbox" value="' . $row->id . '">';
 
-                    return '';
+                ->addColumn('checkbox', function ($row) {
+                    return '<input type="checkbox" class="rowCheckbox" value="' . $row->id . '">';
                 })
-                ->editColumn('bank_id', function ($row) {
-                    return $row->bank_id ? $row->bank->name : '-';
+
+                ->editColumn('bank_mis_month', fn($row) => $row->bank_mis_month ?? '-')
+                ->editColumn('bank', fn($row) => $row->bank ?? '-')
+                ->editColumn('product', fn($row) => $row->product ?? '-')
+                ->editColumn('status', function ($row) {
+                    $badge = 'secondary';
+                    if ($row->status === 'pending') {
+                        $badge_text = 'Pending';
+                        $badge = 'warning';
+                    }
+
+                    if ($row->status === 'received') {
+                        $badge_text = 'Received';
+                        $badge = 'success';
+                    }
+
+                    return '<span class="badge bg-' . $badge . '">' . ucfirst($badge_text) . '</span>';
                 })
-                ->editColumn('product_id', function ($row) {
-                    return $row->product_id ? $row->product->name : '-';
-                })
-                ->editColumn('group', function ($row) {
-                    return $row->group ? $row->group : '-';
-                })
-                ->editColumn('customer_name', function ($row) {
-                    return $row->customer_name ? $row->customer_name : '-';
-                })
-                ->editColumn('customer_firm_name', function ($row) {
-                    return $row->customer_firm_name ? $row->customer_firm_name : '-';
-                })
-                ->editColumn('location', function ($row) {
-                    return $row->location ? $row->location : '-';
-                })
-                ->editColumn('case_location', function ($row) {
-                    return $row->case_location ? $row->case_location : '-';
-                })
-                ->editColumn('disbAmount', function ($row) {
-                    return $row->disbAmount ? $row->disbAmount : '-';
-                })
-                ->editColumn('payout_amount', function ($row) {
-                    return $row->payout_amount ? $row->payout_amount : '-';
-                })
-                ->editColumn('payout_rate', function ($row) {
-                    return $row->payout_rate ? $row->payout_rate : '-';
-                })
-                ->editColumn('pf', function ($row) {
-                    return $row->pf ? $row->pf : '-';
-                })
-                ->editColumn('subvention', function ($row) {
-                    return $row->subvention ? $row->subvention : '-';
-                })
-                ->editColumn('roi', function ($row) {
-                    return $row->roi ? $row->roi : '-';
-                })
-                ->editColumn('insurance', function ($row) {
-                    return $row->insurance ? $row->insurance : '-';
-                })
-                ->editColumn('otc_pdd_status', function ($row) {
-                    return $row->otc_pdd_status ? $row->otc_pdd_status : '-';
-                })
+
+
                 ->addColumn('action', function ($row) {
                     $btn = '';
 
-                    if (auth()->user()->hasPermission('invoice', 'view')) {
-                        $btn .= "<img onclick=\"window.location.href='" . url('/invoice/view/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
-                    }
+                    // if (auth()->user()->hasPermission('invoice', 'view')) {
+                    //     $btn .= "<img onclick=\"window.location.href='" . url('/invoice/view/' . $row->id) . "'\" 
+                    //           src='" . asset('assets/images/eye-icon.svg') . "'>";
+                    // }
 
                     // if (auth()->user()->hasPermission('invoice', 'delete')) {
-                    //         $btn .= "<img class='delete-btn' data-bank-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                    //     $btn .= "<img class='delete-btn' data-bank-id='" . $row->id . "' 
+                    //           src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
                     // }
-                    // i want to add check box 
+
                     return $btn;
                 })
+
                 ->rawColumns(['checkbox', 'action'])
                 ->make(true);
         }
 
-        $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-            $query->where('id', $channelroleId);
-        })->get();
+        return view('Frontend.MISTracker.index', compact('Route', 'mistracker', 'banks', 'product'));
+    }
 
-        $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-            $query->where('id', $salesroleId);
-        })->get();
+    public function filter(Request $request)
+    {
+        $Route = 'MisTracker';
+        $user = Auth::user();
+        $query = BankMisTracker::query();
 
+        if ($request->bank_name !== null && $request->bank_name !== 'All') {
+            $query->where('bank', $request->bank_name);
+        }
+        if ($request->product_name !== null && $request->product_name !== 'All') {
+            $query->where('product', $request->product_name);
+        }
+        if ($request->from_date !== null) {
+            $query->whereDate('bank_mis_month', '>=', $request->from_date);
+        }
+        if ($request->to_date !== null) {
+            $query->whereDate('bank_mis_month', '<=', $request->to_date);
+        }
+        if ($request->status !== null) {
+            $query->where('status',  $request->status);
+        }
 
-
-        return view('Frontend.MISTracker.index', compact('Route', 'banks', 'product'));
+        $query->orderBy('id', 'desc');
+        // Execute the query and fetch results
+        $bank = $query->paginate(25);
+        return view('Frontend.MISTracker.Table.mis_tracker_table', compact('Route', 'bank'));
     }
 }
