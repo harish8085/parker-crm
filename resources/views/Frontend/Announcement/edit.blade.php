@@ -503,15 +503,12 @@
             $(this).closest('.file-preview-item').remove();
             
             // Debug log (remove in production)
-            console.log('Deleted attachment IDs:', deletedAttachmentIds);
-            console.log('Hidden field value:', $('#delete_attachments').val());
         });
 
         // Ensure delete_attachments is set before form submission
         $('form').on('submit', function(e) {
             // Update hidden field one more time before submission
             $('#delete_attachments').val(deletedAttachmentIds.join(','));
-            console.log('Form submitting with delete_attachments:', $('#delete_attachments').val());
         });
 
         // Message attachment preview functionality (single file)

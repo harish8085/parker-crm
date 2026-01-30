@@ -104,11 +104,8 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/invoice/generateInvoice', [InvoiceController::class, 'generate'])->name('invoice.generate');
     Route::post('/invoice/store', [InvoiceController::class, 'store'])->name('invoice.store');
 
-
-
     //mis tracker
     Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
-    Route::get('/invoice/view/filter', [MISTrackerController::class, 'filter']);
 
     Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
     Route::post('/invoice_payment/filter', [InvoicePaymentController::class, 'filter'])->name('invoice_payment.filter');

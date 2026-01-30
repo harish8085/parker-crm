@@ -259,7 +259,6 @@
         function updateGSTFields() {
             const inState = document.getElementById('in_state').value;
             // This function can be used to update UI based on GST type selection
-            console.log('GST Type Selected:', inState);
         }
 
         function updateGSTNO_paymentBank() {

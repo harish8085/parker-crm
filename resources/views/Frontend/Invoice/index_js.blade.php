@@ -71,7 +71,6 @@ $(document).ready(function() {
 
 // Function to confirm invoice generation
 function confirmInvoiceGeneration(selectedIds) {
-    console.log('Confirming invoice generation for IDs:', selectedIds);
     // Add your logic here to actually generate the invoice
     alert('Invoice generation confirmed!');
     $('#invoiceModal').modal('hide');

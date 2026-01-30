@@ -89,8 +89,6 @@
             $('#bank_address').val(row.bank_address ?? '');
             $('#bank_hsn_code').val(row.bank_hsn_code ?? '');
             $('#payment-received-bank').val(row.payment_received_bank ?? '');
-            console.log(row);
-
             // Open modal
             new bootstrap.Modal(document.getElementById('editPaymentModal')).show();
 

@@ -70,9 +70,9 @@
             </div>
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
-                    <label class="bank-input-label mb-2">Product Name</label>
+                    <label class="bank-input-label mb-2">Status</label>
                     <select class="bank-detail-input form-select select" required name="status" id="status">
-                        <option value="">Select Product Name</option>
+                        <option value="">Select Status</option>
                         <option value="pending">Pending</option>
                         <option value="received">Received</option>
                     </select>

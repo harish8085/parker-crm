@@ -270,8 +270,6 @@
 
     function updateGSTFields() {
         const inState = document.getElementById('in_state').value;
-        // This function can be used to update UI based on GST type selection
-        console.log('GST Type Selected:', inState);
     }
 
     function updateGSTNO_paymentBank() {
@@ -489,7 +487,6 @@
 
         const tdsAmount = totalPayoutAmount * 0.02;
         const finalPaymentAmount = totalPayoutAmount + (cgst + sgst + igst) - tdsAmount;
-        console.log('Submitting Invoice Data:', currentResponse);
         const submitData = {
             ...invoiceFormData,
             cgst: cgst.toFixed(2),

@@ -13,94 +13,110 @@ use Illuminate\Support\Facades\Auth;
 
 class MISTrackerController extends Controller
 {
+
     public function index(Request $request)
     {
         $Route = 'MisTracker';
         $banks = Bank::all();
         $product = Product::all();
-        $mistracker = BankMisTracker::all();
 
         if ($request->ajax()) {
 
             $query = BankMisTracker::query();
 
-            // DATE FILTER
-            if ($request->date) {
+            // DATE FILTER 
+            if ($request->filled('date')) {
                 $now = Carbon::now();
-                if ($request->date == 'today') {
-                    $today = Carbon::today()->toDateString();
-                    $query = $query->whereDate('created_at', $today);
-                } elseif ($request->date == 'yesterday') {
-                    $yesterday = Carbon::yesterday()->toDateString();
-                    $query = $query->whereDate('created_at', $yesterday);
-                } elseif ($request->date == 'this_week') {
-                    $weekStartDate = $now->startOfWeek()->toDateString();
-                    $weekEndDate = $now->endOfWeek()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                        ->whereDate('created_at', '<=', $weekEndDate);
-                } elseif ($request->date == 'last_week') {
-                    $subWeek = $now->subWeek();
-                    $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
-                    $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                        ->whereDate('created_at', '<=', $lastWeekEndDate);
-                } elseif ($request->date == 'this_month') {
-                    $startOfMonth = $now->startOfMonth()->toDateString();
-                    $endOfMonth = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                        ->whereDate('created_at', '<=', $endOfMonth);
-                } elseif ($request->date == 'last_month') {
-                    $subMonth = $now->subMonth();
-                    $startOfMonth = $subMonth->startOfMonth()->toDateString();
-                    $endOfMonth = $subMonth->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                        ->whereDate('created_at', '<=', $endOfMonth);
-                } elseif ($request->date == 'last_3_months') {
-                    $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
-                    $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
-                } elseif ($request->date == 'last_6_months') {
-                    $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
-                    $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                        ->whereDate('created_at', '<=', $lastOneMonthEnd);
-                } elseif ($request->date == 'this_year') {
-                    $thisYearStart = $now->startOfYear()->toDateString();
-                    $thisYearEnd = $now->endOfYear()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                        ->whereDate('created_at', '<=', $thisYearEnd);
-                } elseif ($request->date == 'last_year') {
-                    $lastYear = $now->subYear();
-                    $lastYearStart = $lastYear->startOfYear()->toDateString();
-                    $lastYearEnd = $lastYear->endOfYear()->toDateString();
-                    $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                        ->whereDate('created_at', '<=', $lastYearEnd);
-                } elseif ($request->date == 'custom' && isset($request->date_range)) {
-                    if (strpos($request->date_range, 'to') !== false) {
-                        $dates = explode('to', $request->date_range);
-                        $startDate = trim($dates[0]);
-                        $endDate = trim($dates[1]);
-                        $query = $query->whereDate('created_at', '>=', $startDate)
-                            ->whereDate('created_at', '<=', $endDate);
-                    } else {
-                        throw new \Exception('Date range is not provided or is incorrectly formatted.');
-                    }
+
+                switch ($request->date) {
+
+                    case 'today':
+                        $query->whereDate('created_at', Carbon::today());
+                        break;
+
+                    case 'yesterday':
+                        $query->whereDate('created_at', Carbon::yesterday());
+                        break;
+
+                    case 'this_week':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->startOfWeek(),
+                            $now->copy()->endOfWeek()
+                        ]);
+                        break;
+
+                    case 'last_week':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->subWeek()->startOfWeek(),
+                            $now->copy()->subWeek()->endOfWeek()
+                        ]);
+                        break;
+
+                    case 'this_month':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->startOfMonth(),
+                            $now->copy()->endOfMonth()
+                        ]);
+                        break;
+
+                    case 'last_month':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->subMonth()->startOfMonth(),
+                            $now->copy()->subMonth()->endOfMonth()
+                        ]);
+                        break;
+
+                    case 'last_3_months':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->subMonths(2)->startOfMonth(),
+                            $now->copy()->endOfMonth()
+                        ]);
+                        break;
+
+                    case 'last_6_months':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->subMonths(5)->startOfMonth(),
+                            $now->copy()->endOfMonth()
+                        ]);
+                        break;
+
+                    case 'this_year':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->startOfYear(),
+                            $now->copy()->endOfYear()
+                        ]);
+                        break;
+
+                    case 'last_year':
+                        $query->whereBetween('created_at', [
+                            $now->copy()->subYear()->startOfYear(),
+                            $now->copy()->subYear()->endOfYear()
+                        ]);
+                        break;
+
+                    case 'custom':
+                        if ($request->filled('date_range')) {
+                            [$start, $end] = array_map('trim', explode('-', $request->date_range));
+                            $query->whereBetween('created_at', [$start, $end]);
+                        }
+                        break;
                 }
             }
 
-            if ($request->bank_name) {
-                $query->whereHas('bank', function ($q) use ($request) {
-                    $q->where('name', $request->bank_name);
-                });
+            // OTHER FILTERS 
+            if ($request->filled('bank_name')) {
+                $query->where('bank', $request->bank_name);
             }
 
-            if ($request->product_name) {
-                $query->whereHas('product', function ($q) use ($request) {
-                    $q->where('name', $request->product_name);
-                });
+            if ($request->filled('product_name')) {
+                $query->where('product', $request->product_name);
             }
 
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // DATATABLE 
             return DataTables::of($query)
                 ->addIndexColumn()
 
@@ -111,44 +127,27 @@ class MISTrackerController extends Controller
                 ->editColumn('bank_mis_month', fn($row) => $row->bank_mis_month ?? '-')
                 ->editColumn('bank', fn($row) => $row->bank ?? '-')
                 ->editColumn('product', fn($row) => $row->product ?? '-')
+
                 ->editColumn('status', function ($row) {
                     $badge = 'secondary';
-                    if ($row->status === 'pending') {
-                        $badge_text = 'Pending';
-                        $badge = 'warning';
-                    }
+                    $text  = ucfirst($row->status);
 
-                    if ($row->status === 'received') {
-                        $badge_text = 'Received';
+                    if ($row->status === 'pending') {
+                        $badge = 'warning';
+                    } elseif ($row->status === 'received') {
                         $badge = 'success';
                     }
 
-                    return '<span class="badge bg-' . $badge . '">' . ucfirst($badge_text) . '</span>';
+                    return '<span class="badge bg-' . $badge . '">' . $text . '</span>';
                 })
 
-
-                ->addColumn('action', function ($row) {
-                    $btn = '';
-
-                    // if (auth()->user()->hasPermission('invoice', 'view')) {
-                    //     $btn .= "<img onclick=\"window.location.href='" . url('/invoice/view/' . $row->id) . "'\" 
-                    //           src='" . asset('assets/images/eye-icon.svg') . "'>";
-                    // }
-
-                    // if (auth()->user()->hasPermission('invoice', 'delete')) {
-                    //     $btn .= "<img class='delete-btn' data-bank-id='" . $row->id . "' 
-                    //           src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
-                    // }
-
-                    return $btn;
-                })
-
-                ->rawColumns(['checkbox', 'action'])
+                ->rawColumns(['checkbox', 'status'])
                 ->make(true);
         }
 
-        return view('Frontend.MISTracker.index', compact('Route', 'mistracker', 'banks', 'product'));
+        return view('Frontend.MISTracker.index', compact('Route', 'banks', 'product'));
     }
+
 
     public function filter(Request $request)
     {

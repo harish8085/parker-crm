@@ -61,9 +61,12 @@
     $('#filter').click(function() {
         const date = $('#date').val();
         const dateRange = $('#date-range-picker').val();
-        const bankName = $('#bank').val();
+        const bank_name = $('#bank_name').val();
+        const product = $('#product_name').val();
+        const status = $('#status').val();
 
-        load_data(date, dateRange, bank, product);
+
+        load_data(date, dateRange, bank_name, product_name, status);
     });
 
     // Refresh button
@@ -82,7 +85,7 @@
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
 
-    function load_data(date = '', date_range = '', bank_name = '', product_name = '') {
+    function load_data(date = '', date_range = '', bank_name = '', product_name = '' , status= '') {
         var table = $('.data-table').DataTable({
             debug: false,
             dom: 'Bfrtip<"bottom"l>',
@@ -114,21 +117,13 @@
                     date_range: date_range,
                     bank_name: bank_name,
                     product_name: product_name,
+                    status : status
                 },
                 error: function(xhr, error, thrown) {
                     console.log(xhr.responseText);
                 },
             },
-            columns: [
-                // {
-                //     data: 'checkbox',
-                //     orderable: false,
-                //     searchable: false,
-                //     render: function(data, type, row) {
-                //         return '<input type="checkbox" class="rowCheckbox" value="' + row.id + '">';
-                //     }
-                // },
-                {
+            columns: [{
                     data: null,
                     name: 'srno',
                     render: function(data, type, row, meta) {
@@ -153,12 +148,6 @@
                     data: 'status',
                     name: 'status'
                 },
-                // {
-                //     data: 'action',
-                //     name: 'action',
-                //     orderable: false,
-                //     searchable: false
-                // }
             ]
         });
     }
@@ -176,10 +165,11 @@
             var date_range = $('#date-range-picker').val();
             var bank_name = $('#bank_name').val();
             var product_name = $('#product_name').val();
+            var status = $('#status').val();
 
-            if (date || bank_name || product_name) {
+            if (date || bank_name || product_name || status) {
                 $('.data-table').DataTable().destroy();
-                load_data(date, date_range, bank_name, product_name);
+                load_data(date, date_range, bank_name, product_name , status);
             } else {
                 alert('Select at least one filter!');
             }
