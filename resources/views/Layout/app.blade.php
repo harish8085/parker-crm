@@ -211,6 +211,7 @@
 @yield('script')
 
 <script src="{{ asset('assets/js/announcement-popup.js') }}"></script>
+<script src="{{ asset('assets/js/notifications.js') }}"></script>
 
 
 </html>

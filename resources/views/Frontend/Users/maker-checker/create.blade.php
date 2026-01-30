@@ -1,6 +1,25 @@
 @extends('Layout.app')
 @section('style')
 <link rel="stylesheet" href="{{asset('assets/css/add-service-1.css')}}">
+<style>
+    .password-input-container {
+        position: relative;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        z-index: 10;
+    }
+    
+    .password-toggle:hover {
+        color: #495057;
+    }
+</style>
 @endsection
 
 @section('body')
@@ -41,6 +60,14 @@
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Phone Number <span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="tel" maxlength="10" name="phone" id="phone" placeholder="Enter phone number" value="{{old('phone')}}">
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Password</label>
+                <div class="password-input-container">
+                    <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter password (leave blank to auto-generate)" value="{{old('password')}}">
+                    <i class="fas fa-eye-slash password-toggle" onclick="togglePasswordVisibility('password')"></i>
+                </div>
+                <small class="form-text text-muted">If left blank, a random password will be generated and sent via email.</small>
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Role <span class="required">*</span></label>
@@ -95,6 +122,22 @@
 
 @section('script')
 <script>
+    // Password visibility toggle - must be global for onclick handler
+    function togglePasswordVisibility(inputId) {
+        const passwordInput = document.getElementById(inputId);
+        const eyeIcon = passwordInput.nextElementSibling;
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        }
+    }
+
     (function () {
         'use strict';
 
@@ -108,6 +151,7 @@
             const nameInput = document.getElementById('name');
             const emailInput = document.getElementById('email');
             const phoneInput = document.getElementById('phone');
+            const passwordInput = document.getElementById('password');
             const roleInput = document.getElementById('role');
             const addressInput = document.getElementById('address_1');
             const stateInput = document.getElementById('state');
@@ -139,6 +183,16 @@
                 return;
             } else {
                 phoneInput.classList.remove('is-invalid');
+            }
+
+            // Password is optional, but if provided, must be at least 8 characters
+            if (passwordInput.value.trim() && passwordInput.value.trim().length < 8) {
+                passwordInput.classList.add('is-invalid');
+                passwordInput.focus();
+                isValid = false;
+                return;
+            } else {
+                passwordInput.classList.remove('is-invalid');
             }
 
             if (!roleInput.value) {

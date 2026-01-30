@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\MakerCheckerJob;
 use App\Jobs\WelComeEmailJob;
 use App\Models\Role;
 use App\Models\User;
@@ -41,10 +42,12 @@ class MakerCheckerController extends Controller
                 })
                 ->addColumn('status', function (User $user) {
                     $isActive = (int) ($user->status ?? 0) === 1;
-                    $class = $isActive ? 'completed' : 'rejected';
-                    $label = $isActive ? 'Active' : 'In-Active';
-
-                    return "<button class=\"table-status-btn {$class}\">{$label}</button>";
+                    $checked = $isActive ? 'checked' : '';
+                    $status = '<label class="toggle-switch">
+                        <input type="checkbox" class="status-toggle" data-user-id="' . $user->id . '" ' . $checked . '>
+                        <span class="toggle-slider"></span>
+                    </label>';
+                    return $status;
                 })
                 ->addColumn('action', function (User $user) {
                     $viewUrl = url('/maker-checker/view/' . $user->id);
@@ -86,11 +89,12 @@ class MakerCheckerController extends Controller
             'address_1' => ['required', 'string', 'max:255'],
             'state' => ['required', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
-            'pincode' => ['required', 'digits:6'],            
+            'pincode' => ['required', 'digits:6'],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         [$firstName, $lastName] = $this->splitName($validated['name']);
-        $password = $this->generateRandomPassword();
+        $password = !empty($validated['password']) ? $validated['password'] : $this->generateRandomPassword();
 
         $user = new User();
         $user->Emp_Id = generateEmployeeID($validated['state'], $validated['city'], $firstName);
@@ -108,7 +112,10 @@ class MakerCheckerController extends Controller
         $user->password = Hash::make($password);
         $user->save();
         $roles = Role::where('name', $validated['role'])->get();
+
+        $userRole = Role::where('name', ucfirst($validated['role']))->first();
         $user->roles()->attach($roles);
+        $user->roles()->sync([$userRole->id]);
 
         $data = [
             'user' => $firstName . ' ' . $lastName,
@@ -117,7 +124,7 @@ class MakerCheckerController extends Controller
             'user_type' => $validated['role'],
         ];
 
-        dispatch(new WelComeEmailJob($user));
+        dispatch(new MakerCheckerJob($user, $password));
         
 
         return redirect()
@@ -198,6 +205,20 @@ class MakerCheckerController extends Controller
         $user->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    public function toggleStatus(Request $request, $id)
+    {
+        $user = User::whereIn('user_type', ['maker', 'checker'])->findOrFail($id);
+        
+        $user->status = (int) ($user->status ?? 0) === 1 ? 0 : 1;
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User status updated successfully.',
+            'is_active' => (int) $user->status === 1
+        ]);
     }
 
     private function splitName(string $name): array
