@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
-use App\Models\MasterData;
+use App\Models\Settings;
 use Illuminate\Support\Facades\Auth;
 
 class MasterDataController extends Controller
@@ -17,7 +17,7 @@ class MasterDataController extends Controller
 
         if ($request->ajax()) {
 
-            $query = MasterData::query();
+            $query = Settings::query();
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -44,7 +44,7 @@ class MasterDataController extends Controller
 
     public function edit($id)
     {
-        $data = MasterData::findOrFail($id);
+        $data = Settings::findOrFail($id);
         return response()->json($data);
     }
 
@@ -62,7 +62,7 @@ class MasterDataController extends Controller
 
         $fullName = trim($user->first_name . ' ' . $user->last_name);
 
-        $masterData = new MasterData();
+        $masterData = new Settings();
         $masterData->name = $request->name;
         $masterData->value = $request->value;
         $masterData->created_by = $fullName;
@@ -82,7 +82,7 @@ class MasterDataController extends Controller
         ]);
         $fullName = trim($user->first_name . ' ' . $user->last_name);
 
-        $data = MasterData::findOrFail($id);
+        $data = Settings::findOrFail($id);
         $data->name = $request->name;
         $data->value = $request->value;
         $data->updated_by = $fullName;

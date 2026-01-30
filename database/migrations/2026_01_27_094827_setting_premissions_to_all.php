@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 use App\Models\Permission;
 use App\Models\Role;
 
-class CreateMasterPremissionsToAll extends Migration
+class CreateSettingsPremissionsToAll extends Migration
 {
     /**
      * Run the migrations.
@@ -20,7 +20,7 @@ class CreateMasterPremissionsToAll extends Migration
 
         if ($adminRole) {
             $adminPermissionData = [
-                'name'   => 'master_data',
+                'name'   => 'Settings',
                 'create' => 1,
                 'update' => 1,
                 'view'   => 1,
@@ -35,7 +35,7 @@ class CreateMasterPremissionsToAll extends Migration
 
         foreach ($otherRoles as $role) {
             $permissionData = [
-                'name'   => 'master_data',
+                'name'   => 'Settings',
                 'create' => 0,
                 'update' => 0,
                 'view'   => 1,
@@ -57,14 +57,14 @@ class CreateMasterPremissionsToAll extends Migration
             $roles = Role::all();
 
             foreach ($roles as $role) {
-                $permissions = Permission::where('name', 'master_data')->get();
+                $permissions = Permission::where('name', 'Settings')->get();
                 foreach ($permissions as $permission) {
                     $role->permissions()->detach($permission);
                 }
             }
 
             // Delete all announcement permissions
-            Permission::where('name', 'master_data')->delete();
+            Permission::where('name', 'Settings')->delete();
         }
     }
 }
