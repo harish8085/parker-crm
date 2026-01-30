@@ -42,6 +42,7 @@ class User extends Authenticatable
         'gst_number',
         'gest_certificate',
         'remember_token',
+        'user_commission',
     ];
 
     /**

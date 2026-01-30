@@ -14,6 +14,35 @@ $avatar = Avatar::create($name)->toBase64();
         </div>
         <div>
             <ul class="nav-ul">
+                <!-- Notifications dropdown -->
+                <li class="nav-item dropdown" style="padding: 16px 10px; position: relative;">
+                    <a class="nav-link notification-icon" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="position: relative; text-decoration: none; padding: 8px 12px;">
+                        <i class="fas fa-bell" style="font-size: 20px; color: #333;"></i>
+                        <span class="notification-badge" id="notificationBadge" style="display: none; position: absolute; top: 5px; right: 5px; background-color: #dc3545; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: flex; align-items: center; justify-content: center; font-weight: bold; line-height: 1;">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown" style="min-width: 350px; max-width: 400px; max-height: 500px; overflow-y: auto; background-color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <li>
+                            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="background-color: #f8f9fa;">
+                                <h6 class="mb-0" style="font-weight: 600;">Notifications</h6>
+                                <button class="btn btn-sm btn-link text-primary p-0" id="markAllReadBtn" style="font-size: 12px; text-decoration: none;">Mark all as read</button>
+                            </div>
+                        </li>
+                        <li>
+                            <div id="notificationsList" style="max-height: 400px; overflow-y: auto;">
+                                <div class="text-center p-4">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="text-center p-2 border-top">
+                                <a href="#" id="viewMoreNotifications" class="text-primary" style="text-decoration: none; font-size: 14px;">View More</a>
+                            </div>
+                        </li>
+                    </ul>
+                </li>
                 <!-- Admin dropdown -->
                 <li class="nav-item dropdown" style="padding: 16px 10px; position: relative;">
                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

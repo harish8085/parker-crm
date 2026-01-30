@@ -51,60 +51,60 @@ class ChannelPartnerController extends Controller
                         $weekStartDate = $now->startOfWeek()->toDateString();
                         $weekEndDate = $now->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                                      ->whereDate('created_at', '<=', $weekEndDate);
+                            ->whereDate('created_at', '<=', $weekEndDate);
                     } elseif ($request->date == 'last_week') {
                         $subWeek = $now->subWeek();
                         $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
                         $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                                      ->whereDate('created_at', '<=', $lastWeekEndDate);
+                            ->whereDate('created_at', '<=', $lastWeekEndDate);
                     } elseif ($request->date == 'this_month') {
                         $startOfMonth = $now->startOfMonth()->toDateString();
                         $endOfMonth = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_month') {
                         $subMonth = $now->subMonth();
                         $startOfMonth = $subMonth->startOfMonth()->toDateString();
                         $endOfMonth = $subMonth->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_3_months') {
                         $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'last_6_months') {
                         $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'this_year') {
                         $thisYearStart = $now->startOfYear()->toDateString();
                         $thisYearEnd = $now->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                                      ->whereDate('created_at', '<=', $thisYearEnd);
+                            ->whereDate('created_at', '<=', $thisYearEnd);
                     } elseif ($request->date == 'last_year') {
                         $lastYear = $now->subYear();
                         $lastYearStart = $lastYear->startOfYear()->toDateString();
                         $lastYearEnd = $lastYear->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                                      ->whereDate('created_at', '<=', $lastYearEnd);
+                            ->whereDate('created_at', '<=', $lastYearEnd);
                     } elseif ($request->date == 'custom' && isset($request->date_range)) {
                         if (strpos($request->date_range, 'to') !== false) {
                             $dates = explode('to', $request->date_range);
                             $startDate = trim($dates[0]);
                             $endDate = trim($dates[1]);
                             $query = $query->whereDate('created_at', '>=', $startDate)
-                                          ->whereDate('created_at', '<=', $endDate);
+                                ->whereDate('created_at', '<=', $endDate);
                         } else {
                             throw new \Exception('Date range is not provided or is incorrectly formatted.');
                         }
                     }
                 }
-                
+
                 if ($request->channel_name) {
-                        $query->where('first_name', $request->channel_name);
+                    $query->where('first_name', $request->channel_name);
                 }
 
                 return DataTables::of($query)
@@ -124,11 +124,11 @@ class ChannelPartnerController extends Controller
                     ->addColumn('associated_channel', function ($row) {
                         // Count users associated with this channel partner (where this channel partner is the parent)
                         $count = ChannelUser::where('channel_id', $row->id)->count();
-                        
+
                         if ($count == 0) {
                             return '-';
                         }
-                        
+
                         $url = url('/channel/associated-users/' . $row->id);
                         return '<a href="' . $url . '" style="color: #007bff; text-decoration: underline;">' . $count . '</a>';
                     })
@@ -136,7 +136,7 @@ class ChannelPartnerController extends Controller
                         $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
                         return $status;
                     })
-                    
+
                     ->addColumn('action', function ($row) {
                         $btn = '';
 
@@ -149,10 +149,8 @@ class ChannelPartnerController extends Controller
                         }
 
                         if (auth()->user()->hasPermission('channel', 'delete')) {
-                            
-                                $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
-                            
-                            
+
+                            $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
                         }
                         return $btn;
                     })
@@ -186,60 +184,60 @@ class ChannelPartnerController extends Controller
                         $weekStartDate = $now->startOfWeek()->toDateString();
                         $weekEndDate = $now->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                                      ->whereDate('created_at', '<=', $weekEndDate);
+                            ->whereDate('created_at', '<=', $weekEndDate);
                     } elseif ($request->date == 'last_week') {
                         $subWeek = $now->subWeek();
                         $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
                         $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                                      ->whereDate('created_at', '<=', $lastWeekEndDate);
+                            ->whereDate('created_at', '<=', $lastWeekEndDate);
                     } elseif ($request->date == 'this_month') {
                         $startOfMonth = $now->startOfMonth()->toDateString();
                         $endOfMonth = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_month') {
                         $subMonth = $now->subMonth();
                         $startOfMonth = $subMonth->startOfMonth()->toDateString();
                         $endOfMonth = $subMonth->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_3_months') {
                         $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'last_6_months') {
                         $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'this_year') {
                         $thisYearStart = $now->startOfYear()->toDateString();
                         $thisYearEnd = $now->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                                      ->whereDate('created_at', '<=', $thisYearEnd);
+                            ->whereDate('created_at', '<=', $thisYearEnd);
                     } elseif ($request->date == 'last_year') {
                         $lastYear = $now->subYear();
                         $lastYearStart = $lastYear->startOfYear()->toDateString();
                         $lastYearEnd = $lastYear->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                                      ->whereDate('created_at', '<=', $lastYearEnd);
+                            ->whereDate('created_at', '<=', $lastYearEnd);
                     } elseif ($request->date == 'custom' && isset($request->date_range)) {
                         if (strpos($request->date_range, 'to') !== false) {
                             $dates = explode('to', $request->date_range);
                             $startDate = trim($dates[0]);
                             $endDate = trim($dates[1]);
                             $query = $query->whereDate('created_at', '>=', $startDate)
-                                          ->whereDate('created_at', '<=', $endDate);
+                                ->whereDate('created_at', '<=', $endDate);
                         } else {
                             throw new \Exception('Date range is not provided or is incorrectly formatted.');
                         }
                     }
                 }
-                
+
                 if ($request->channel_name) {
-                        $query->where('first_name', $request->channel_name);
+                    $query->where('first_name', $request->channel_name);
                 }
 
                 return DataTables::of($query)
@@ -260,7 +258,7 @@ class ChannelPartnerController extends Controller
                         $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
                         return $status;
                     })
-                    
+
                     ->addColumn('action', function ($row) {
                         $btn = '';
 
@@ -273,10 +271,8 @@ class ChannelPartnerController extends Controller
                         }
 
                         if (auth()->user()->hasPermission('channel', 'delete')) {
-                            
-                                $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
-                            
-                            
+
+                            $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
                         }
                         return $btn;
                     })
@@ -284,7 +280,6 @@ class ChannelPartnerController extends Controller
                     ->rawColumns(['status', 'action'])
                     ->make(true);
             }
-
         } else {
             $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
             if ($channel_assign == null) {
@@ -312,60 +307,60 @@ class ChannelPartnerController extends Controller
                         $weekStartDate = $now->startOfWeek()->toDateString();
                         $weekEndDate = $now->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                                      ->whereDate('created_at', '<=', $weekEndDate);
+                            ->whereDate('created_at', '<=', $weekEndDate);
                     } elseif ($request->date == 'last_week') {
                         $subWeek = $now->subWeek();
                         $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
                         $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                                      ->whereDate('created_at', '<=', $lastWeekEndDate);
+                            ->whereDate('created_at', '<=', $lastWeekEndDate);
                     } elseif ($request->date == 'this_month') {
                         $startOfMonth = $now->startOfMonth()->toDateString();
                         $endOfMonth = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_month') {
                         $subMonth = $now->subMonth();
                         $startOfMonth = $subMonth->startOfMonth()->toDateString();
                         $endOfMonth = $subMonth->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                                      ->whereDate('created_at', '<=', $endOfMonth);
+                            ->whereDate('created_at', '<=', $endOfMonth);
                     } elseif ($request->date == 'last_3_months') {
                         $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'last_6_months') {
                         $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
                         $lastOneMonthEnd = $now->endOfMonth()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                                      ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
                     } elseif ($request->date == 'this_year') {
                         $thisYearStart = $now->startOfYear()->toDateString();
                         $thisYearEnd = $now->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                                      ->whereDate('created_at', '<=', $thisYearEnd);
+                            ->whereDate('created_at', '<=', $thisYearEnd);
                     } elseif ($request->date == 'last_year') {
                         $lastYear = $now->subYear();
                         $lastYearStart = $lastYear->startOfYear()->toDateString();
                         $lastYearEnd = $lastYear->endOfYear()->toDateString();
                         $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                                      ->whereDate('created_at', '<=', $lastYearEnd);
+                            ->whereDate('created_at', '<=', $lastYearEnd);
                     } elseif ($request->date == 'custom' && isset($request->date_range)) {
                         if (strpos($request->date_range, 'to') !== false) {
                             $dates = explode('to', $request->date_range);
                             $startDate = trim($dates[0]);
                             $endDate = trim($dates[1]);
                             $query = $query->whereDate('created_at', '>=', $startDate)
-                                          ->whereDate('created_at', '<=', $endDate);
+                                ->whereDate('created_at', '<=', $endDate);
                         } else {
                             throw new \Exception('Date range is not provided or is incorrectly formatted.');
                         }
                     }
                 }
-                
+
                 if ($request->channel_name) {
-                        $query->where('first_name', $request->channel_name);
+                    $query->where('first_name', $request->channel_name);
                 }
 
                 return DataTables::of($query)
@@ -386,7 +381,7 @@ class ChannelPartnerController extends Controller
                         $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";
                         return $status;
                     })
-                    
+
                     ->addColumn('action', function ($row) {
                         $btn = '';
 
@@ -399,10 +394,8 @@ class ChannelPartnerController extends Controller
                         }
 
                         if (auth()->user()->hasPermission('application', 'delete')) {
-                            
-                                $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
-                            
-                            
+
+                            $btn .= "<img class='delete-btn' data-channel-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
                         }
                         return $btn;
                     })
@@ -450,6 +443,7 @@ class ChannelPartnerController extends Controller
             'ifsc_code'      => 'required|string|max:255',
             'status'         => 'required|boolean',
             'password'       => 'required|string|min:8',
+            'user_commission' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $roles = Role::where('id', 2)->get();
@@ -471,9 +465,11 @@ class ChannelPartnerController extends Controller
         $channelPartner->landmark       = $request->landmark;
         $channelPartner->pincode        = $request->pincode;
         $channelPartner->service_type   = $request->service_type;
+        $channelPartner->user_commission = $request->user_commission;
         $channelPartner->status         = $request->status;
         $channelPartner->user_type      = 'channel';
         $channelPartner->password       = bcrypt($request->password); // Hash the password for security
+
         $channelPartner->save();
 
         $channelPartner->roles()->attach($roles);
@@ -601,6 +597,10 @@ class ChannelPartnerController extends Controller
                 'numeric',
             ],
             'ifsc_code'      => 'required|string|max:255',
+            'user_commission' => 'nullable|numeric|min:0|max:100',
+        ], [
+            'user_commission.max' => 'The user commission cannot be greater than 100.',
+            'user_commission.min' => 'The user commission cannot be less than 0.',
         ]);
         // Retrieve the staff member by ID
         $data = BankData::where('user_id', $id)->first();
@@ -616,11 +616,14 @@ class ChannelPartnerController extends Controller
         $channelPartner->landmark       = $request->landmark;
         $channelPartner->pincode        = $request->pincode;
         $channelPartner->service_type   = $request->service_type;
+        $channelPartner->user_commission = $request->user_commission;
         $channelPartner->state          = $request->state;
         $channelPartner->district       = $request->district;
         $channelPartner->status         = $request->status;
         $channelPartner->pan_number     = $request->pan_number;
         $channelPartner->aadhar_number  = $request->aadhar_number;
+        $channelPartner->user_commission = $request->user_commission ?? null;
+
         $bank->branch_name              = $request->branch_name;
         $bank->bank_name                = $request->bank_name;
         $bank->holder_name              = $request->holder_name;
@@ -667,20 +670,20 @@ class ChannelPartnerController extends Controller
         $states = getState();
         $districts = getState();
         $services = Service::get();
-        
+
         // Get districts for the selected state
         foreach ($states as $stateData) {
             if ($stateData['state_code'] === $channelPartner->state) {
                 $districts = $stateData['districts'];
             }
         }
-        
+
         // Get all associated channel users where channel_id matches the channel partner id
         // These are users that are associated with this channel partner
         $associatedUserIds = ChannelUser::where('channel_id', $id)->pluck('associate_channel_id');
-        
+
         $associatedUsers = User::whereIn('id', $associatedUserIds)->paginate(25);
-        
+
         return view('Frontend.Users.channel-partner.associated-users', compact('Route', 'channelPartner', 'associatedUsers', 'bank', 'states', 'districts', 'services'));
     }
 }

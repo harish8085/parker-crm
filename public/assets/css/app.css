@@ -348,64 +348,69 @@ ul.dropdown-menu.sidebar-menu.show {
         margin-left: 220px;
         width: calc(100% - 220px);
     }
-    
+
     .navbar-container {
         width: calc(100% - 220px);
         padding: 8px 35px;
     }
-    
+
     .dashboard-content {
         padding: 20px;
         padding-top: 85px;
     }
-    
+
     /* Ensure proper sidebar display on laptops */
     .sidebar-container {
         display: flex;
         width: 220px;
     }
-    
+
     .sidebar-container-for-mobile-view {
         display: none;
     }
-    
+
     .navbar-toggler-container {
         display: none;
     }
-    
+
     /* Typography adjustments for laptops */
-    h1, h2, h3, h4, h5, h6 {
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
         font-size: 1.1em;
         line-height: 1.4;
     }
-    
+
     /* Better spacing for laptop content */
     .card.card-container {
         padding: 25px;
         margin-bottom: 20px;
     }
-    
+
     /* Form improvements for laptops */
     .form-control,
     .form-select {
         font-size: 14px;
         padding: 10px 12px;
     }
-    
+
     /* Table improvements for laptops */
     .table th,
     .table td {
         padding: 12px 10px;
         font-size: 14px;
     }
-    
+
     /* Button adjustments for laptops */
     button.status-buttons {
         font-size: 14px;
         padding: 8px 16px;
         margin: 3px;
     }
-    
+
     button.application-header-btn,
     button.settlement-header-btn {
         font-size: 14px;
@@ -594,6 +599,7 @@ li.add-list {
     height: 40px !important;
     padding: 3px;
 }
+
 .select2-container--default .select2-selection--single .select2-selection__arrow {
     height: 26px;
     position: absolute;
@@ -601,16 +607,134 @@ li.add-list {
     right: 8px !important;
     width: 20px;
 }
+
 span.select2-selection.select2-selection--single.is-invalid {
-    border: 1px solid ;
+    border: 1px solid;
     box-shadow: 0 0 0 .25rem rgba(var(--bs-danger-rgb), .25);
-    border-color: var(--bs-form-invalid-border-color)!important;
+    border-color: var(--bs-form-invalid-border-color) !important;
     padding-right: calc(1.5em + .75rem);
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right calc(.375em + .1875rem) center;
     background-size: calc(.75em + .375rem) calc(.75em + .375rem);
 }
-.ml-3{
+
+.ml-3 {
     margin-left: 1.5rem !important;
-    }
+}
+
+/* Notification Styles */
+.notification-icon {
+    position: relative;
+    display: inline-block;
+    padding: 8px 12px;
+    transition: all 0.3s ease;
+}
+
+.notification-icon:hover {
+    opacity: 0.8;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.notification-dropdown {
+    min-width: 350px;
+    max-width: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.notification-item {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.bg-light {
+    background-color: #f8f9fa !important;
+    border-left: 3px solid #0d6efd;
+}
+
+/* Container for alignment */
+.label-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: sans-serif;
+}
+
+/* The 'i' circle */
+.info-icon {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 12px;
+    line-height: 16px;
+    cursor: help;
+    font-weight: bold;
+}
+
+/* Tooltip wrapper */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+/* Hidden tooltip text */
+.tooltip-text {
+    visibility: hidden;
+    width: 180px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 5px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    /* Position above the icon */
+    left: 50%;
+    margin-left: -90px;
+    /* Center the tooltip */
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 13px;
+}
+
+/* Show the tooltip on hover */
+.tooltip-wrapper:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}

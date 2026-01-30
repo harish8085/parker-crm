@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\WelComeEmailJob;
 use App\Models\User;
 use App\Models\Service;
 use App\Models\MasterCode;
@@ -21,6 +20,7 @@ use App\Mail\OtpVerificationMail;
 use App\Mail\WelcomeMail;
 use App\Models\ChannelUser;
 use App\Models\BankData;
+use App\Models\Role;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -395,11 +395,14 @@ class AuthController extends Controller
 
                 $user->update(['Emp_Id'=> generateEmployeeCode($request->state, $request->district, $request->first_name, $user->id)]);
 
+        
                 if (!empty($masterCode)) {
                     $user->roles()->sync([2]);
                 } else {
-                    $user->roles()->sync([6]);
-                }
+                    $roleUser = Role::where('name', 'Associate_Channel')->first();
+                    $user->roles()->sync([$roleUser->id]);
+                } 
+
 
                 $bankData = new BankData();
                 $bankData->user_id = $user->id;
@@ -474,7 +477,7 @@ class AuthController extends Controller
             ]);
 
             flash()
-                ->error('Registration failed. Please try again.')
+                ->error($e->getMessage())
                 ->flash();
             
             return redirect()->back()->withInput();

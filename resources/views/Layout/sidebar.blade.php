@@ -13,13 +13,13 @@
                     <a class="nav-links {{(Request::path() == 'dashboard')?'active-li':''}}" href="{{url('dashboard')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'dashboard')?'assets/images/home-active.svg':'assets/images/home.svg')}}" alt="error">Dashboard</a>
                 </li>
-                
+
                 <li class="list-item {{(Request::path() == 'announcements')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'announcements')?'active-li':''}}" href="{{url('announcements')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'announcements')?'assets/images/announcement-active.svg':'assets/images/announcement.svg')}}" alt="error">Announcement
                     </a>
                 </li>
-                
+
                 @if(auth()->user()->hasPermission('application','view'))
                 <li class="list-item {{(Request::path() == 'application')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'application')?'active-li':''}}" href="{{url('application')}}">
@@ -104,7 +104,7 @@
                     </ul>
                 </li>
                 @endif
-                @if(auth()->user()->hasPermission('master_code','view') || auth()->user()->roles[0]->id ==2)
+                @if(auth()->user()->hasPermission('master_code','view') || auth()->user()->roles[0]->name ==2)
 
                 <li class="list-item {{(Request::path() == 'master-code')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'master-code')?'active-li':''}}" href="{{url('master-code')}}">
@@ -112,7 +112,7 @@
                     </a>
                 </li>
                 @endif
-                
+
                 @if(auth()->user()->roles[0]->id ==2 || auth()->user()->roles[0]->id ==6)
 
                 <li class="list-item {{(Request::path() == 'link-bank')?'active-li':''}}">
@@ -137,13 +137,18 @@
                             <a class="dropdown-item nav-links {{(Request::path() == 'channel')?'active-li':''}}" href="{{url('channel')}}">Channel Partner</a>
                         </li>
                         @endif
+                        @if(auth()->user()->roles[0]->id == 1)
+                        <li class="dropdown-list-li {{(Request::path() == 'maker-checker')?'active-li':''}}">
+                            <a class="dropdown-item nav-links {{(Request::path() == 'maker-checker')?'active-li':''}}" href="{{url('maker-checker')}}">Maker / Checker</a>
+                        </li>
+                        @endif
 
-                        @if(auth()->user()->hasPermission('sales-person','view') )
+                        <!-- @if(auth()->user()->hasPermission('sales-person','view') )
 
                         <li class="dropdown-list-li {{(Request::path() == 'sales-person')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'sales-person')?'active-li':''}}" href="{{url('sales-person')}}">Sales Person</a>
                         </li>
-                        @endif
+                        @endif -->
 
                     </ul>
                 </li>
@@ -167,11 +172,7 @@
                         <li class="dropdown-list-li {{(Request::path() == 'staff/view/permissions')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'staff/view/permissions')?'active-li':''}}" href="{{url('staff/view/permissions')}}">Permissions</a>
                         </li>
-                        @if(auth()->user()->roles[0]->id == 1)
-                        <li class="dropdown-list-li {{(Request::path() == 'maker-checker')?'active-li':''}}">
-                            <a class="dropdown-item nav-links {{(Request::path() == 'maker-checker')?'active-li':''}}" href="{{url('maker-checker')}}">Maker / Checker</a>
-                        </li>
-                        @endif
+
                     </ul>
                 </li>
                 @endif
@@ -205,9 +206,9 @@
 
                     </ul>
                 </li>
-               
+
                 @endif
-               
+
             </ul>
         </div>
     </div>
