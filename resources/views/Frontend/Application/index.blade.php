@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="{{ asset('assets/css/custom-table.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/settlement.css') }}">
 <link rel="stylesheet" href="{{ asset('assets/css/paginate.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/commen.css') }}">
 
 <style>
     .date_range {
@@ -42,7 +43,7 @@
             <div class="col-lg-4 mb-2">
                 <div class="">
                     <label class="">Date Range</label>
-                    <select class="bank-detail-input form-select select" required name="date" id="date">
+                        <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
                         <option value=""></option>
                         <option value="custom">Custom</option>
                         <option value="today">Today</option>
