@@ -20,6 +20,9 @@ class CreateBankMisTrackerTable extends Migration
             $table->string('bank')->nullable();
             $table->string('product')->nullable();
             $table->string('status')->nullable();
+            $table->string('total_cases')->nullable();
+            $table->string('matched_cases')->nullable();
+            $table->string('unmatched_cases')->nullable();
             $table->timestamps();
         });
     }

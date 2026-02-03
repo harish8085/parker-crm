@@ -14,6 +14,9 @@ class BankMisTracker extends Model
         'bank_mis_month',
         'bank',
         'product',
-        'status'
+        'status',
+        'total_cases',
+        'matched_cases',
+        'unmatched_cases'
     ];
 }

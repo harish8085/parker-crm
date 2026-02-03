@@ -145,6 +145,18 @@
                     name: 'product'
                 },
                 {
+                    data: 'total_cases',
+                    name: 'total_cases'
+                },
+                {
+                    data: 'matched_cases',
+                    name: 'matched_cases'
+                },
+                {
+                    data: 'unmatched_cases',
+                    name: 'unmatched_cases'
+                },
+                {
                     data: 'status',
                     name: 'status'
                 },

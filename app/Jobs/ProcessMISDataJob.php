@@ -17,6 +17,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use App\Models\BankMisTracker;
+use SebastianBergmann\Environment\Console;
 
 class ProcessMISDataJob implements ShouldQueue
 {
@@ -29,7 +32,7 @@ class ProcessMISDataJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct($bankId, $productId, $status ='pending')
+    public function __construct($bankId, $productId, $status = 'pending')
     {
         $this->bankId = $bankId;
         $this->productId = $productId;
@@ -46,8 +49,8 @@ class ProcessMISDataJob implements ShouldQueue
             ->where('product_id', $this->productId)
             ->get();
 
-            \Log::info($misRecords);
-            foreach ($misRecords as $record) {
+        \Log::info($misRecords);
+        foreach ($misRecords as $record) {
             $bank_product = BankProduct::where('bank_id', $this->bankId)->where('product_id', $this->productId)->first();
             if ($bank_product->auto_generate_lan) {
                 $application = Application::where('customer_name', $record->customer_name)
@@ -85,8 +88,6 @@ class ProcessMISDataJob implements ShouldQueue
             'bank_mis_id' => $record->id ?? null
         ];
 
-
-
         if ($copy_lan) {
             BankMIS::where('id', $record->id)->update(['app_id' => $application->app_id]);
             $data = [
@@ -95,24 +96,90 @@ class ProcessMISDataJob implements ShouldQueue
             ];
             $updateData = array_merge($data, $updateData);
         }
+        sleep(2);
+        $this->syncBankMisStatus();
 
         // Ensure `$application` is a valid model instance before updating
         // if ($application instanceof \Illuminate\Database\Eloquent\Model) {
-       $result =  $application->update($updateData);
-        
+        $result =  $application->update($updateData);
+
 
         // Check if all conditions in `$updateData` (except timestamps and IDs) are true
-        $checkKeys = ['app_id_is_matched','customer_name_is_matched', 'bank_id_is_matched', 'product_id_is_matched', 'disburse_amount_is_matched'];
+        $checkKeys = ['app_id_is_matched', 'customer_name_is_matched', 'bank_id_is_matched', 'product_id_is_matched', 'disburse_amount_is_matched'];
         if (collect($updateData)->only($checkKeys)->every(fn($value) => $value === true)) {
             $application->update(['status' => 'in-progress']);
-            if($this->status == 'completed'){
+            if ($this->status == 'completed') {
                 $application->update(['status' => 'completed']);
                 $this->createSettlement($record, $application);
             }
         }
+
         // }
 
     }
+
+    public function syncBankMisStatus()
+    {
+        $stats = DB::table('applications')
+            ->join('banks', 'applications.bank_id', '=', 'banks.id')
+            ->join('products', 'applications.product_id', '=', 'products.id')
+            ->whereNotNull('applications.bank_mis_id') // 🔒 ONLY MIS cases
+            ->select(
+                DB::raw("DATE_FORMAT(applications.disbursement_date, '%b-%Y') as month_year"),
+                'banks.name as bank_name',
+                'products.name as product_name',
+
+                DB::raw("COUNT(applications.id) as total_cases"),
+
+                DB::raw("
+                SUM(
+                    CASE 
+                        WHEN applications.app_id_is_matched = 1 
+                        THEN 1 ELSE 0 
+                    END
+                ) as matched_cases
+            "),
+
+                DB::raw("
+                COUNT(applications.id) 
+                - SUM(
+                    CASE 
+                        WHEN applications.app_id_is_matched = 1 
+                        THEN 1 ELSE 0 
+                    END
+                ) as unmatched_cases
+            ")
+            )
+            ->groupBy(
+                DB::raw("DATE_FORMAT(applications.disbursement_date, '%b-%Y')"),
+                'banks.name',
+                'products.name'
+            )
+            ->get();
+
+        foreach ($stats as $row) {
+
+            $status = ($row->unmatched_cases == 0 && $row->matched_cases > 0)
+                ? 'received'
+                : 'pending';
+
+            BankMisTracker::updateOrCreate(
+                [
+                    'bank_mis_month' => $row->month_year,
+                    'bank'           => $row->bank_name,
+                    'product'        => $row->product_name,
+                ],
+                [
+                    'total_cases'     => $row->total_cases,
+                    'matched_cases'   => $row->matched_cases,
+                    'unmatched_cases' => $row->unmatched_cases,
+                    'status'          => $status,
+                ]
+            );
+        }
+    }
+
+
 
     private function createSettlement($record, $application)
     {

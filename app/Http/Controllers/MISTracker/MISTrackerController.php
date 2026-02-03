@@ -127,7 +127,9 @@ class MISTrackerController extends Controller
                 ->editColumn('bank_mis_month', fn($row) => $row->bank_mis_month ?? '-')
                 ->editColumn('bank', fn($row) => $row->bank ?? '-')
                 ->editColumn('product', fn($row) => $row->product ?? '-')
-
+                ->editColumn('total_cases', fn($row) => $row->total_cases ?? '-')
+                ->editColumn('matched_cases', fn($row) => $row->matched_cases ?? '-')
+                ->editColumn('unmatched_cases', fn($row) => $row->unmatched_cases ?? '-')
                 ->editColumn('status', function ($row) {
                     $badge = 'secondary';
                     $text  = ucfirst($row->status);
@@ -137,7 +139,7 @@ class MISTrackerController extends Controller
                     } elseif ($row->status === 'received') {
                         $badge = 'success';
                     }
-
+                    
                     return '<span class="badge bg-' . $badge . '">' . $text . '</span>';
                 })
 

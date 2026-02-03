@@ -6,6 +6,9 @@
       <th class="table-header">Bank Mis Month</th>
       <th class="table-header">Bank</th>
       <th class="table-header">Product</th>
+      <th class="table-header">Total Cases</th>
+      <th class="table-header">Matched Cases</th>
+      <th class="table-header">UnMatched Cases</th>
       <th class="table-header">Status</th>
       <!-- <th class="table-header">Action</th> -->
     </tr>

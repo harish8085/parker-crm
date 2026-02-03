@@ -869,20 +869,22 @@ class ApplicationController extends Controller
 
     public function updateBankMisTrackerFromApplications()
     {
-        // 1. Get unique combinations of Month, Bank Name, and Product Name
-        // We use DATE_FORMAT to group by month/year from updated_at
         $uniqueCases = DB::table('applications')
             ->join('banks', 'applications.bank_id', '=', 'banks.id')
             ->join('products', 'applications.product_id', '=', 'products.id')
             ->select(
                 DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y') as month_year"),
                 'banks.name as bank_name',
-                'products.name as product_name'
+                'products.name as product_name',
+                DB::raw('COUNT(applications.id) as total_cases')
             )
-            ->groupBy('month_year', 'bank_name', 'product_name')
+            ->groupBy(
+                DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y')"),
+                'banks.name',
+                'products.name'
+            )
             ->get();
 
-        // 2. Sync these into the bank_mis_tracker table
         foreach ($uniqueCases as $case) {
             BankMisTracker::updateOrCreate(
                 [
@@ -891,11 +893,15 @@ class ApplicationController extends Controller
                     'product'        => $case->product_name,
                 ],
                 [
-                    'status'         => 'pending' // Only sets if creating new
+                    'total_cases' => $case->total_cases,
+                    'matched_cases' => 0,
+                    'unmatched_cases' => $case->total_cases,
+                    'status'      => 'pending',
                 ]
             );
         }
     }
+
 
     public function storeExcel(Request $request)
     {
@@ -1203,13 +1209,13 @@ class ApplicationController extends Controller
 
             // Prepare response message with duplicate app_ids warning if any
             $successMessage = 'File uploaded successfully. Data processing will continue in the background.';
-            $this->syncBankMisStatus();
+
             if (!empty($duplicateAppIds)) {
                 $duplicateList = implode(', ', $duplicateAppIds);
                 $warningMessage = "The following application number(s) already exist and were not added: $duplicateList. Please check your application numbers.";
                 return redirect()->to('/bank_mis')->with('success', $successMessage)->with('warning', $warningMessage);
             }
-
+            // $this->syncBankMisStatus();
             return redirect()->to('/bank_mis')->with('success', $successMessage);
         } catch (\Throwable $th) {
             return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
@@ -1218,26 +1224,48 @@ class ApplicationController extends Controller
 
     public function syncBankMisStatus()
     {
-        // 1. Get unique combinations from the Bank Mis table
-        $receivedEntries = DB::table('bank_mis')
-            ->join('banks', 'bank_mis.bank_id', '=', 'banks.id')
-            ->join('products', 'bank_mis.product_id', '=', 'products.id')
+        $stats = DB::table('applications')
+            ->join('banks', 'applications.bank_id', '=', 'banks.id')
+            ->join('products', 'applications.product_id', '=', 'products.id')
             ->select(
-                // Convert '2026-03' from bank_mis into 'Mar-2026' to match tracker
-                DB::raw("DATE_FORMAT(STR_TO_DATE(CONCAT(bank_mis.bank_mis_month, '-01'), '%Y-%m-%d'), '%b-%Y') as formatted_month"),
+                DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y') as month_year"),
                 'banks.name as bank_name',
-                'products.name as product_name'
+                'products.name as product_name',
+
+                DB::raw("COUNT(applications.id) as total_cases"),
+
+                DB::raw("SUM(CASE 
+                WHEN applications.app_id_is_matched = 1 
+                THEN 1 ELSE 0 END) as matched_cases"),
+
+                DB::raw("SUM(CASE 
+                WHEN applications.app_id_is_matched IS NULL 
+                     OR applications.app_id_is_matched = 0
+                THEN 1 ELSE 0 END) as unmatched_cases")
             )
-            ->groupBy('formatted_month', 'bank_name', 'product_name')
+            ->groupBy(
+                DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y')"),
+                'banks.name',
+                'products.name'
+            )
             ->get();
 
-        // 2. Loop through and update the tracker status to 'received'
-        foreach ($receivedEntries as $entry) {
+        foreach ($stats as $row) {
+
+            // 🔒 Decide status properly
+            $status = ($row->unmatched_cases == 0 && $row->matched_cases > 0)
+                ? 'received'
+                : 'pending';
+
             BankMisTracker::where([
-                ['bank_mis_month', '=', $entry->formatted_month],
-                ['bank',           '=', $entry->bank_name],
-                ['product',        '=', $entry->product_name],
-            ])->update(['status' => 'received']);
+                ['bank_mis_month', '=', $row->month_year],
+                ['bank',           '=', $row->bank_name],
+                ['product',        '=', $row->product_name],
+            ])->update([
+                'matched_cases'   => $row->matched_cases,
+                'unmatched_cases' => $row->unmatched_cases,
+                'status'          => $status,
+            ]);
         }
     }
 
