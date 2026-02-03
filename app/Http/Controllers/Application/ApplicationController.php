@@ -104,6 +104,7 @@ class ApplicationController extends Controller
                 if($user->roles[0]->id == 36) {
                     $query->where('status', 'approved');
                 }
+                
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -111,6 +112,9 @@ class ApplicationController extends Controller
                             return '<input type="checkbox" class="rowCheckbox" value="' . $row->id . '">';
                         }
                         return '';
+                    })
+                    ->editColumn('user_id', function ($row) {
+                        return $row->user ? $row->user->first_name . ' ' . $row->user->last_name : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -234,6 +238,10 @@ class ApplicationController extends Controller
                                     $statusClass = 'rejected';
                                     $statusText = 'Rejected';
                                     break;
+                                case 'approved':
+                                    $statusClass = 'in-progress';
+                                    $statusText = 'Approved By Maker';
+                                    break;
                                 case '-':
                                 default:
                                     $statusClass = strtolower($status);
@@ -257,6 +265,10 @@ class ApplicationController extends Controller
                                     $statusClass = 'rejected';
                                     $statusText = 'Rejected';
                                     break;
+                                case 'approved':
+                                        $statusClass = 'in-progress';
+                                        $statusText = 'Approved By Maker';
+                                        break;
                                 case '-':
                                 default:
                                     $statusClass = strtolower($status);
@@ -282,13 +294,13 @@ class ApplicationController extends Controller
                                      </a>";
                         }
 
-                        if (auth()->user()->hasPermission('application', 'update') && in_array($row->status, ['pending', 'in-progress'])) {
+                        if (auth()->user()->hasPermission('application', 'update') && in_array($row->status, ['pending', 'in-progress','approved'])) {
                             $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
                                         <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
                                      </a>";
                         }
 
-                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress'])) {
+                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress','approved'])) {
                             $btn .= "<img class='delete-btn' data-application-id='" . e($row->id) . "' 
                                       src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete'>";
                         }
@@ -778,7 +790,7 @@ class ApplicationController extends Controller
 
         // Find the application by ID
         $application = Application::findOrFail($id);
-        if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
             $application->user_id = $user->id;
         } else {
             $application->user_id = $request->channel_sales_id;
@@ -815,6 +827,23 @@ class ApplicationController extends Controller
         if ($request->status == 'completed') {
             ProcessSettlement::dispatch($application);
         } elseif ($request->status != 'rejected') {
+            // Send notification to all checkers when application is approved by the maker
+            if ($request->status == 'approved') {
+                // Fetch all users with 'Checker' role (assuming role_id == 4 for Checker, update if different)
+                $checkerRoleId = 35;
+                $checkers = \App\Models\User::whereHas('roles', function ($q) use ($checkerRoleId) {
+                    $q->where('id', $checkerRoleId);
+                })->get();
+
+                // Prepare notification message
+                $message = 'Application ' . $application->app_id . ' has been approved by the maker.';
+
+                // Send notification to each checker
+                foreach ($checkers as $checker) {
+                    // NOTE: Fix notification class name typo if necessary
+                    $checker->notify(new \App\Notifications\UpdateApplicationNotificaion($application, $message));
+                }
+            }
             ProcessMISDataJob::dispatch($application->bank_id, $application->product_id, $request->status);
         } 
 
