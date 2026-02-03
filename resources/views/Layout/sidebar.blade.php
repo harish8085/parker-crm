@@ -92,6 +92,14 @@
                 </li>
                 @endif
 
+                @if(auth()->user()->hasPermission('sample-sheet','view'))
+                <li class="list-item {{(Request::path() == 'sample-sheet')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'sample-sheet')?'active-li':''}}" href="{{url('sample-sheet')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'sample-sheet')?'assets\images\sample-sheet-active.svg':'assets\images\sample-sheet.svg')}}" alt="error">Sample Sheet
+                    </a>
+                </li>
+                @endif
+
                 @if(auth()->user()->hasPermission('sheet-matching','view'))
                 <li class="list-item {{(Request::path() == 'sheet-matching')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'sheet-matching')?'active-li':''}}" href="{{url('sheet-matching')}}">

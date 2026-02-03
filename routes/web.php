@@ -22,6 +22,7 @@ use App\Http\Controllers\Setting\BankPayoutController;
 use App\Http\Controllers\Setting\ServiceController;
 use App\Http\Controllers\Settlement\SettlementController;
 use App\Http\Controllers\SheetMatching\SheetMatchingController;
+use App\Http\Controllers\SampleSheet\SampleSheetController;
 use App\Http\Controllers\Staff\PermissionController;
 use App\Http\Controllers\Staff\RoleController;
 use App\Http\Controllers\Staff\StaffController;
@@ -242,6 +243,10 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::put('/bank-target/update/{bankTarget}', [BankTargetController::class, 'update']);
     Route::delete('/bank-target/delete/{bankTarget}', [BankTargetController::class, 'destory']);
 
+    // route for sample sheet
+    Route::get('/sample-sheet', [SampleSheetController::class, 'index']);
+    Route::post('/sample-sheet/upload', [SampleSheetController::class, 'upload'])
+        ->name('sample.upload');
 
     //Bank Route
     Route::get('/bank', [BankController::class, 'index'])->name('bank.index');
