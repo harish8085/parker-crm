@@ -96,7 +96,7 @@ class ProcessMISDataJob implements ShouldQueue
             ];
             $updateData = array_merge($data, $updateData);
         }
-        sleep(2);
+        // sleep(2);
         // $this->syncBankMisStatus();
 
         // Ensure `$application` is a valid model instance before updating
@@ -118,66 +118,52 @@ class ProcessMISDataJob implements ShouldQueue
 
     }
 
-    // public function syncBankMisStatus()
-    // {
-    //     $stats = DB::table('applications')
-    //         ->join('banks', 'applications.bank_id', '=', 'banks.id')
-    //         ->join('products', 'applications.product_id', '=', 'products.id')
-    //         ->whereNotNull('applications.bank_mis_id') // 🔒 ONLY MIS cases
-    //         ->select(
-    //             DB::raw("DATE_FORMAT(applications.disbursement_date, '%b-%Y') as month_year"),
-    //             'banks.name as bank_name',
-    //             'products.name as product_name',
+    public function syncBankMisStatus()
+    {
+        $stats = DB::table('applications')
+            ->join('banks', 'applications.bank_id', '=', 'banks.id')
+            ->join('products', 'applications.product_id', '=', 'products.id')
+            ->select(
+                DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y') as month_year"),
+                'banks.name as bank_name',
+                'products.name as product_name',
 
-    //             DB::raw("COUNT(applications.id) as total_cases"),
+                DB::raw("COUNT(applications.id) as total_cases"),
 
-    //             DB::raw("
-    //             SUM(
-    //                 CASE 
-    //                     WHEN applications.app_id_is_matched = 1 
-    //                     THEN 1 ELSE 0 
-    //                 END
-    //             ) as matched_cases
-    //         "),
+                DB::raw("SUM(CASE 
+                WHEN applications.app_id_is_matched = 1 
+                THEN 1 ELSE 0 END) as matched_cases"),
 
-    //             DB::raw("
-    //             COUNT(applications.id) 
-    //             - SUM(
-    //                 CASE 
-    //                     WHEN applications.app_id_is_matched = 1 
-    //                     THEN 1 ELSE 0 
-    //                 END
-    //             ) as unmatched_cases
-    //         ")
-    //         )
-    //         ->groupBy(
-    //             DB::raw("DATE_FORMAT(applications.disbursement_date, '%b-%Y')"),
-    //             'banks.name',
-    //             'products.name'
-    //         )
-    //         ->get();
+                DB::raw("SUM(CASE 
+                WHEN applications.app_id_is_matched IS NULL 
+                     OR applications.app_id_is_matched = 0
+                THEN 1 ELSE 0 END) as unmatched_cases")
+            )
+            ->groupBy(
+                DB::raw("DATE_FORMAT(applications.updated_at, '%b-%Y')"),
+                'banks.name',
+                'products.name'
+            )
+            ->get();
 
-    //     foreach ($stats as $row) {
+        foreach ($stats as $row) {
 
-    //         $status = ($row->unmatched_cases == 0 && $row->matched_cases > 0)
-    //             ? 'received'
-    //             : 'pending';
+            // 🔒 Decide status properly
+            $status = ($row->unmatched_cases == 0 && $row->matched_cases > 0)
+                ? 'received'
+                : 'pending';
 
-    //         BankMisTracker::updateOrCreate(
-    //             [
-    //                 'bank_mis_month' => $row->month_year,
-    //                 'bank'           => $row->bank_name,
-    //                 'product'        => $row->product_name,
-    //             ],
-    //             [
-    //                 'total_cases'     => $row->total_cases,
-    //                 'matched_cases'   => $row->matched_cases,
-    //                 'unmatched_cases' => $row->unmatched_cases,
-    //                 'status'          => $status,
-    //             ]
-    //         );
-    //     }
-    // }
+            BankMisTracker::where([
+                ['bank_mis_month', '=', $row->month_year],
+                ['bank',           '=', $row->bank_name],
+                ['product',        '=', $row->product_name],
+            ])->update([
+                'matched_cases'   => $row->matched_cases,
+                'unmatched_cases' => $row->unmatched_cases,
+                'status'          => $status,
+            ]);
+        }
+    }
 
 
 
