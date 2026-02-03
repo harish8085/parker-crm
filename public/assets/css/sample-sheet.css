@@ -1,0 +1,11 @@
+.sample-upload-wrapper{
+    margin-top: 100px;
+    display: flex-column;
+    justify-content: center; 
+    align-items: center; 
+} 
+
+ h3{
+    text-align: center;
+    margin-bottom: 15px;
+}
