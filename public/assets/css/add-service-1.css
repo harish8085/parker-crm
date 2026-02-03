@@ -8,7 +8,7 @@
     padding: 25px;
     align-items: center;
     gap: 10px;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns: repeat(2, 1fr);
 }
 
 .card-form2 {
@@ -32,9 +32,11 @@
     margin-top: 8px;
     font-size: 15px;
 }
+
 span.required {
-  color: #EA334B;
+    color: #EA334B;
 }
+
 label.bank-input-label {
     font-size: 15px;
     font-weight: 600;
@@ -59,15 +61,18 @@ label.bank-input-label {
     border-radius: 10px;
     padding: 20px;
 }
-.selector2{
+
+.selector2 {
     width: 100%;
 }
+
 .card-top-border {
     background-color: #6c757d;
     color: white;
     padding: 6px 10px;
     border-radius: 10px 10px 0 0;
 }
+
 .add-p-btn {
     background-color: #28a745;
     color: white;
@@ -77,13 +82,15 @@ label.bank-input-label {
     width: 100%;
     /* width: max-content; */
 }
-.add-more-btn{
+
+.add-more-btn {
     display: flex;
     justify-content: end;
     padding-top: 20px;
     padding-right: 20px;
 
 }
+
 .add-p-btn1 {
     background-color: #28a745;
     color: white;
@@ -91,22 +98,23 @@ label.bank-input-label {
     border-radius: 5px;
     padding: 8px;
     width: 200px
-    /* width: max-content; */
+        /* width: max-content; */
 }
+
 .switch {
     position: relative;
     display: inline-block;
     width: 55px;
     height: 24px;
-  }
-  
-  .switch input { 
+}
+
+.switch input {
     opacity: 0;
     width: 0;
     height: 0;
-  }
-  
-  .slider {
+}
+
+.slider {
     position: absolute;
     cursor: pointer;
     top: 0;
@@ -116,9 +124,9 @@ label.bank-input-label {
     background-color: #ccc;
     -webkit-transition: .4s;
     transition: .4s;
-  }
-  
-  .slider:before {
+}
+
+.slider:before {
     position: absolute;
     content: "";
     height: 20px;
@@ -128,32 +136,32 @@ label.bank-input-label {
     background-color: white;
     -webkit-transition: .4s;
     transition: .4s;
-  }
-  
-  input:checked + .slider {
+}
+
+input:checked+.slider {
     background-color: #38c172;
-  }
-  
-  input:focus + .slider {
+}
+
+input:focus+.slider {
     box-shadow: 0 0 1px #38c172;
-  }
-  
-  input:checked + .slider:before {
+}
+
+input:checked+.slider:before {
     -webkit-transform: translateX(26px);
     -ms-transform: translateX(26px);
     transform: translateX(26px);
-  }
-  
-  /* Rounded sliders */
-  .slider.round {
-    border-radius: 34px;
-  }
-  
-  .slider.round:before {
-    border-radius: 50%;
-  }
+}
 
-  .toggle-contaenr {
+/* Rounded sliders */
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.toggle-contaenr {
     display: flex;
     width: 60%;
     align-items: center;
@@ -163,46 +171,54 @@ label.bank-input-label {
 span.select2-selection.select2-selection--single {
     border: none !important;
 }
-@media(max-width: 767px){
+
+@media(max-width: 767px) {
     .input-grid {
         grid-template-columns: repeat(1, 1fr);
         row-gap: 10px;
     }
+
     .card-form {
         flex-direction: column;
         padding: 18px 12px;
-            grid-template-columns:repeat(1,1fr);
+        grid-template-columns: repeat(1, 1fr);
 
     }
-   
+
     .bank-card-inside {
         margin: 12px;
         padding: 12px;
     }
+
     .card-form2 {
         flex-direction: column;
         width: 100%;
         align-items: flex-start;
     }
+
     .toggle-contaenr {
         width: 100%;
     }
+
     .switch {
         width: 62px;
     }
 }
-@media(min-width: 775px) and (max-width: 1200px){
+
+@media(min-width: 775px) and (max-width: 1200px) {
     .input-grid {
         grid-template-columns: repeat(2, 1fr);
         row-gap: 20px;
     }
-   
+
 }
-@media(min-width: 600px) and (max-width: 774px){
+
+@media(min-width: 600px) and (max-width: 774px) {
     .input-grid {
         grid-template-columns: repeat(2, 1fr);
         row-gap: 20px;
     }
+
     .switch {
         width: 60px;
     }

@@ -85,7 +85,7 @@
                 <ul style="margin: 10px 0; padding-left: 20px;">
                     <li><strong>Name:</strong> {{ $user->first_name }}</li>
                     <li><strong>Email:</strong> {{ $user->email }}</li>
-                    <li><strong>password:</strong> {{ $user->password ?? 'N/A' }}</li>
+                    <li><strong>password:</strong> {{ $password ?? 'N/A' }}</li>
                 </ul>
             </div>
                 

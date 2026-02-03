@@ -31,10 +31,9 @@ class MasterCodeController extends Controller
         $user = Auth::user()->roles[0]->name;
         if ($user == 'Admin') {
             $masterCodes = $this->masterCode->where('user_id', auth()->user()->id)->first();
-            $masterCode = ($masterCodes)?$masterCodes->code:'';
-            
+            $masterCode = ($masterCodes) ? $masterCodes->code : '';
         } else {
-            $masterCode = ($masterCodes)?$masterCodes->code:'';
+            $masterCode = Auth::user()->Emp_Id;
         }
         return view('Frontend.master-code.index', compact('masterCode'));
     }
@@ -42,7 +41,7 @@ class MasterCodeController extends Controller
     public function update(MasterCodeRequest $request)
     {
         $masterCode = $this->masterCode->where('user_id', auth()->user()->id)->first();
-        
+
         if (!$masterCode) {
             $masterCode = $this->masterCode->createCode($request->all());
         } else {

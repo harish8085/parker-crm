@@ -29,6 +29,7 @@ use App\Http\Controllers\User\MakerCheckerController;
 use App\Http\Controllers\User\ChannelPartnerController;
 use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
+use App\Http\Controllers\User\MasterDataController;
 use App\Http\Controllers\MISTracker\MISTrackerController;
 use App\Http\Controllers\Bank_MIS\InvoiceController as Bank_MISInvoiceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
@@ -137,9 +138,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::delete('/sheet-matching/delete/{sheet}', [SheetMatchingController::class, 'destroy'])->name('sheet-matching.destroy');
 
     Route::post('/getFileData', [SheetMatchingController::class, 'getFileData']);
-
     Route::post('/application/update/remark', [ApplicationController::class, 'updateRemark']);
-
     Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
     Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
 
@@ -178,6 +177,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');
     Route::post('/announcements/{id}/acknowledge', [AnnouncementPopupController::class, 'acknowledge'])->name('announcements.acknowledge');
+
+    // Notification routes
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::get('/notifications/latest', [\App\Http\Controllers\NotificationController::class, 'latest'])->name('notifications.latest');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 });
 
 
@@ -298,6 +304,7 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/maker-checker/view/{id}', [MakerCheckerController::class, 'show']);
     Route::get('/maker-checker/update/{id}', [MakerCheckerController::class, 'edit']);
     Route::post('/maker-checker/update/{id}', [MakerCheckerController::class, 'update']);
+    Route::post('/maker-checker/toggle-status/{id}', [MakerCheckerController::class, 'toggleStatus'])->name('maker-checker.toggle-status');
     Route::delete('/maker-checker/delete/{user}', [MakerCheckerController::class, 'destroy']);
 
     //Manage Role Route
@@ -347,4 +354,11 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::post('/announcement-categories/update/{announcementCategory}', [AnnouncementCategoryController::class, 'update']);
     Route::delete('/announcement-categories/delete/{announcementCategory}', [AnnouncementCategoryController::class, 'destroy']);
     Route::post('/announcement-categories/toggle-status/{announcementCategory}', [AnnouncementCategoryController::class, 'toggleStatus'])->name('announcement-categories.toggle-status');
+
+    // Master code
+    Route::get('/master-data', [MasterDataController::class, 'index'])->name('master-data.index');
+    Route::get('/master-data/{id}', [MasterDataController::class, 'edit']);
+    Route::post('/master-data/create', [MasterDataController::class, 'create'])->name('master-data.create');
+    Route::post('/master-data/update/{id}', [MasterDataController::class, 'update']);
+
 });

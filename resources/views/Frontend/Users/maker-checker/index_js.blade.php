@@ -1,6 +1,60 @@
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
 
+    // Status toggle functionality
+    $(document).on('change', '.status-toggle', function () {
+        var toggleElement = $(this);
+        var userId = toggleElement.data('user-id');
+        var isChecked = toggleElement.is(':checked');
+        var actionText = isChecked ? 'activate' : 'inactivate';
+        
+        bootbox.confirm({
+            message: 'Are you sure you want to ' + actionText + ' this user?',
+            buttons: {
+                confirm: {
+                    label: 'Yes',
+                    className: 'btn-success'
+                },
+                cancel: {
+                    label: 'No',
+                    className: 'btn-secondary'
+                }
+            },
+            callback: function (result) {
+                if (result) {
+                    $.ajax({
+                        url: "{{ url('maker-checker/toggle-status') }}/" + userId,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function (response) {
+                            bootbox.alert({
+                                message: 'User ' + actionText + 'd successfully.',
+                                callback: function () {
+                                    $('.data-table').DataTable().ajax.reload();
+                                }
+                            });
+                        },
+                        error: function (xhr) {
+                            // Revert the toggle if there's an error
+                            toggleElement.prop('checked', !isChecked);
+                            
+                            console.log(xhr.responseText);
+                            bootbox.alert({
+                                message: 'An error occurred while ' + actionText + 'ing the user.',
+                                className: 'bootbox-danger'
+                            });
+                        }
+                    });
+                } else {
+                    // Revert the toggle if user cancels
+                    toggleElement.prop('checked', !isChecked);
+                }
+            }
+        });
+    });
+
     function load_url_maker_checker_table() {
         var table = $('.data-table').DataTable({
             debug: false,

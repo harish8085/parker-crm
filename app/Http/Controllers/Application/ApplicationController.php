@@ -11,6 +11,7 @@ use App\Models\Bank;
 use App\Models\BankMIS;
 use App\Models\BankPayout;
 use App\Models\BankProduct;
+use App\Models\ChannelUser;
 use App\Models\Product;
 use App\Models\RemarkStatus;
 use App\Models\Service;
@@ -18,6 +19,7 @@ use App\Models\Settlement;
 use App\Models\SheetMatching;
 use App\Models\StaffAssign;
 use App\Models\User;
+use App\Notifications\NewApplicationNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -52,7 +54,31 @@ class ApplicationController extends Controller
             $query->where('id', $salesroleId);
         })->get();
         if ($request->ajax()) {
+            
+            
             $query = Application::with(['bank', 'product'])->orderBy('id', 'desc');
+
+            if($user->roles[0]->name == 'Channel' && $user->roles[0]->name == 'Associate_Channel') {
+                
+                if($user->roles[0]->name == 'Channel') {
+                     
+                    $channel_assign = ChannelUser::where('channel_id', Auth::id())->pluck('associate_channel_id');
+                   
+                    // If there are channel assignments, show records where user_id is either the logged in user OR assigned associate channels
+                    if ($channel_assign->isNotEmpty()) {
+                        $query->where(function($q) use ($channel_assign, $user) {
+                            $q->whereIn('user_id', $channel_assign)
+                              ->orWhere('user_id', $user->id);
+                        });
+                    } else {
+                        $query->where('user_id', $user->id);
+                    }
+                    
+                } else {
+                    
+                    $query->where('user_id', Auth::id());
+                }
+            } 
 
             $query = $this->sortData($request->date, $request->date_range, $query);
 
@@ -76,8 +102,9 @@ class ApplicationController extends Controller
                 $query->where('status', $request->status);
             }
 
-            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-                $query = $query->where('user_id', Auth::id());
+
+            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
+               
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -272,6 +299,7 @@ class ApplicationController extends Controller
                     ->rawColumns(['checkbox', 'app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
                     ->make(true);
             } else {
+                
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -504,6 +532,7 @@ class ApplicationController extends Controller
 
     public function add()
     {
+        
         $Route = 'Application';
         $user = Auth::user();
         $banks = Bank::get();
@@ -539,6 +568,7 @@ class ApplicationController extends Controller
         }
 
         $states = getState();
+        
 
         return view('Frontend.Application.create', compact('Route', 'channels', 'sales', 'banks', 'states'));
     }
@@ -591,6 +621,16 @@ class ApplicationController extends Controller
             $application->created_by = Auth::id();
             // Save the application to the database
             $application->save();
+
+            // Send notification to admin users
+            $adminUsers = User::whereHas('roles', function ($query) {
+                $query->where('id', 1); // Admin role ID
+            })->get();
+
+            foreach ($adminUsers as $adminUser) {
+                $adminUser->notify(new NewApplicationNotification($application));
+            }
+
             return redirect()->to('/application')->with('success', 'Application created successfully.');
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->validator)->withInput();
@@ -1038,6 +1078,16 @@ class ApplicationController extends Controller
 
                     // Save the loan application record to the database
                     $application->save();
+                    
+                    // Send notification to admin users
+                    $adminUsers = User::whereHas('roles', function ($query) {
+                        $query->where('id', 1); // Admin role ID
+                    })->get();
+
+                    foreach ($adminUsers as $adminUser) {
+                        $adminUser->notify(new NewApplicationNotification($application));
+                    }
+                    
                     ProcessMISDataJob::dispatch($bank_id, $product_id);
                     $successCount++;  // Increment the count of successful insertions
                 }

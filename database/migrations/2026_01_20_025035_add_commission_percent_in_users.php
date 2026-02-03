@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddOriginnalNameInAnnoucementAttachement extends Migration
+class AddCommissionPercentInUsers extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,9 @@ class AddOriginnalNameInAnnoucementAttachement extends Migration
      */
     public function up()
     {
-        Schema::table('announcement_attachments', function (Blueprint $table) {
-            $table->string('original_name')->nullable();
+        Schema::table('users', function (Blueprint $table) {
+            $table->float('user_commission')->nullable();
+
         });
     }
 
@@ -25,8 +26,8 @@ class AddOriginnalNameInAnnoucementAttachement extends Migration
      */
     public function down()
     {
-        Schema::table('announcement_attachments', function (Blueprint $table) {
-            $table->dropColumn('original_name');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('user_commission');
         });
     }
 }
