@@ -101,7 +101,9 @@ class ApplicationController extends Controller
 
 
             if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
-               
+                if($user->roles[0]->id == 36) {
+                    $query->where('status', 'approved');
+                }
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -296,6 +298,7 @@ class ApplicationController extends Controller
                     ->rawColumns(['checkbox', 'app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
                     ->make(true);
             } else {
+                
                 
                 return DataTables::of($query)
                     ->addIndexColumn()
@@ -813,7 +816,7 @@ class ApplicationController extends Controller
             ProcessSettlement::dispatch($application);
         } elseif ($request->status != 'rejected') {
             ProcessMISDataJob::dispatch($application->bank_id, $application->product_id, $request->status);
-        }
+        } 
 
         // Redirect back with a success message
         return redirect()->to('/application')->with('success', 'Application updated successfully.');

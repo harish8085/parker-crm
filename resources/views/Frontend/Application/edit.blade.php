@@ -24,7 +24,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
+            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id !=35 && Auth::user()->roles[0]->pivot->role_id !=36)
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type<span class="required">*</span></label>
@@ -261,11 +261,14 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <label class="bank-input-label">Select Status<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="status" id="status">
                     <option value="pending" @if($application->status =='pending') selected @endif>Pending</option>
-                    @if($application->status =='in-progress')
+                    @if(Auth::user()->roles[0]->name =='Maker') 
+                    <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
+                    @else($application->status =='in-progress')
                     <option value="in-progress" @if($application->status =='in-progress') selected @endif>In progress</option>
                     <option value="completed" @if($application->status =='completed') selected @endif>Completed</option>
                     @endif
                     <option value="rejected" @if($application->status =='rejected') selected @endif>Rejected</option>
+
                 </select>
             </div>
             @endif
@@ -278,6 +281,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
     <div class="save-btn-container">
         <button class="save-btn" id="submitBtn">Save</button>
+    </div>
+
+    <div class="save-btn-container">
+        <a class="save-btn" href="{{url('application')}}">Cancel</a>
     </div>
 </form>
 
