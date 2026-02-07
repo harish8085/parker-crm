@@ -14,7 +14,6 @@ use App\Models\BankProduct;
 use App\Models\ChannelUser;
 use App\Models\Product;
 use App\Models\RemarkStatus;
-use App\Models\Service;
 use App\Models\Settlement;
 use App\Models\SheetMatching;
 use App\Models\StaffAssign;
@@ -1315,7 +1314,7 @@ class ApplicationController extends Controller
         $this->updateBankMisTrackerFromApplications();
 
         // refrash the select all check box page..
-        
+
 
         return response()->json(['message' => $deletedCount . ' applications deleted successfully.'], 200);
     }

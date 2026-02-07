@@ -85,8 +85,6 @@ Route::get('/test-email', function () {
     return 'Test email sent to ' . $to;
 });
 
-
-
 Route::middleware([CheckLogin::class])->group(function () {
 
     // Bank MIS Route
@@ -187,8 +185,6 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 });
 
-
-
 Route::middleware([CheckPermission::class])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -214,9 +210,6 @@ Route::middleware([CheckPermission::class])->group(function () {
 
     Route::get('/upload-mis/create', [ApplicationController::class, 'uploadMISView']);
     Route::post('/upload-mis/create', [ApplicationController::class, 'uploadMIS']);
-
-
-
 
     //Settlement Route
     Route::get('/settlement', [SettlementController::class, 'index'])->name('settlement.index');
