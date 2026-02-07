@@ -192,65 +192,58 @@
         // Form submission
         $(document).on('submit', '#editPaymentForm', function(e) {
             e.preventDefault();
-            
-
             const id = $('#paymentId').val();
-            const paymentPaid1 = $('#paymentPaid1').val();
-            const paymentPaid2 = $('#paymentPaid2').val();
+            const paymentPaid1 = parseFloat($('#paymentPaid1').val()) || 0;
+            const paymentPaid2 = parseFloat($('#paymentPaid2').val()) || 0;
             const paymentDate1 = $('#paymentDate1').val();
             const paymentDate2 = $('#paymentDate2').val();
             const referanceNo1 = $('#referanceNo1').val();
-            const referance_no2 = $('#referanceNo2').val();
-            const remainingAmount = parseFloat(totalPayoutAmount) - parseFloat(paymentPaid1);
-            const companyName = $('#company_name').val();
-            const dsaGSTNo = $('#dsa_gst_no').val();
-            const bankGSTNo = $('#bank_gst_no').val();
-            const invoiceNo = $('#invoice_no').val();
-            const invoiceDate = $('#invoice_date').val();
-            const bankAddress = $('#bank_address').val();
-            const bankHSNCode = $('#bank_hsn_code').val();
-            const payment_received_bank = $('#payment_received_bank').val();
+            const referanceNo2 = $('#referanceNo2').val();
 
-            // Validate payment_paid1 & payment_paid2 is not greater than remaining amount
-            if (remainingAmount != 0) {
-                if (!paymentPaid2) {
-                    if (parseFloat(paymentPaid1) > parseFloat(remainingAmount)) {
-                        alert('Payment Received 1 cannot be greater than Remaining Amount.');
-                        return;
-                    }
-                } else {
-                    if (parseFloat(paymentPaid2) > parseFloat(remainingAmount)) {
-                        alert('Payment Received 2 cannot be greater than Remaining Amount.');
-                        return;
-                    }
-                }
+            // 1. Payment 1 must be entered and <= total payout
+            if (!paymentPaid1 || paymentPaid1 <= 0) {
+                alert('Payment Received 1 is required and must be greater than zero.');
+                return;
+            }
+            if (paymentPaid1 > totalPayoutAmount) {
+                alert('Payment Received 1 cannot be greater than Total Payout Amount.');
+                return;
+            }
+            if (!paymentDate1) {
+                alert('Payment Date 1 is required.');
+                return;
+            }
+            if (!referanceNo1) {
+                alert('UTR No 1 is required.');
+                return;
             }
 
-
-
-            // Calculate new remaining amount
-            let newRemainingAmount;
-
-            if (remainingAmount == 0) {
-                newRemainingAmount = 0;
-            } else {
-                if (paymentPaid2) {
-                    newRemainingAmount = parseFloat(remainingAmount) - parseFloat(paymentPaid2);
-                    if (newRemainingAmount != 0) {
-                        alert('payment received 2 should be equal to remaining amount');
-                        return;
-                    }
-                    if(!referance_no2){
-                        alert('Please Enter UTR No 2')
-                    }
-                    if(!paymentDate2){
-                        alert('Please Enter Payment Date 2')
-                    }
-                } else {
-                    newRemainingAmount = remainingAmount;
+            // 2. If Payment 2 is entered, validate
+            let remainingAmount = totalPayoutAmount - paymentPaid1;
+            if (paymentPaid2) {
+                if (paymentPaid2 > remainingAmount) {
+                    alert('Payment Received 2 cannot be greater than Remaining Amount.');
+                    return;
                 }
+                if (!paymentDate2) {
+                    alert('Payment Date 2 is required.');
+                    return;
+                }
+                if (!referanceNo2) {
+                    alert('UTR No 2 is required.');
+                    return;
+                }
+                remainingAmount -= paymentPaid2;
             }
-            newRemainingAmount = parseInt(newRemainingAmount)
+
+            // 3. Final check: payments must not exceed total payout
+            if ((paymentPaid1 + paymentPaid2) > totalPayoutAmount) {
+                alert('Total payments cannot exceed Total Payout Amount.');
+                return;
+            }
+
+            // 4. Remaining amount calculation
+            remainingAmount = Math.max(0, remainingAmount);
 
             $.ajax({
                 url: '{{ route("invoice_payment.update", ":id") }}'.replace(':id', id),
@@ -264,16 +257,8 @@
                     payment_date1: paymentDate1,
                     payment_date2: paymentDate2,
                     referance_no1: referanceNo1,
-                    referance_no2: referance_no2,
-                    remaining_amount: newRemainingAmount,
-                    company_name: companyName,
-                    dsa_gst_no: dsaGSTNo,
-                    bank_gst_no: bankGSTNo,
-                    invoice_no: invoiceNo,
-                    invoice_date: invoiceDate,
-                    bank_address: bankAddress,
-                    bank_hsn_code: bankHSNCode,
-                    payment_received_bank: payment_received_bank
+                    referance_no2: referanceNo2,
+                    remaining_amount: remainingAmount,
                 },
 
                 success: function(response) {
