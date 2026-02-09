@@ -216,6 +216,14 @@ class ApplicationController extends Controller
 
                         $settlementStatus = Settlement::where('application_id', $row->id)->first();
 
+                        $statusForUser = 'Pending';
+
+                        if(auth()->user()->roles[0]->id == 36 || auth()->user()->roles[0]->id == 35){
+                            if ( $status === 'approved') {
+                                $statusForUser = 'Approved By Maker';
+                            }
+                        }
+
                         if ($settlementStatus) {
                             switch ($settlementStatus->status) {
                                 case 'checker':
@@ -239,8 +247,8 @@ class ApplicationController extends Controller
                                     $statusText = 'Rejected';
                                     break;
                                 case 'approved':
-                                    $statusClass = 'in-progress';
-                                    $statusText = 'Approved By Maker';
+                                    $statusClass = ($statusForUser =='Pending') ? 'pending' : 'in-progress';
+                                    $statusText = $statusForUser;
                                     break;
                                 case '-':
                                 default:
@@ -266,8 +274,8 @@ class ApplicationController extends Controller
                                     $statusText = 'Rejected';
                                     break;
                                 case 'approved':
-                                        $statusClass = 'in-progress';
-                                        $statusText = 'Approved By Maker';
+                                    $statusClass = ($statusForUser =='Pending') ? 'pending' : 'in-progress';
+                                    $statusText = $statusForUser;
                                         break;
                                 case '-':
                                 default:
@@ -419,7 +427,7 @@ class ApplicationController extends Controller
                     })
                     ->editColumn('status', function ($row) {
                         $status = $row->status ?? '-';
-                        $statusClass = $status == 'in-progress' ? 'inprogress' : strtolower($status);
+                        $statusClass = ($status == 'in-progress' || $status == 'approved') ? 'inprogress' : strtolower($status);
                         $statusText = str_replace('-', ' ', $status);
                         $statusText = ucwords($statusText);
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
@@ -651,6 +659,7 @@ class ApplicationController extends Controller
 
     public function show($id)
     {
+        
         $Route = 'Edit Application';
         // Retrieve the staff member by ID
         $application = Application::findOrFail($id);
@@ -658,33 +667,35 @@ class ApplicationController extends Controller
         $banks = Bank::get();
         $channelroleId = 2;
         $salesroleId = 3;
-        if ($user->roles[0]->id == 1) {
-            $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        $sales = [];
+        $channels = [];
+        // if ($user->roles[0]->id == 1) {
+        //     $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-            $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        //     $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        //     $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } else {
-            $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-            $channel_assign = json_decode($channel_assign, true);
-            $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        //     $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // } else {
+        //     $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
+        //     $channel_assign = json_decode($channel_assign, true);
+        //     $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        }
+        //     $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // }
         $states = getState();
         $districts = [];
         // $products = BankProduct::where(['bank_id' => $application->bank_id, 'group' => $application->group])->get();
@@ -790,11 +801,11 @@ class ApplicationController extends Controller
 
         // Find the application by ID
         $application = Application::findOrFail($id);
-        if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
-            $application->user_id = $user->id;
-        } else {
-            $application->user_id = $request->channel_sales_id;
-        }
+        // if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
+        //     $application->user_id = $user->id;
+        // } else {
+        //     $application->user_id = $request->channel_sales_id;
+        // }
         // Update the application with the validated data
         $application->app_id = $request->app_id;
         $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));

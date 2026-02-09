@@ -52,7 +52,7 @@ class UpdateApplicationNotificaion extends Notification
             'application_id' => $this->application->id,
             'app_id' => $this->application->app_id,
             'customer_name' => $this->application->customer_name,
-            'message' => $this->mas,
+            'message' => $this->message,
             'url' => url('/application/view/' . $this->application->id),
         ];
     }

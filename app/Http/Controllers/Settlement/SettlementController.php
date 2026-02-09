@@ -25,13 +25,14 @@ class SettlementController extends Controller
     public function index(Request $request)
     {
         $p = request('p');
+        
         $Route = 'Settlement';
         $user = Auth::user();
 
         $settlements = $this->getSettlementData($user, $p);
 
         Session::put('channel_url', $p);
-        if ((Auth::user()->roles[0]->id == 2 || Auth::user()->roles[0]->id == 3) || $p) {
+        if ((Auth::user()->roles[0]->id == 2 || Auth::user()->roles[0]->id == 3 || Auth::user()->roles[0]->id == 35 || Auth::user()->roles[0]->id == 36) || $p) {
             $settlements = $this->getSettlementData($user, $p);
             if ($request->ajax()) {
                 $settlement = $this->getSettlementData($user, $p);

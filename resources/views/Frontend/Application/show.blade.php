@@ -19,7 +19,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 <div class="bank-card">
     <div class="card-top-border">Basic Details</div>
     <div class="card-form">
-        @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
+        <!-- @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
 
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Select User Type<span class="required">*</span></label>
@@ -47,7 +47,11 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 @endforeach
             </select>
         </div>
-        @endif
+        @endif -->
+        <div class="bank-detail-inputs">
+            <label class="bank-input-label">Channel Partner </label>
+            <input class="bank-detail-input form-control" type="text" name="app_id" id="app_id" placeholder="Enter application number" value="{{$application->user->first_name}}" disabled />
+        </div>
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Application Number/LAN No.<span class="required {{($application->app_id_is_matched?'text-success':'')}}">* ({{($application->app_id_is_matched?'Matched':'Unmatched')}})</span> </label>
             <input class="bank-detail-input form-control" type="text" name="app_id" id="app_id" placeholder="Enter application number" value="{{$application->app_id}}" disabled />
