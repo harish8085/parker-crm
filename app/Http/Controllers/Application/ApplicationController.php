@@ -104,6 +104,10 @@ class ApplicationController extends Controller
                 if($user->roles[0]->id == 36) {
                     $query->where('status', 'approved');
                 }
+
+                if($user->roles[0]->id == 35) {
+                    $query->where('status', 'pending');
+                }
                 
                 return DataTables::of($query)
                     ->addIndexColumn()
@@ -610,7 +614,7 @@ class ApplicationController extends Controller
             ]);
 
             // Create a new Application instance with the validated data
-            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 37 ) {
                 $user_id = $user->id;
             } else {
                 $user_id = $request->channel_sales_id;
@@ -639,12 +643,37 @@ class ApplicationController extends Controller
             $application->banker_number = $request->banker_number;
             $application->banker_email = $request->banker_email;
             $application->created_by = Auth::id();
+
+            // Auto-set parent_channel_id and sharing_commission from channel's user_commission
+            if ($user->roles[0]->id == 37) {
+                $parentChannel = ChannelUser::where('associate_channel_id', $user->id)->first();
+                if ($parentChannel) {
+                    $application->parent_channel_id = $parentChannel->channel_id;
+                    $parentUser = User::find($parentChannel->channel_id);
+                    $application->sharing_commission = $parentUser->user_commission ?? null;
+                }
+            } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+                $application->sharing_commission = $user->user_commission ?? null;
+            } else {
+                $selectedUser = User::find($user_id);
+                if ($selectedUser) {
+                    $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+                    if ($parentChannel) {
+                        $application->parent_channel_id = $parentChannel->channel_id;
+                        $parentUser = User::find($parentChannel->channel_id);
+                        $application->sharing_commission = $parentUser->user_commission ?? null;
+                    } else {
+                        $application->sharing_commission = $selectedUser->user_commission ?? null;
+                    }
+                }
+            }
+
             // Save the application to the database
             $application->save();
 
             // Send notification to admin users
             $adminUsers = User::whereHas('roles', function ($query) {
-                $query->where('id', 1); // Admin role ID
+                $query->whereIn('id', [1, 35]); // Admin and maker role ID
             })->get();
 
             foreach ($adminUsers as $adminUser) {
@@ -1085,12 +1114,25 @@ class ApplicationController extends Controller
                     $application->banker_email = trim(htmlspecialchars($row['BANKER EMAIL']));
                     $application->created_by = $createdBy;
 
+                    // Auto-set parent_channel_id and sharing_commission from channel's user_commission
+                    $selectedUser = User::find($userId);
+                    if ($selectedUser) {
+                        $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+                        if ($parentChannel) {
+                            $application->parent_channel_id = $parentChannel->channel_id;
+                            $parentUser = User::find($parentChannel->channel_id);
+                            $application->sharing_commission = $parentUser->user_commission ?? null;
+                        } else {
+                            $application->sharing_commission = $selectedUser->user_commission ?? null;
+                        }
+                    }
+
                     // Save the loan application record to the database
                     $application->save();
                     
                     // Send notification to admin users
                     $adminUsers = User::whereHas('roles', function ($query) {
-                        $query->where('id', 1); // Admin role ID
+                        $query->whereIn('id', [1, 35]); // Admin and maker role ID
                     })->get();
 
                     foreach ($adminUsers as $adminUser) {

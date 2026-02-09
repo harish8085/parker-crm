@@ -143,6 +143,10 @@
                                 },
                               
                                 {
+                                        data: 'advance_amount',
+                                        name: 'advance_amount'
+                                },
+                                {
                                         data: 'paid_amount',
                                         name: 'paid_amount'
                                 },
