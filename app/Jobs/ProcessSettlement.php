@@ -17,6 +17,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class ProcessSettlement implements ShouldQueue
 {
@@ -42,15 +43,18 @@ class ProcessSettlement implements ShouldQueue
             ->first();
 
             $this->createSettlement($record, $this->application);
+            log::info('settlement created');
 
     }
 
     private function createSettlement($record, $application)
     {
         $serviceType = User::where('id', $application->user_id)->value('service_type');
+        log::info($serviceType);
         $serviceDetails = ServiceDetail::where('service_id', $serviceType)
             ->where('product_name', $application->product_id)
             ->first();
+        Log::info('serviceDetails: '.json_encode($serviceDetails));
         if ($serviceDetails) {
             if ($serviceDetails->type == 'vairable') {
                 $totalMonthlyBusiness = $this->getTotalMonthlyBusiness($application);

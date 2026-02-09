@@ -9,7 +9,14 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 @endsection
 @section('body')
-<h2>Edit Application</h2>
+<div class="breadcrumb-container" style="margin-bottom: 24px;">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
+            <li class="breadcrumb-item"><a href="{{ url('/application') }}">Applications</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Edit Application</li>
+        </ol>
+    </nav>
+</div>
 <form class="needs-validation" action="{{url('/application/update/'.$application->id)}}" method="POST" novalidate>
     @csrf
     @if ($errors->any())
@@ -53,6 +60,19 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 </select>
             </div>
             @endif
+            @if(Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
+            @if($application->parentChannel)
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Parent Channel </label>
+                <input class="bank-detail-input form-control"  disabled type="text" name="parent_channel_id" id="parent_channel_id" placeholder="Enter parent channel"  value="{{$application->parentChannel->first_name . ' '. $application->parentChannel->last_name}}" disabled />
+            </div>
+            @endif
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Channel Partner </label>
+                <input class="bank-detail-input form-control"  disabled type="text" name="channel_partner" id="channel_partner" placeholder="Enter channel partner"  value="{{$application->user->first_name . ' '. $application->user->last_name}}" disabled />
+            </div>
+            @endif
+            
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Application Number/LAN No.
                     @if($application->bank_mis_id && $application->bankData)
@@ -225,6 +245,13 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate" value="{{$application->commission_rate}}">
             </div>
 
+            @if(Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
+
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sharing Commission</label>
+                <input class="bank-detail-input form-control" type="number" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission" value="{{$application->sharing_commission}}">
+            </div>
+            @endif
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Name

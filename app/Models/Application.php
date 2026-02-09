@@ -47,7 +47,9 @@ class Application extends Model
         'created_by',
         'status',
         'remark',
-        'bank_mis_id'
+        'bank_mis_id',
+        'parent_channel_id',
+        'sharing_commission'
     ];
     public function user()
     {
@@ -70,5 +72,15 @@ class Application extends Model
     public function advancePaymentCase()
     {
         return $this->hasOne(AdvancePaymentCase::class, 'application_id');
+    }
+    
+    /**
+     * Method parentChannel
+     *
+     * @return void
+     */
+    public function parentChannel()
+    {
+        return $this->belongsTo(User::class, 'parent_channel_id');
     }
 }

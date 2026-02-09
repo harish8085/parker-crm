@@ -55,7 +55,7 @@ class ApplicationController extends Controller
             
             $query = Application::with(['bank', 'product'])->orderBy('id', 'desc');
 
-            if($user->roles[0]->name == 'Channel' && $user->roles[0]->name == 'Associate_Channel') {
+            if($user->roles[0]->name == 'Channel' || $user->roles[0]->name == 'Associate_Channel') {
                 
                 if($user->roles[0]->name == 'Channel') {
                      
@@ -833,6 +833,13 @@ class ApplicationController extends Controller
         $application->banker_number = $request->banker_number;
         $application->banker_email = $request->banker_email;
 
+        if ($request->sharing_commission) {
+            $application->sharing_commission = $request->sharing_commission;
+        }
+        if (Auth::user()->roles[0]->pivot->role_id == 37) {
+            $parent_channel_id = ChannelUser::where('associate_channel_id', Auth::id())->first();
+            $application->parent_channel_id = $parent_channel_id->channel_id;
+        }
         // Save the updated application to the database
         $application->save();
         if ($request->status == 'completed') {
@@ -840,8 +847,8 @@ class ApplicationController extends Controller
         } elseif ($request->status != 'rejected') {
             // Send notification to all checkers when application is approved by the maker
             if ($request->status == 'approved') {
-                // Fetch all users with 'Checker' role (assuming role_id == 4 for Checker, update if different)
-                $checkerRoleId = 35;
+                // Fetch all users with 'Checker' role (assuming role_id == 36 for Checker, update if different)
+                $checkerRoleId = 36;
                 $checkers = \App\Models\User::whereHas('roles', function ($q) use ($checkerRoleId) {
                     $q->where('id', $checkerRoleId);
                 })->get();

@@ -3,7 +3,7 @@
           <tr>
               <th class="table-header "><input type="checkbox"  id="masterCheckbox"> &nbsp;&nbsp;&nbsp;All</th>
               <th class="table-header ">S.NO</th>
-              @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
+              @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id !=37 && Auth::user()->roles[0]->pivot->role_id!=3)
               <th class="table-header">Partner Name</th>
               @endif
               <th class="table-header">Application ID</th>

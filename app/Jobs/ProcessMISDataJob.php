@@ -50,13 +50,16 @@ class ProcessMISDataJob implements ShouldQueue
             \Log::info($misRecords);
             foreach ($misRecords as $record) {
             $bank_product = BankProduct::where('bank_id', $this->bankId)->where('product_id', $this->productId)->first();
+        log::info($bank_product);
             if ($bank_product->auto_generate_lan) {
+                log::info('auto_generate_lan');
                 $application = Application::where('customer_name', $record->customer_name)
                     ->where('bank_id', $this->bankId)
                     ->where('product_id', $this->productId)
                     ->where('status', 'pending')
                     ->first();
             } else {
+                log::info('app_id');
                 $application = Application::where('app_id', $record->app_id)
                     ->where('bank_id', $this->bankId)
                     ->where('product_id', $this->productId)
@@ -64,8 +67,9 @@ class ProcessMISDataJob implements ShouldQueue
                     ->first();
             }
 
-
+log::info($application);
             if ($application) {
+                log::info('matchprocess');
                 $this->processMatching($record, $application, $bank_product->auto_generate_lan);
             }
         }
