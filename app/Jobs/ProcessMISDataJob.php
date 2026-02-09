@@ -6,7 +6,7 @@ use App\Models\Application;
 use App\Models\BankData;
 use App\Models\BankMIS;
 use App\Models\BankProduct;
-use App\Models\ServiceDetail;
+use App\Models\Settings;
 use App\Models\Settlement;
 use App\Models\SettlementDistribution;
 use App\Models\User;
@@ -121,53 +121,89 @@ log::info($application);
 
     private function createSettlement($record, $application)
     {
-        $serviceType = User::where('id', $application->user_id)->value('service_type');
-        $serviceDetails = ServiceDetail::where('service_id', $serviceType)
-            ->where('product_name', $application->product_id)
+        // Determine the parent channel: use parent_channel_id if set, otherwise use the application's user_id
+        $parentChannelId = $application->parent_channel_id ?? $application->user_id;
+
+        // Commission calculation priority:
+        // 1. Application-level sharing_commission (highest priority)
+        // 2. Parent channel's user_commission from users table
+        $percentage = $this->getCommissionPercentage($application, $parentChannelId);
+
+        if ($percentage === null || $percentage <= 0) {
+            Log::warning('No commission percentage found for application: ' . $application->id . ', parent channel: ' . $parentChannelId);
+            return;
+        }
+
+        Log::info('Commission percentage: ' . $percentage . '% (Application ID: ' . $application->id . ', Parent Channel: ' . $parentChannelId . ')');
+
+        $grossAmount = round(floatval($record->payout_amount), 2);
+        $amount = round(floatval($grossAmount) * floatval($percentage) / 100, 2);
+
+        // Check if a non-completed settlement already exists for this parent channel
+        $settlement = Settlement::where('user_id', $parentChannelId)
+            ->whereNotIn('status', ['completed'])
             ->first();
-        if ($serviceDetails) {
-            if ($serviceDetails->type == 'vairable') {
-                $totalMonthlyBusiness = $this->getTotalMonthlyBusiness($application);
-                $totalMonthlyBusiness = $totalMonthlyBusiness + $application->disburse_amount;
-                $service_details =
-                    ServiceDetail::where('min', '<=', $totalMonthlyBusiness)
-                    ->where('max', '>=', $totalMonthlyBusiness)
-                    ->first();
-            } else {
-                $service_details = $serviceDetails;
-            }
-            $percentage = $service_details->percentage;
-            $amount = floatval(floatval($record->payout_amount) * floatval($service_details->percentage) / 100);
-            // Create settlement
+
+        if ($settlement) {
+            // Add to existing settlement
+            $settlement->amount = round(floatval($settlement->amount) + $amount, 2);
+            $settlement->gross_amount = round(floatval($settlement->gross_amount) + $grossAmount, 2);
+            $settlement->save();
+            Log::info('Settlement updated (aggregated) for parent channel: ' . $parentChannelId);
+        } else {
+            // Create new settlement for this parent channel
             $settlement = new Settlement();
-            $settlement->user_id = $application->user_id;
+            $settlement->user_id = $parentChannelId;
             $settlement->application_id = $application->id;
             $settlement->status = 'checker';
             $settlement->received_rate = $percentage;
-            // $settlement->tds = round($tds, 2);
-            $settlement->amount = round($amount, 2);
-            $settlement->gross_amount = round($record->payout_amount, 2);
+            $settlement->amount = $amount;
+            $settlement->gross_amount = $grossAmount;
             $settlement->save();
-
-            $bank_data = BankData::where('user_id', $application->user_id)->first();
-            $settlement_distribution = new SettlementDistribution();
-            $settlement_distribution->settlement_id = $settlement->id;
-            $settlement_distribution->user_id = $application->user_id;
-            $settlement_distribution->amount = round($amount, 2);
-            $settlement_distribution->bank_account_id = $bank_data->id;
-            $settlement_distribution->tds = round($amount * 0.02, 2);
-            $settlement_distribution->save();
+            Log::info('New settlement created for parent channel: ' . $parentChannelId);
         }
+
+        // Create settlement distribution for this specific application
+        $tds_percentage = Settings::where('name', 'TDS')->first()->value;
+        $tds = round($amount * $tds_percentage / 100, 2);
+        $netAmount = round($amount - $tds, 2);
+        $bank_data = BankData::where('user_id', $parentChannelId)->first();
+
+        $settlement_distribution = new SettlementDistribution();
+        $settlement_distribution->settlement_id = $settlement->id;
+        $settlement_distribution->user_id = $application->user_id;
+        $settlement_distribution->application_id = $application->id;
+        $settlement_distribution->received_rate = $percentage;
+        $settlement_distribution->gross_amount = $grossAmount;
+        $settlement_distribution->amount = $netAmount;
+        $settlement_distribution->bank_account_id = $bank_data ? $bank_data->id : null;
+        $settlement_distribution->tds = $tds;
+        $settlement_distribution->save();
+        Log::info('Settlement distribution created for application: ' . $application->id);
     }
 
-    private function getTotalMonthlyBusiness($application)
+    /**
+     * Get commission percentage based on priority:
+     * 1. Application-level sharing_commission (highest priority)
+     * 2. Parent channel's user_commission from users table
+     */
+    private function getCommissionPercentage($application, $parentChannelId)
     {
-        // Assuming you have a model named Application that tracks disbursed amounts
-        $totalMonthlyDisbursedAmount = Application::where('user_id', $application->user_id)
-            ->whereYear('disbursement_date', Carbon::parse($application->disbursement_date)->year)
-            ->whereMonth('disbursement_date', Carbon::parse($application->disbursement_date)->month)
-            ->sum('disburse_amount');
+        // Priority 1: Application-level sharing_commission
+        if (!empty($application->sharing_commission) && floatval($application->sharing_commission) > 0) {
+            Log::info('Using application sharing_commission: ' . $application->sharing_commission);
+            return floatval($application->sharing_commission);
+        }
 
-        return $totalMonthlyDisbursedAmount;
+        // Priority 2: Parent channel's user_commission
+        $parentChannelCommission = User::where('id', $parentChannelId)->value('user_commission');
+
+        if (!empty($parentChannelCommission) && floatval($parentChannelCommission) > 0) {
+            Log::info('Using parent channel user_commission: ' . $parentChannelCommission . ' (Channel ID: ' . $parentChannelId . ')');
+            return floatval($parentChannelCommission);
+        }
+
+        Log::warning('No commission found - sharing_commission: ' . ($application->sharing_commission ?? 'null') . ', parent channel user_commission: ' . ($parentChannelCommission ?? 'null'));
+        return null;
     }
 }

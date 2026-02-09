@@ -273,7 +273,7 @@
                                 },
                                 {
                                         data: 'app_id',
-                                        name: 'application_id'
+                                        name: 'app_id'
                                 },
                                 {
                                         data: 'customer_name',
@@ -284,12 +284,20 @@
                                         name: 'received_rate'
                                 },
                                 {
+                                        data: 'gross_amount',
+                                        name: 'gross_amount'
+                                },
+                                {
                                         data: 'tds_amount',
                                         name: 'tds_amount'
                                 },
                                 {
-                                        data: 'amount',
-                                        name: 'amount'
+                                        data: 'net_amount',
+                                        name: 'net_amount'
+                                },
+                                {
+                                        data: 'advance_flag',
+                                        name: 'advance_flag'
                                 },
                                 {
                                         data: 'status',

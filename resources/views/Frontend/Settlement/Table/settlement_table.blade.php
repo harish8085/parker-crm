@@ -7,6 +7,7 @@
             <th class="table-header">Net Amount</th>
             <th class="table-header">TDS @2%</th>
             <th class="table-header">Payout Amount</th>
+            <th class="table-header">Advance Amount</th>
             <th class="table-header">Paid Amount</th>
             <th class="table-header">Remaining Amount</th>
             <th class="table-header">Actions</th>

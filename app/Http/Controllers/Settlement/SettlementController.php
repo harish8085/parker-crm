@@ -25,85 +25,83 @@ class SettlementController extends Controller
     public function index(Request $request)
     {
         $p = request('p');
-        
+
         $Route = 'Settlement';
         $user = Auth::user();
 
         $settlements = $this->getSettlementData($user, $p);
 
         Session::put('channel_url', $p);
-        if ((Auth::user()->roles[0]->id == 2 || Auth::user()->roles[0]->id == 3 || Auth::user()->roles[0]->id == 35 || Auth::user()->roles[0]->id == 36) || $p) {
-            $settlements = $this->getSettlementData($user, $p);
-            if ($request->ajax()) {
-                $settlement = $this->getSettlementData($user, $p);
-                $query = $settlement->toQuery();
 
+        // Channel/Sales users or detail view (when ?p= is set)
+        // Makers (35) and Checkers (36) see the admin-like parent channel list, not the user view
+        if ((Auth::user()->roles[0]->id == 2 || Auth::user()->roles[0]->id == 3) || $p) {
+            $settlements = $this->getSettlementData($user, $p);
+
+            if ($request->ajax()) {
+                // For detail view: show settlement_distributions (application-level breakdown)
+                $query = SettlementDistribution::query();
+
+                if ($p) {
+                    // Admin viewing a specific channel's distributions
+                    $settlementIds = Settlement::where('user_id', $p)->pluck('id');
+                    $query->whereIn('settlement_id', $settlementIds);
+                } else {
+                    // Channel/Sales user viewing their own distributions
+                    $settlementIds = Settlement::where('user_id', $user->id)
+                        ->where('status', '!=', 'checker')
+                        ->pluck('id');
+                    $query->whereIn('settlement_id', $settlementIds);
+                }
+
+                // Date filter
                 if ($request->date) {
                     $now = Carbon::now();
                     if ($request->date == 'today') {
-                        $today = Carbon::today()->toDateString();
-                        $query = $query->whereDate('created_at', $today);
+                        $query->whereDate('settlement_distributions.created_at', Carbon::today()->toDateString());
                     } elseif ($request->date == 'yesterday') {
-                        $yesterday = Carbon::yesterday()->toDateString();
-                        $query = $query->whereDate('created_at', $yesterday);
+                        $query->whereDate('settlement_distributions.created_at', Carbon::yesterday()->toDateString());
                     } elseif ($request->date == 'this_week') {
-                        $weekStartDate = $now->startOfWeek()->toDateString();
-                        $weekEndDate = $now->endOfWeek()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $weekStartDate)
-                            ->whereDate('created_at', '<=', $weekEndDate);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $now->startOfWeek()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $now->endOfWeek()->toDateString());
                     } elseif ($request->date == 'last_week') {
                         $subWeek = $now->subWeek();
-                        $lastWeekStartDate = $subWeek->startOfWeek()->toDateString();
-                        $lastWeekEndDate = $subWeek->endOfWeek()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $lastWeekStartDate)
-                            ->whereDate('created_at', '<=', $lastWeekEndDate);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $subWeek->startOfWeek()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $subWeek->endOfWeek()->toDateString());
                     } elseif ($request->date == 'this_month') {
-                        $startOfMonth = $now->startOfMonth()->toDateString();
-                        $endOfMonth = $now->endOfMonth()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                            ->whereDate('created_at', '<=', $endOfMonth);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $now->startOfMonth()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $now->endOfMonth()->toDateString());
                     } elseif ($request->date == 'last_month') {
                         $subMonth = $now->subMonth();
-                        $startOfMonth = $subMonth->startOfMonth()->toDateString();
-                        $endOfMonth = $subMonth->endOfMonth()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $startOfMonth)
-                            ->whereDate('created_at', '<=', $endOfMonth);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $subMonth->startOfMonth()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $subMonth->endOfMonth()->toDateString());
                     } elseif ($request->date == 'last_3_months') {
-                        $thirdLastMonthStart = $now->subMonths(2)->startOfMonth()->toDateString();
-                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $thirdLastMonthStart)
-                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $now->subMonths(2)->startOfMonth()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $now->endOfMonth()->toDateString());
                     } elseif ($request->date == 'last_6_months') {
-                        $Last6thMonthStart = $now->subMonths(5)->startOfMonth()->toDateString();
-                        $lastOneMonthEnd = $now->endOfMonth()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $Last6thMonthStart)
-                            ->whereDate('created_at', '<=', $lastOneMonthEnd);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $now->subMonths(5)->startOfMonth()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $now->endOfMonth()->toDateString());
                     } elseif ($request->date == 'this_year') {
-                        $thisYearStart = $now->startOfYear()->toDateString();
-                        $thisYearEnd = $now->endOfYear()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $thisYearStart)
-                            ->whereDate('created_at', '<=', $thisYearEnd);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $now->startOfYear()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $now->endOfYear()->toDateString());
                     } elseif ($request->date == 'last_year') {
                         $lastYear = $now->subYear();
-                        $lastYearStart = $lastYear->startOfYear()->toDateString();
-                        $lastYearEnd = $lastYear->endOfYear()->toDateString();
-                        $query = $query->whereDate('created_at', '>=', $lastYearStart)
-                            ->whereDate('created_at', '<=', $lastYearEnd);
+                        $query->whereDate('settlement_distributions.created_at', '>=', $lastYear->startOfYear()->toDateString())
+                            ->whereDate('settlement_distributions.created_at', '<=', $lastYear->endOfYear()->toDateString());
                     } elseif ($request->date == 'custom' && isset($request->date_range)) {
                         if (strpos($request->date_range, 'to') !== false) {
                             $dates = explode('to', $request->date_range);
-                            $startDate = trim($dates[0]);
-                            $endDate = trim($dates[1]);
-                            $query = $query->whereDate('created_at', '>=', $startDate)
-                                ->whereDate('created_at', '<=', $endDate);
-                        } else {
-                            throw new \Exception('Date range is not provided or is incorrectly formatted.');
+                            $query->whereDate('settlement_distributions.created_at', '>=', trim($dates[0]))
+                                ->whereDate('settlement_distributions.created_at', '<=', trim($dates[1]));
                         }
                     }
                 }
 
                 if ($request->status) {
-                    $query->where('status', $request->status);
+                    $filteredSettlementIds = Settlement::where('user_id', $p ?? $user->id)
+                        ->where('status', $request->status)
+                        ->pluck('id');
+                    $query->whereIn('settlement_id', $filteredSettlementIds);
                 }
 
                 return DataTables::of($query)
@@ -116,17 +114,29 @@ class SettlementController extends Controller
                         $application = DB::table('applications')->where('id', $row->application_id)->first();
                         return $application->customer_name ?? '-';
                     })
-                    ->editColumn('received_rate', function ($row) {
-                        return $row->received_rate;
+                    ->addColumn('received_rate', function ($row) {
+                        return $row->received_rate ?? '-';
+                    })
+                    ->addColumn('gross_amount', function ($row) {
+                        return '₹ ' . indianNumberFormat($row->gross_amount ?? 0);
                     })
                     ->addColumn('tds_amount', function ($row) {
-                        return '₹ ' . indianNumberFormat(DB::table('settlement_distributions')->where('settlement_id', $row->id)->sum('tds'));
+                        return '₹ ' . indianNumberFormat($row->tds ?? 0);
                     })
-                    ->editColumn('amount', function ($row) {
-                        return $row->amount;
+                    ->addColumn('net_amount', function ($row) {
+                        return '₹ ' . indianNumberFormat($row->amount ?? 0);
                     })
-                    ->editColumn('status', function ($row) {
-                        $status = $row->status ?? '-';
+                    ->addColumn('advance_flag', function ($row) {
+                        $hasAdvance = DB::table('advance_payment_cases')
+                            ->where('application_id', $row->application_id)
+                            ->exists();
+                        return $hasAdvance
+                            ? '<span class="badge bg-warning text-dark">Advance</span>'
+                            : '-';
+                    })
+                    ->addColumn('status', function ($row) {
+                        $settlement = Settlement::find($row->settlement_id);
+                        $status = $settlement->status ?? '-';
                         $statusClass = strtolower($status);
                         $statusText = ucwords($status);
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
@@ -134,22 +144,22 @@ class SettlementController extends Controller
                     ->addColumn('action', function ($row) {
                         $buttons = '';
                         if (auth()->user()->hasPermission('settlement', 'view')) {
-                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/view/' . $row->id) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
+                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/view/' . $row->settlement_id) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
                         }
                         if (auth()->user()->hasPermission('settlement', 'update')) {
-                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/update/' . $row->id) . '\'" src="' . asset('assets/images/Edit.svg') . '">';
+                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/update/' . $row->settlement_id) . '\'" src="' . asset('assets/images/Edit.svg') . '">';
                         }
                         return $buttons;
                     })
-                    ->rawColumns(['status', 'action'])
+                    ->rawColumns(['advance_flag', 'status', 'action'])
                     ->make(true);
             }
             return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p'));
         } else {
+            // Admin/Staff view: Show parent channels list
             if ($request->ajax()) {
-
-                $settlement = $this->getSettlementData($user, $p);
-                $query = $settlement->toQuery();
+                // Only show parent channels that have settlements
+                $query = $this->getParentChannelQuery($user);
 
                 if ($request->first_name) {
                     $query->where('first_name', $request->first_name);
@@ -158,7 +168,7 @@ class SettlementController extends Controller
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('first_name', function ($row) {
-                        return $row->first_name . '' . $row->last_name;
+                        return $row->first_name . ' ' . $row->last_name;
                     })
                     ->addColumn('net_amount', function ($row) {
                         $amount = DB::table('settlements')
@@ -167,17 +177,14 @@ class SettlementController extends Controller
                         return '₹ ' . indianNumberFormat($amount);
                     })
                     ->addColumn('tds_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)
-                            ->pluck('id');
+                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
-
                         return '₹ ' . indianNumberFormat($tdsAmount);
                     })
                     ->addColumn('payout_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)
-                            ->pluck('id');
+                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
@@ -187,8 +194,7 @@ class SettlementController extends Controller
                         return '₹ ' . indianNumberFormat($amount - $tdsAmount);
                     })
                     ->addColumn('remaining_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)
-                            ->pluck('id');
+                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
@@ -202,9 +208,12 @@ class SettlementController extends Controller
                         $totalAmount = round($amount - $tdsAmount - $paidAmount, 2);
                         return '₹ ' . indianNumberFormat($totalAmount < 0 ? 0 : $totalAmount);
                     })
+                    ->addColumn('advance_amount', function ($row) {
+                        $advance = DB::table('advances')->where('user_id', $row->id)->first();
+                        return '₹ ' . indianNumberFormat($advance->advance_amount ?? 0);
+                    })
                     ->addColumn('paid_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)
-                            ->pluck('id');
+                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
                         $paidAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->where('payment_status', 'Success')
@@ -213,11 +222,9 @@ class SettlementController extends Controller
                     })
                     ->addColumn('action', function ($row) {
                         $btn = '';
-
                         if (auth()->user()->hasPermission('application', 'view')) {
                             $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
                         }
-
                         return $btn;
                     })
                     ->rawColumns(['action'])
@@ -225,12 +232,6 @@ class SettlementController extends Controller
             }
             return view('Frontend.Settlement.index', compact('Route', 'settlements', 'p'));
         }
-
-
-
-        // Assuming you want to pass all settlements to the view
-        // $settlements = Settlement::all();
-
     }
 
     public function filter(Request $request)
@@ -259,7 +260,6 @@ class SettlementController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        // Execute the query and fetch results
         $settlements = $query->get();
         return view('Frontend.Settlement.Table.settlement_table', compact('Route', 'settlements'));
     }
@@ -267,31 +267,30 @@ class SettlementController extends Controller
     public function edit($id)
     {
         $Route = 'Edit Settlement';
-        // Retrieve the staff member by ID
         $settlement = Settlement::findOrFail($id);
 
-        $application = Application::findOrFail($settlement->application_id);
-        $settlement_distributions = SettlementDistribution::where('settlement_id', $id)->where('user_id', $settlement->user_id)->get();
+        // Get all distributions (application-level breakdown) for this settlement
+        $settlement_distributions = SettlementDistribution::where('settlement_id', $id)->get();
 
         $banks = BankData::where('user_id', $settlement->user_id)->where('status', 1)->get();
-        // Pass the staff member data to the edit view
-        return view('Frontend.Settlement.edit', compact('Route', 'application', 'settlement', 'banks', 'settlement_distributions'));
+
+        // Get the channel user info
+        $channelUser = User::find($settlement->user_id);
+
+        return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser'));
     }
 
     public function update(Request $request, $id)
     {
         // Validate the form data
         $validatedData = $request->validate([
-            'received_rate' => 'required',
             'amount' => 'required',
             'status' => 'required',
         ]);
 
-        // Find the application by ID
         $settlement = Settlement::findOrFail($id);
 
         // Update settlement data
-        $settlement->received_rate = $request->received_rate;
         $settlement->amount = $request->amount;
         $settlement->status = $request->status;
 
@@ -303,47 +302,28 @@ class SettlementController extends Controller
             $settlement->settlement_date = $request->settlement_date;
         }
 
-        // Save updated settlement
         $settlement->save();
 
-        // Recalculate or recreate distribution if status is 'pending' or 'bankPending'
+        // Recalculate or recreate bank distributions if status is 'pending' or 'bankPending'
         if (in_array($request->status, ['pending', 'bankPending'])) {
-            // Prefer request->bank if present, otherwise use existing distribution banks
             $bankAccounts = [];
 
             if ($request->has('bank') && is_array($request->bank)) {
                 $bankAccounts = $request->bank;
             } else {
-                // Get existing bank account IDs from previous distribution
                 $existingDistributions = SettlementDistribution::where('settlement_id', $settlement->id)->get();
                 if ($existingDistributions->isNotEmpty()) {
-                    $bankAccounts = $existingDistributions->pluck('bank_account_id')->toArray();
+                    $bankAccounts = $existingDistributions->pluck('bank_account_id')->unique()->filter()->toArray();
                 }
             }
 
-            // Proceed if bank accounts exist
-            if (!empty($bankAccounts)) {
-                // Delete previous distributions
-                SettlementDistribution::where('settlement_id', $settlement->id)->delete();
-
-                $bankCount = count($bankAccounts);
-                $totalAmount = $settlement->amount;
-
-                foreach ($bankAccounts as $index => $bankAccountId) {
-                    if ($bankAccountId) {
-                        // Example logic: equally divide amount
-                        $shareAmount = round($totalAmount / $bankCount, 2);
-                        $tds = round($shareAmount * 0.02, 2); // 10% TDS example
-                        $receiveAmount = $shareAmount - $tds;
-
-                        SettlementDistribution::create([
-                            'settlement_id' => $settlement->id,
-                            'user_id' => $settlement->user_id,
-                            'bank_account_id' => $bankAccountId,
-                            'amount' => $receiveAmount,
-                            'tds' => $tds,
-                            'utr_number' => $request->utr_number[$index] ?? null,
-                        ]);
+            // Update bank_account_id on existing distributions if bank accounts provided
+            if (!empty($bankAccounts) && $request->has('bank') && is_array($request->bank)) {
+                $distributions = SettlementDistribution::where('settlement_id', $settlement->id)->get();
+                foreach ($distributions as $index => $dist) {
+                    if (isset($bankAccounts[$index % count($bankAccounts)])) {
+                        $dist->bank_account_id = $bankAccounts[$index % count($bankAccounts)];
+                        $dist->save();
                     }
                 }
             }
@@ -358,7 +338,6 @@ class SettlementController extends Controller
         }
     }
 
-
     public function exportSettlement()
     {
         return Excel::download(new SettlementExport(), 'settlement.xlsx');
@@ -366,43 +345,72 @@ class SettlementController extends Controller
 
     public function show($id)
     {
-        $Route = 'Edit Settlement';
-        // Retrieve the staff member by ID
+        $Route = 'View Settlement';
         $settlement = Settlement::findOrFail($id);
 
-        $application = Application::findOrFail($settlement->application_id);
-        $settlement_distributions = SettlementDistribution::where('settlement_id', $id)->where('user_id', $settlement->user_id)->get();
+        // Get all distributions (application-level breakdown) for this settlement
+        $settlement_distributions = SettlementDistribution::where('settlement_id', $id)->get();
 
         $banks = BankData::where('user_id', $settlement->user_id)->where('status', 1)->get();
-        // Pass the staff member data to the edit view
-        return view('Frontend.Settlement.show', compact('Route', 'application', 'settlement', 'banks', 'settlement_distributions'));
+
+        // Get the channel user info
+        $channelUser = User::find($settlement->user_id);
+
+        return view('Frontend.Settlement.show', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser'));
     }
 
 
+    /**
+     * Get parent channels that have settlements (for admin list view).
+     */
+    private function getParentChannelQuery($user)
+    {
+        // Get user IDs that have settlements
+        $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+        $roleId = $user->roles[0]->id;
+
+        if (in_array($roleId, [1, 35, 36])) {
+            // Admin, Maker, Checker: show all parent channels with settlements
+            return User::whereIn('id', $userIdsWithSettlements);
+        } else {
+            // Staff: show only assigned channels with settlements
+            $channelAssign = StaffAssign::where('user_id', $user->id)->value('channel_sales_id');
+            $channelAssign = json_decode($channelAssign, true);
+            if (!is_array($channelAssign) || empty($channelAssign)) {
+                return User::whereRaw('1 = 0'); // empty query
+            }
+            return User::whereIn('id', $channelAssign)->whereIn('id', $userIdsWithSettlements);
+        }
+    }
+
     private function getSettlementData($user, $p)
     {
-        $settlementsData = [];
+        $roleId = $user->roles[0]->id;
 
-        if ($user->roles[0]->id == 1) {
+        if (in_array($roleId, [1, 35, 36])) {
+            // Admin, Maker, Checker: see all parent channels with settlements
             if ($p) {
                 $data = Settlement::where('user_id', $p)->paginate(25);
                 $data->appends(['p' => $p]);
             } else {
-                $data = User::whereIn('user_type', ['channel', 'sales'])->paginate(25);
+                // Only parent channels that have settlements
+                $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+                $data = User::whereIn('id', $userIdsWithSettlements)->paginate(25);
             }
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        } elseif (in_array($roleId, [2, 3])) {
             $data = Settlement::where('user_id', $user->id)->where('status', '!=', 'checker')->paginate(25);
         } else {
             $channelAssign = StaffAssign::where('user_id', $user->id)->value('channel_sales_id');
             $channelAssign = json_decode($channelAssign, true);
             if (!is_array($channelAssign) || empty($channelAssign)) {
-                $data = collect([]); // return empty result if nothing is assigned
+                $data = collect([]);
             } else {
                 if ($p) {
                     $data = Settlement::where('user_id', $p)->paginate(25);
                     $data->appends(['p' => $p]);
                 } else {
-                    $data = User::whereIn('id', $channelAssign)->paginate(25);
+                    $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+                    $data = User::whereIn('id', $channelAssign)->whereIn('id', $userIdsWithSettlements)->paginate(25);
                 }
             }
         }
@@ -414,8 +422,6 @@ class SettlementController extends Controller
         $Route = 'Settlement';
         return view('Frontend.Settlement.upload', compact('Route'));
     }
-
-
 
     public function storeExcel(Request $request)
     {
@@ -473,37 +479,38 @@ class SettlementController extends Controller
             $reference_nos = json_decode($row['Reference_no'], true);
 
             if (!is_array($reference_nos)) {
-                // Skip this row or handle the error
                 continue;
             }
 
             foreach ($reference_nos as $reference_no) {
-                $settlement = SettlementDistribution::where('id', $reference_no)->first();
-                if (!is_null($settlement)) {
+                $distribution = SettlementDistribution::where('id', $reference_no)->first();
+                if (!is_null($distribution)) {
 
                     $originalDate = $row['Pymt_Date'];
                     $date = DateTime::createFromFormat('d-m-Y', $originalDate);
                     $formattedDate = $date ? $date->format('Y-m-d') : null;
 
+                    $distribution->utr_number = $row['UTR NO'];
+                    $distribution->payment_status = $row['STATUS'];
+                    $distribution->rejection_reason = $row['Rejection Reason'];
+                    $distribution->file_name = $row['File name'];
+                    $distribution->save();
 
-                    $settlement->utr_number = $row['UTR NO'];
-                    $settlement->payment_status = $row['STATUS'];
-                    $settlement->rejection_reason = $row['Rejection Reason'];
-                    $settlement->file_name = $row['File name'];
-                    $settlement->save();
+                    // Check if all distributions for this settlement are completed
+                    $settlement = Settlement::find($distribution->settlement_id);
+                    if ($settlement) {
+                        $allDistributions = SettlementDistribution::where('settlement_id', $settlement->id)->get();
+                        $allSuccess = $allDistributions->every(fn($d) => $d->payment_status == 'Success');
 
-
-                    $settlement = Settlement::where('id', $settlement->settlement_id)->update([
-                        'status' => ($row['STATUS'] == 'Success') ? 'completed' : 'pending',
-                        'settlement_date' => $formattedDate
-                    ]);
+                        $settlement->update([
+                            'status' => $allSuccess ? 'completed' : 'pending',
+                            'settlement_date' => $formattedDate
+                        ]);
+                    }
                 }
             }
         }
 
-        // Clean up the temporary file
-        // Storage::delete('app/' . $tempFilePath);
-
-        return redirect()->to('/settlement')->with('success', 'settlement status updated successfully');
+        return redirect()->to('/settlement')->with('success', 'Settlement status updated successfully');
     }
 }
