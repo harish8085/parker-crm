@@ -160,15 +160,14 @@ class ChannelPartnerController extends Controller
             }
         } elseif ($user->roles[0]->id == 2) {
 
-            $roleId = 6;
-            $channels = User::whereHas('roles', function ($query) use ($roleId) {
-                $query->where('id', $roleId);
+            // For a channel user, show all associated channels (associates)
+            $channels = User::whereHas('channelUser', function ($q) use ($user) {
+                $q->where('channel_id', $user->id);
             })->get();
             if ($request->ajax()) {
 
-                $query = User::whereHas('roles', function ($q) use ($roleId) {
-                    $q->where('id', $roleId);
-                })->whereHas('channelUser', function ($q) use ($user) {
+                // Query associates linked to this channel via channel_users table
+                $query = User::whereHas('channelUser', function ($q) use ($user) {
                     $q->where('channel_id', $user->id);
                 });
 
