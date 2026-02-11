@@ -18,6 +18,9 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Models\BankMisTracker;
+use SebastianBergmann\Environment\Console;
 
 class ProcessMISDataJob implements ShouldQueue
 {
@@ -30,7 +33,7 @@ class ProcessMISDataJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct($bankId, $productId, $status ='pending')
+    public function __construct($bankId, $productId, $status = 'pending')
     {
         $this->bankId = $bankId;
         $this->productId = $productId;
@@ -47,8 +50,8 @@ class ProcessMISDataJob implements ShouldQueue
             ->where('product_id', $this->productId)
             ->get();
 
-            \Log::info($misRecords);
-            foreach ($misRecords as $record) {
+        \Log::info($misRecords);
+        foreach ($misRecords as $record) {
             $bank_product = BankProduct::where('bank_id', $this->bankId)->where('product_id', $this->productId)->first();
         log::info($bank_product);
             if ($bank_product->auto_generate_lan) {
@@ -73,6 +76,11 @@ log::info($application);
                 $this->processMatching($record, $application, $bank_product->auto_generate_lan);
             }
         }
+
+        // After all matching is done, update the tracker
+        app(\App\Http\Controllers\Application\ApplicationController::class)->updateBankMisTrackerFromApplications();
+        // echo "Completed processing MIS data for Bank ID: {$this->bankId}, Product ID: {$this->productId}";
+
     }
 
     private function processMatching($record, $application, $copy_lan)
@@ -90,8 +98,6 @@ log::info($application);
             'bank_mis_id' => $record->id ?? null
         ];
 
-
-
         if ($copy_lan) {
             BankMIS::where('id', $record->id)->update(['app_id' => $application->app_id]);
             $data = [
@@ -101,23 +107,30 @@ log::info($application);
             $updateData = array_merge($data, $updateData);
         }
 
+        // sleep(2);
+        // $this->syncFromApplications();
+
         // Ensure `$application` is a valid model instance before updating
         // if ($application instanceof \Illuminate\Database\Eloquent\Model) {
-       $result =  $application->update($updateData);
-        
+        $result =  $application->update($updateData);
+
 
         // Check if all conditions in `$updateData` (except timestamps and IDs) are true
-        $checkKeys = ['app_id_is_matched','customer_name_is_matched', 'bank_id_is_matched', 'product_id_is_matched', 'disburse_amount_is_matched'];
+        $checkKeys = ['app_id_is_matched', 'customer_name_is_matched', 'bank_id_is_matched', 'product_id_is_matched', 'disburse_amount_is_matched'];
         if (collect($updateData)->only($checkKeys)->every(fn($value) => $value === true)) {
             $application->update(['status' => 'in-progress']);
-            if($this->status == 'completed'){
+            if ($this->status == 'completed') {
                 $application->update(['status' => 'completed']);
                 $this->createSettlement($record, $application);
             }
         }
+
         // }
 
     }
+
+
+
 
     private function createSettlement($record, $application)
     {

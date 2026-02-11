@@ -43,7 +43,7 @@
             <div class="col-lg-4 mb-2">
                 <div class="">
                     <label class="">Date Range</label>
-                        <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
+                    <select class="bank-detail-input form-select select date-filter" required name="date" id="date">
                         <option value=""></option>
                         <option value="custom">Custom</option>
                         <option value="today">Today</option>
@@ -135,7 +135,7 @@
 @endsection
 
 @section('modal')
-<div class="modal" id="myModal">
+<div class="modal" id="myModal" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <!-- Modal Header -->

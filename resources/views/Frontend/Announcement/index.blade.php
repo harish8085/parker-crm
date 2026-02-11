@@ -16,8 +16,6 @@
 <div class="card">
     <div class="application-header">
         <h3 class="application-heading">All Announcements</h3>
-
-        {{auth()->user()->hasPermission('announcements','create')}}
         @if(auth()->user()->hasPermission('announcements','create'))
         <div class="btn-container">
             <a href="{{ url('/announcements/create') }}">

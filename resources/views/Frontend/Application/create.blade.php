@@ -100,7 +100,7 @@
                 <label class="bank-input-label">Case State<span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="text" name="case_state" id="case_state" placeholder="Enter case state">
             </div> -->
-            
+
 
 
             <div class="bank-detail-inputs">
@@ -378,7 +378,7 @@
                 $('#customer_name').addClass('is-valid').removeClass('is-invalid');
             }
 
-           
+
 
 
             if (!$('#bank_id').val()) {
@@ -425,17 +425,6 @@
                     $('#fresh_bt').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
                 }
 
-
-                if (!$('#any_subvention').val()) {
-                    $('#any_subvention').removeClass('is-valid').addClass('is-invalid');
-                    $('#any_subvention').focus();
-                    isValid = false;
-                    return false;
-
-                } else {
-                    $('#any_subvention').addClass('is-valid').removeClass('is-invalid');
-                }
-            } else {
                 if (!$('#otc_pdd').val()) {
                     $('#otc_pdd').removeClass('is-valid').addClass('is-invalid');
                     $('#otc_pdd').focus();
@@ -446,6 +435,17 @@
                     $('#otc_pdd').addClass('is-valid').removeClass('is-invalid');
                 }
 
+            } else {
+
+                if (!$('#any_subvention').val()) {
+                    $('#any_subvention').removeClass('is-valid').addClass('is-invalid');
+                    $('#any_subvention').focus();
+                    isValid = false;
+                    return false;
+
+                } else {
+                    $('#any_subvention').addClass('is-valid').removeClass('is-invalid');
+                }
 
 
                 if (!$('#pf_taken').val()) {

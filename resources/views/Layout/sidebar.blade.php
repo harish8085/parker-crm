@@ -50,12 +50,39 @@
                 </li>
                 @endif
 
-
-
                 @if(auth()->user()->hasPermission('settlement','view'))
                 <li class="list-item {{(Request::path() == 'settlement')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'settlement')?'active-li':''}}" href="{{url('settlement')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'settlement')?'assets/images/settlement-active.svg':'assets/images/settlement.svg')}}" alt="error">Settlements
+                    </a>
+                </li>
+                @endif
+                @if(auth()->user()->hasPermission('invoice','view'))
+                <li class="list-item {{(Request::path() == 'invoice')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'invoice')?'active-li':''}}" href="{{url('invoice')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice')?'assets/images/invoice_blue.svg':'assets/images/invoice_white.svg')}}" alt="error">Invoices
+                    </a>
+                </li>
+                @endif
+                @if(auth()->user()->hasPermission('mis_tracker','view'))
+                <li class="list-item {{(Request::path() == 'mis_tracker')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
+                    </a>
+                </li>
+                @endif
+                @if(auth()->user()->hasPermission('invoice_payment','view'))
+                <li class="list-item {{(Request::path() == 'invoice_payment')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'invoice_payment')?'active-li':''}}" href="{{url('invoice_payment')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice_payment')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
+                    </a>
+                </li>
+                @endif
+
+                @if(auth()->user()->hasPermission('settlement','view') || in_array(auth()->user()->roles[0]->id, [2, 3]))
+                <li class="list-item {{(Request::path() == 'transactions')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'transactions')?'active-li':''}}" href="{{url('transactions')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'transactions')?'assets/images/settlement-active.svg':'assets/images/settlement.svg')}}" alt="error">Transactions
                     </a>
                 </li>
                 @endif

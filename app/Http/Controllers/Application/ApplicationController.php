@@ -14,7 +14,6 @@ use App\Models\BankProduct;
 use App\Models\ChannelUser;
 use App\Models\Product;
 use App\Models\RemarkStatus;
-use App\Models\Service;
 use App\Models\Settlement;
 use App\Models\SheetMatching;
 use App\Models\StaffAssign;
@@ -23,11 +22,14 @@ use App\Notifications\NewApplicationNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\BankMisTracker;
+
 
 class ApplicationController extends Controller
 {
@@ -51,8 +53,8 @@ class ApplicationController extends Controller
             $query->where('id', $salesroleId);
         })->get();
         if ($request->ajax()) {
-            
-            
+
+
             $query = Application::with(['bank', 'product'])->orderBy('id', 'desc');
 
             if($user->roles[0]->name == 'Channel' || $user->roles[0]->name == 'Associate_Channel') {
@@ -60,22 +62,21 @@ class ApplicationController extends Controller
                 if($user->roles[0]->name == 'Channel') {
                      
                     $channel_assign = ChannelUser::where('channel_id', Auth::id())->pluck('associate_channel_id');
-                   
+
                     // If there are channel assignments, show records where user_id is either the logged in user OR assigned associate channels
                     if ($channel_assign->isNotEmpty()) {
-                        $query->where(function($q) use ($channel_assign, $user) {
+                        $query->where(function ($q) use ($channel_assign, $user) {
                             $q->whereIn('user_id', $channel_assign)
-                              ->orWhere('user_id', $user->id);
+                                ->orWhere('user_id', $user->id);
                         });
                     } else {
                         $query->where('user_id', $user->id);
                     }
-                    
                 } else {
-                    
+
                     $query->where('user_id', Auth::id());
                 }
-            } 
+            }
 
             $query = $this->sortData($request->date, $request->date_range, $query);
 
@@ -323,7 +324,7 @@ class ApplicationController extends Controller
                     ->make(true);
             } else {
                 
-                
+
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -556,7 +557,7 @@ class ApplicationController extends Controller
 
     public function add()
     {
-        
+
         $Route = 'Application';
         $user = Auth::user();
         $banks = Bank::get();
@@ -592,7 +593,7 @@ class ApplicationController extends Controller
         }
 
         $states = getState();
-        
+
 
         return view('Frontend.Application.create', compact('Route', 'channels', 'sales', 'banks', 'states'));
     }
@@ -679,7 +680,8 @@ class ApplicationController extends Controller
             foreach ($adminUsers as $adminUser) {
                 $adminUser->notify(new NewApplicationNotification($application));
             }
-
+            sleep(2);
+            $this->updateBankMisTrackerFromApplications();
             return redirect()->to('/application')->with('success', 'Application created successfully.');
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->validator)->withInput();
@@ -901,6 +903,8 @@ class ApplicationController extends Controller
     public function destroy(Application $application)
     {
         $application->delete();
+        sleep(2);
+        $this->updateBankMisTrackerFromApplications();
         return true;
     }
 
@@ -978,8 +982,71 @@ class ApplicationController extends Controller
                 $query->where('id', $salesroleId);
             })->get();
         }
+        sleep(2);
+        $this->updateBankMisTrackerFromApplications();
         return view('Frontend.Application.uploadMIS', compact('Route', 'channels', 'sales', 'user_id', 'role_id'));
     }
+
+
+    public function updateBankMisTrackerFromApplications()
+    {
+        // Get total, matched, and unmatched cases grouped by created_at (upload month), bank, and product
+        $stats = DB::table('applications')
+            ->join('banks', 'applications.bank_id', '=', 'banks.id')
+            ->join('products', 'applications.product_id', '=', 'products.id')
+            ->select(
+                DB::raw("DATE_FORMAT(applications.created_at, '%b-%Y') as month_year"),
+                'banks.name as bank_name',
+                'products.name as product_name',
+                DB::raw('COUNT(applications.id) as total_cases'),
+                DB::raw("SUM(CASE WHEN applications.app_id_is_matched = 1 THEN 1 ELSE 0 END) as matched_cases"),
+                DB::raw("SUM(CASE WHEN applications.app_id_is_matched IS NULL OR applications.app_id_is_matched = 0 THEN 1 ELSE 0 END) as unmatched_cases")
+            )
+            ->groupBy(
+                DB::raw("DATE_FORMAT(applications.created_at, '%b-%Y')"),
+                'banks.name',
+                'products.name'
+            )
+            ->get();
+
+        foreach ($stats as $row) {
+            // Get unmatched application numbers for this group
+            $unmatchedAppNos = DB::table('applications')
+                ->join('banks', 'applications.bank_id', '=', 'banks.id')
+                ->join('products', 'applications.product_id', '=', 'products.id')
+                ->where(DB::raw("DATE_FORMAT(applications.created_at, '%b-%Y')"), $row->month_year)
+                ->where('banks.name', $row->bank_name)
+                ->where('products.name', $row->product_name)
+                ->where(function ($q) {
+                    $q->whereNull('applications.app_id_is_matched')
+                        ->orWhere('applications.app_id_is_matched', 0);
+                })
+                ->pluck('applications.app_id')
+                ->toArray();
+            $unmatched_case_details = implode(',', $unmatchedAppNos);
+
+            // Status: received if all matched, else pending
+            $status = ($row->unmatched_cases == 0 && $row->matched_cases > 0)
+                ? 'received'
+                : 'pending';
+
+            BankMisTracker::updateOrCreate(
+                [
+                    'bank_mis_month' => $row->month_year,
+                    'bank'           => $row->bank_name,
+                    'product'        => $row->product_name,
+                ],
+                [
+                    'total_cases'    => $row->total_cases,
+                    'matched_cases'  => $row->matched_cases,
+                    'unmatched_cases' => $row->unmatched_cases,
+                    'unmatched_case_details' => $unmatched_case_details,
+                    'status'         => $status,
+                ]
+            );
+        }
+    }
+
 
     public function storeExcel(Request $request)
     {
@@ -1129,7 +1196,7 @@ class ApplicationController extends Controller
 
                     // Save the loan application record to the database
                     $application->save();
-                    
+
                     // Send notification to admin users
                     $adminUsers = User::whereHas('roles', function ($query) {
                         $query->whereIn('id', [1, 35]); // Admin and maker role ID
@@ -1138,12 +1205,11 @@ class ApplicationController extends Controller
                     foreach ($adminUsers as $adminUser) {
                         $adminUser->notify(new NewApplicationNotification($application));
                     }
-                    
+
                     ProcessMISDataJob::dispatch($bank_id, $product_id);
                     $successCount++;  // Increment the count of successful insertions
                 }
             }
-
 
             // After the loop, if there were successful entries, create the toast
             if ($successCount > 0) {
@@ -1179,6 +1245,7 @@ class ApplicationController extends Controller
                 'xlsx_file' => 'required|file|mimes:xlsx',
                 'bank_id' => 'required',
                 'product_id' => 'required',
+                'bank_mis_month' => 'required',
             ]);
 
             $bank_id = $request->bank_id;
@@ -1187,6 +1254,7 @@ class ApplicationController extends Controller
             $tempFilePath = $file->storeAs('tmp', 'uploaded.xlsx');
 
             $group = Product::where('id', $product_id)->value('group');
+            $bank_mis_month = $request->bank_mis_month;
             $excel = SimpleExcelReader::create(storage_path('app/' . $tempFilePath));
             $rows = $excel->getRows()->toArray();
 
@@ -1200,6 +1268,9 @@ class ApplicationController extends Controller
             $keysMapping = $sheetData->toArray();
             unset($keysMapping['id'], $keysMapping['bank_id'], $keysMapping['product_id'], $keysMapping['group'], $keysMapping['created_at'], $keysMapping['updated_at']);
 
+            $successCount = 0;
+            $duplicateAppIds = [];  // Track app_ids that already exist
+
             foreach ($rows as $row) {
                 if ($row) {
                     // Extract values based on mapped keys
@@ -1210,6 +1281,15 @@ class ApplicationController extends Controller
                     foreach ($keysMapping as $excelKey => $dataKey) {
                         if (isset($row[$dataKey])) {
                             $data[$excelKey] = $row[$dataKey];
+                        }
+                    }
+
+                    // Check if app_id already exists in BankMIS table
+                    if (isset($data['app_id']) && !empty($data['app_id'])) {
+                        $appIdExists = BankMIS::where('app_id', $data['app_id'])->exists();
+                        if ($appIdExists) {
+                            $duplicateAppIds[] = $data['app_id'];
+                            continue;  // Skip this row if app_id already exists
                         }
                     }
 
@@ -1234,7 +1314,10 @@ class ApplicationController extends Controller
                         }
                     }
 
-                    // Check if the record already exists based on all relevant fields
+                    // Attach selected month to data so it is saved and used in duplicate checks
+                    $data['bank_mis_month'] = $bank_mis_month;
+
+                    // Check if the record already exists based on all relevant fields (including month)
                     $existingMIS = BankMIS::where('bank_id', $data['bank_id'])
                         ->where('product_id', $data['product_id'])
                         ->where('app_id', $data['app_id'] ?? NULL)
@@ -1251,6 +1334,7 @@ class ApplicationController extends Controller
                         ->where('disbAmount', $data['disbAmount'] ?? NULL)
                         ->where('case_location', $data['case_location'] ?? NULL)
                         ->where('otc_pdd_status', $data['otc_pdd_status'] ?? NULL)
+                        ->where('bank_mis_month', $data['bank_mis_month'] ?? NULL)
                         ->first();
 
                     // If the record exists, skip inserting it
@@ -1263,6 +1347,7 @@ class ApplicationController extends Controller
                     $bank->bank_id = $data['bank_id'];
                     $bank->product_id = $data['product_id'];
                     $bank->app_id = isset($data['app_id']) ? $data['app_id'] : NULL;
+                    $bank->bank_mis_month = $data['bank_mis_month'] ?? NULL;
                     $bank->payout_rate = ($data['payout_rate'] != '') ? round(floatval($data['payout_rate']), 2) : NULL;
                     $bank->location = isset($data['location']) ? $data['location'] : NULL;
                     $bank->payout_amount = isset($data['payout_amount']) ? floatval($data['payout_amount']) : NULL;
@@ -1281,17 +1366,28 @@ class ApplicationController extends Controller
                     // Update the group field in the second save
                     $bank->group = $group;
                     $bank->save();
+
+                    $successCount++;  // Increment success count
                 }
             }
 
             // Dispatch Job for processing
             ProcessMISDataJob::dispatch($bank_id, $product_id);
+            // Prepare response message with duplicate app_ids warning if any
+            $successMessage = 'File uploaded successfully. Data processing will continue in the background.';
 
-            return redirect()->to('/bank_mis')->with('success', 'File uploaded successfully. Data processing will continue in the background.');
+            if (!empty($duplicateAppIds)) {
+                $duplicateList = implode(', ', $duplicateAppIds);
+                $warningMessage = "The following application number(s) already exist and were not added: $duplicateList. Please check your application numbers.";
+                return redirect()->to('/bank_mis')->with('success', $successMessage)->with('warning', $warningMessage);
+            }
+
+            return redirect()->to('/bank_mis')->with('success', $successMessage);
         } catch (\Throwable $th) {
             return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
         }
     }
+
 
     public function bulkDelete(Request $request)
     {
@@ -1306,6 +1402,12 @@ class ApplicationController extends Controller
             ->where('status', '!=', 'completed')
             ->delete();
 
+        sleep(2);
+        $this->updateBankMisTrackerFromApplications();
+
+        // refrash the select all check box page..
+
+
         return response()->json(['message' => $deletedCount . ' applications deleted successfully.'], 200);
     }
 
@@ -1319,7 +1421,7 @@ class ApplicationController extends Controller
         $application = Application::findOrFail($request->id);
         $application->remark = $request->remark;
         $application->save();
-
+       
         return response()->json(['success' => true, 'message' => 'Remark updated successfully']);
     }
 }

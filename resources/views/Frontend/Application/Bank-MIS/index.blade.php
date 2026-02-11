@@ -12,6 +12,7 @@
 
         </div>
         <div class="col-sm-3">
+            <label for="type" class="form-label">Select Bank <span style="color: red;">*</span></label>
             <select class="form-select" required id="type">
                 <option value="" selected disabled>Select Bank</option>
                 @foreach($banks as $bank)
@@ -20,9 +21,16 @@
             </select>
         </div>
         <div class="col-sm-3">
+            <label for="product_type" class="form-label">Select Product <span style="color: red;">*</span></label>
             <select class="form-select" required id="product_type">
                 <option value="" selected>Select Product</option>
             </select>
+        </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-sm-3 offset-sm-6">
+            <label for="bank_mis_month" class="form-label">Select Month-Year <span style="color: red;">*</span></label>
+            <input type="month" class="form-control" id="bank_mis_month" placeholder="Select Month-Year" required>
         </div>
     </div>
 </div>
@@ -42,11 +50,13 @@
         <div class="file-container" id="cont">
             <input class="input-file" type="hidden" required name="bank_id" id="bank_id" />
             <input class="input-file" type="hidden" required name="product_id" id="product_id" />
+            <input type="hidden" name="bank_mis_month" id="bank_mis_month_input" required />
             <input class="input-file" type="file" accept=".xlsx" required name="xlsx_file" id="xlsx_file" />
             <div class="content-container">
                 <img src="{{asset('assets/images/cloud-upload-img.svg')}}" id="img">
                 <h4 id="h4">Drag Your Files here <br /> Or</h4>
                 <p id="p">Browse</p>
+                <p id="file-error" style="color: red; display: none; margin-top: 10px;">File is required <span style="color: red;">*</span></p>
             </div>
 
         </div>
@@ -71,7 +81,35 @@
             }
         });
 
-        $('#submitBtn').click(function() {
+        $('#submitBtn').click(function(e) {
+            // Validate required fields
+            let bank = $('#type').val();
+            let product = $('#product_type').val();
+            let month = $('#bank_mis_month').val();
+            let file = $('#xlsx_file').val();
+
+            let errors = [];
+
+            if (!bank) {
+                errors.push('Please select Bank');
+            }
+            if (!product) {
+                errors.push('Please select Product');
+            }
+            if (!month) {
+                errors.push('Please select Month-Year');
+            }
+            if (!file) {
+                errors.push('Please select File');
+                $('#file-error').show();
+            }
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Please fill all required fields:\n\n' + errors.join('\n'));
+                return false;
+            }
+
             $('#submitBtn').hide()
             $('.loader-1').show()
 
@@ -101,6 +139,10 @@
 
         $('#product_type').change(function() {
             $('#product_id').val($(this).val())
+        })
+
+        $('#bank_mis_month').change(function() {
+            $('#bank_mis_month_input').val($(this).val())
         })
 
 

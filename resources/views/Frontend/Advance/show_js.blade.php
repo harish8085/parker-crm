@@ -2,7 +2,7 @@
     $.fn.dataTable.ext.errMode = 'none';
     
     $(document).ready(function () {
-        var advanceId = {{ $advance->id }};
+       var advanceId = {{$advance->id}};
         
         var table = $('.data-table-logs').DataTable({
             debug: false,
