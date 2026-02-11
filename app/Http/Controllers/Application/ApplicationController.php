@@ -57,10 +57,10 @@ class ApplicationController extends Controller
 
             $query = Application::with(['bank', 'product'])->orderBy('id', 'desc');
 
-            if ($user->roles[0]->name == 'Channel' && $user->roles[0]->name == 'Associate_Channel') {
-
-                if ($user->roles[0]->name == 'Channel') {
-
+            if($user->roles[0]->name == 'Channel' || $user->roles[0]->name == 'Associate_Channel') {
+                
+                if($user->roles[0]->name == 'Channel') {
+                     
                     $channel_assign = ChannelUser::where('channel_id', Auth::id())->pluck('associate_channel_id');
 
                     // If there are channel assignments, show records where user_id is either the logged in user OR assigned associate channels
@@ -105,7 +105,11 @@ class ApplicationController extends Controller
                 if($user->roles[0]->id == 36) {
                     $query->where('status', 'approved');
                 }
- 
+
+                if($user->roles[0]->id == 35) {
+                    $query->where('status', 'pending');
+                }
+                
                 return DataTables::of($query)
                     ->addIndexColumn()
                     ->editColumn('checkbox', function ($row) {
@@ -217,6 +221,14 @@ class ApplicationController extends Controller
 
                         $settlementStatus = Settlement::where('application_id', $row->id)->first();
 
+                        $statusForUser = 'Pending';
+
+                        if(auth()->user()->roles[0]->id == 36 || auth()->user()->roles[0]->id == 35){
+                            if ( $status === 'approved') {
+                                $statusForUser = 'Approved By Maker';
+                            }
+                        }
+
                         if ($settlementStatus) {
                             switch ($settlementStatus->status) {
                                 case 'checker':
@@ -240,8 +252,8 @@ class ApplicationController extends Controller
                                     $statusText = 'Rejected';
                                     break;
                                 case 'approved':
-                                    $statusClass = 'in-progress';
-                                    $statusText = 'Approved By Maker';
+                                    $statusClass = ($statusForUser =='Pending') ? 'pending' : 'in-progress';
+                                    $statusText = $statusForUser;
                                     break;
                                 case '-':
                                 default:
@@ -267,8 +279,8 @@ class ApplicationController extends Controller
                                     $statusText = 'Rejected';
                                     break;
                                 case 'approved':
-                                        $statusClass = 'in-progress';
-                                        $statusText = 'Approved By Maker';
+                                    $statusClass = ($statusForUser =='Pending') ? 'pending' : 'in-progress';
+                                    $statusText = $statusForUser;
                                         break;
                                 case '-':
                                 default:
@@ -420,7 +432,7 @@ class ApplicationController extends Controller
                     })
                     ->editColumn('status', function ($row) {
                         $status = $row->status ?? '-';
-                        $statusClass = $status == 'in-progress' ? 'inprogress' : strtolower($status);
+                        $statusClass = ($status == 'in-progress' || $status == 'approved') ? 'inprogress' : strtolower($status);
                         $statusText = str_replace('-', ' ', $status);
                         $statusText = ucwords($statusText);
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
@@ -603,7 +615,7 @@ class ApplicationController extends Controller
             ]);
 
             // Create a new Application instance with the validated data
-            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 37 ) {
                 $user_id = $user->id;
             } else {
                 $user_id = $request->channel_sales_id;
@@ -632,12 +644,37 @@ class ApplicationController extends Controller
             $application->banker_number = $request->banker_number;
             $application->banker_email = $request->banker_email;
             $application->created_by = Auth::id();
+
+            // Auto-set parent_channel_id and sharing_commission from channel's user_commission
+            if ($user->roles[0]->id == 37) {
+                $parentChannel = ChannelUser::where('associate_channel_id', $user->id)->first();
+                if ($parentChannel) {
+                    $application->parent_channel_id = $parentChannel->channel_id;
+                    $parentUser = User::find($parentChannel->channel_id);
+                    $application->sharing_commission = $parentUser->user_commission ?? null;
+                }
+            } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+                $application->sharing_commission = $user->user_commission ?? null;
+            } else {
+                $selectedUser = User::find($user_id);
+                if ($selectedUser) {
+                    $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+                    if ($parentChannel) {
+                        $application->parent_channel_id = $parentChannel->channel_id;
+                        $parentUser = User::find($parentChannel->channel_id);
+                        $application->sharing_commission = $parentUser->user_commission ?? null;
+                    } else {
+                        $application->sharing_commission = $selectedUser->user_commission ?? null;
+                    }
+                }
+            }
+
             // Save the application to the database
             $application->save();
 
             // Send notification to admin users
             $adminUsers = User::whereHas('roles', function ($query) {
-                $query->where('id', 1); // Admin role ID
+                $query->whereIn('id', [1, 35]); // Admin and maker role ID
             })->get();
 
             foreach ($adminUsers as $adminUser) {
@@ -653,6 +690,7 @@ class ApplicationController extends Controller
 
     public function show($id)
     {
+        
         $Route = 'Edit Application';
         // Retrieve the staff member by ID
         $application = Application::findOrFail($id);
@@ -660,33 +698,35 @@ class ApplicationController extends Controller
         $banks = Bank::get();
         $channelroleId = 2;
         $salesroleId = 3;
-        if ($user->roles[0]->id == 1) {
-            $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        $sales = [];
+        $channels = [];
+        // if ($user->roles[0]->id == 1) {
+        //     $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-            $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        //     $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        //     $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        } else {
-            $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-            $channel_assign = json_decode($channel_assign, true);
-            $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+        //     $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // } else {
+        //     $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
+        //     $channel_assign = json_decode($channel_assign, true);
+        //     $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
+        //         $query->where('id', $channelroleId);
+        //     })->get();
 
-            $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
-        }
+        //     $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
+        //         $query->where('id', $salesroleId);
+        //     })->get();
+        // }
         $states = getState();
         $districts = [];
         // $products = BankProduct::where(['bank_id' => $application->bank_id, 'group' => $application->group])->get();
@@ -792,11 +832,11 @@ class ApplicationController extends Controller
 
         // Find the application by ID
         $application = Application::findOrFail($id);
-        if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
-            $application->user_id = $user->id;
-        } else {
-            $application->user_id = $request->channel_sales_id;
-        }
+        // if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
+        //     $application->user_id = $user->id;
+        // } else {
+        //     $application->user_id = $request->channel_sales_id;
+        // }
         // Update the application with the validated data
         $application->app_id = $request->app_id;
         $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));
@@ -824,6 +864,13 @@ class ApplicationController extends Controller
         $application->banker_number = $request->banker_number;
         $application->banker_email = $request->banker_email;
 
+        if ($request->sharing_commission) {
+            $application->sharing_commission = $request->sharing_commission;
+        }
+        if (Auth::user()->roles[0]->pivot->role_id == 37) {
+            $parent_channel_id = ChannelUser::where('associate_channel_id', Auth::id())->first();
+            $application->parent_channel_id = $parent_channel_id->channel_id;
+        }
         // Save the updated application to the database
         $application->save();
         if ($request->status == 'completed') {
@@ -831,8 +878,8 @@ class ApplicationController extends Controller
         } elseif ($request->status != 'rejected') {
             // Send notification to all checkers when application is approved by the maker
             if ($request->status == 'approved') {
-                // Fetch all users with 'Checker' role (assuming role_id == 4 for Checker, update if different)
-                $checkerRoleId = 35;
+                // Fetch all users with 'Checker' role (assuming role_id == 36 for Checker, update if different)
+                $checkerRoleId = 36;
                 $checkers = \App\Models\User::whereHas('roles', function ($q) use ($checkerRoleId) {
                     $q->where('id', $checkerRoleId);
                 })->get();
@@ -1134,12 +1181,25 @@ class ApplicationController extends Controller
                     $application->banker_email = trim(htmlspecialchars($row['BANKER EMAIL']));
                     $application->created_by = $createdBy;
 
+                    // Auto-set parent_channel_id and sharing_commission from channel's user_commission
+                    $selectedUser = User::find($userId);
+                    if ($selectedUser) {
+                        $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+                        if ($parentChannel) {
+                            $application->parent_channel_id = $parentChannel->channel_id;
+                            $parentUser = User::find($parentChannel->channel_id);
+                            $application->sharing_commission = $parentUser->user_commission ?? null;
+                        } else {
+                            $application->sharing_commission = $selectedUser->user_commission ?? null;
+                        }
+                    }
+
                     // Save the loan application record to the database
                     $application->save();
 
                     // Send notification to admin users
                     $adminUsers = User::whereHas('roles', function ($query) {
-                        $query->where('id', 1); // Admin role ID
+                        $query->whereIn('id', [1, 35]); // Admin and maker role ID
                     })->get();
 
                     foreach ($adminUsers as $adminUser) {

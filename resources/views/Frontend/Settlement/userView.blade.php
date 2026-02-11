@@ -8,6 +8,36 @@
                 display: none;
                 /* Hidden by default */
         }
+        .transaction-summary {
+                display: none;
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px 20px;
+                margin-bottom: 15px;
+        }
+        .transaction-summary .summary-row {
+                display: flex;
+                justify-content: space-between;
+                padding: 5px 0;
+                font-size: 14px;
+        }
+        .transaction-summary .summary-row.total {
+                border-top: 2px solid #333;
+                font-weight: bold;
+                font-size: 16px;
+                padding-top: 10px;
+                margin-top: 5px;
+        }
+        .transaction-summary .summary-label {
+                color: #666;
+        }
+        .transaction-summary .summary-value {
+                font-weight: 600;
+        }
+        #processBtn {
+                display: none;
+        }
 </style>
 @endsection
 @section('body')
@@ -17,6 +47,11 @@
         <div class="settlement-header">
                 <h3 class="settlement-heading">Settlements</h3>
                 <div class="settlement-btn-container">
+                        @if(isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]))
+                        <button class="btn btn-primary" id="processBtn" disabled>
+                                <i class="fas fa-cog"></i> Process Selected
+                        </button>
+                        @endif
 
                         <a href="{{ url('/settlement/create/upload') }}" style="text-decoration: none;">
                                 <button class="settlement-header-btn">
@@ -25,6 +60,34 @@
                         </a>
                 </div>
         </div>
+
+        @if(isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]))
+        <!-- Dynamic totals summary -->
+        <div class="p-4 pb-0">
+                <div class="transaction-summary" id="transactionSummary">
+                        <h6 class="mb-3"><strong>Selected Distribution Summary</strong></h6>
+                        <div class="summary-row">
+                                <span class="summary-label">Gross Amount:</span>
+                                <span class="summary-value" id="sumGross">₹ 0</span>
+                        </div>
+                        <div class="summary-row">
+                                <span class="summary-label">TDS (2%):</span>
+                                <span class="summary-value" id="sumTds">₹ 0</span>
+                        </div>
+                        <div class="summary-row">
+                                <span class="summary-label">Advance Deduction:</span>
+                                <span class="summary-value text-danger" id="sumAdvance">₹ 0</span>
+                        </div>
+                        <div class="summary-row total">
+                                <span class="summary-label">Net Payable:</span>
+                                <span class="summary-value text-success" id="sumNetPayable">₹ 0</span>
+                        </div>
+                        <div class="mt-2 text-muted" style="font-size: 12px;">
+                                <span id="selectedCount">0</span> distribution(s) selected
+                        </div>
+                </div>
+        </div>
+        @endif
 
         <!-- filter form -->
         <div class="bank-card p-4">
@@ -76,6 +139,11 @@
                 @include('Frontend.Settlement.Table.settlement_user_table')
         </div>
 </div>
+
+<!-- Hidden form for processing -->
+<form id="processForm" action="{{ url('/transactions/process') }}" method="POST" style="display:none;">
+        @csrf
+</form>
 @endsection
 @section('modal')
 <div class="modal" id="myModal">
@@ -160,14 +228,76 @@
 <script type="text/javascript">
                 $.fn.dataTable.ext.errMode = 'none';
 
+        @php
+                $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
+        @endphp
+
         function load_data(date = '', date_range = '', status = '') {
+                var columns = [
+                        @if($showCheckbox)
+                        {
+                                data: 'checkbox',
+                                name: 'checkbox',
+                                orderable: false,
+                                searchable: false
+                        },
+                        @endif
+                        {
+                                data: null,
+                                name: 'srno',
+                                render: function(data, type, row, meta) {
+                                        return meta.row + 1 + meta.settings._iDisplayStart;
+                                },
+                                orderable: false,
+                                searchable: false
+                        },
+                        {
+                                data: 'app_id',
+                                name: 'app_id'
+                        },
+                        {
+                                data: 'customer_name',
+                                name: 'customer_name'
+                        },
+                        {
+                                data: 'received_rate',
+                                name: 'received_rate'
+                        },
+                        {
+                                data: 'gross_amount',
+                                name: 'gross_amount'
+                        },
+                        {
+                                data: 'tds_amount',
+                                name: 'tds_amount'
+                        },
+                        {
+                                data: 'net_amount',
+                                name: 'net_amount'
+                        },
+                        {
+                                data: 'advance_flag',
+                                name: 'advance_flag'
+                        },
+                        {
+                                data: 'status',
+                                name: 'status'
+                        },
+                        {
+                                data: 'action',
+                                name: 'action',
+                                orderable: false,
+                                searchable: false
+                        },
+                ];
+
                 var table2 = $('.data-table-2').DataTable({
-                        debug: false, // Disable debugging
-                        dom: 'Bfrtip<"bottom"l>', // 'l' adds the "Show entries" dropdown
+                        debug: false,
+                        dom: 'Bfrtip<"bottom"l>',
                         lengthMenu: [
                                 [10, 25, 50, 100, 500, -1],
                                 [10, 25, 50, 100, 500, 'All']
-                        ], // Options for the "Show entries" dropdown
+                        ],
                         buttons: [
                                 {
                                         extend: 'csvHtml5',
@@ -181,15 +311,8 @@
                                                 }
                                                 return date ? ' Settlement Details From Date : ' + date : 'Settlement Details';
                                         },
-                                        customize: function(csv) {
-                                                var header = '';
-                                                if (date || date_range || status) {
-                                                        var date = $("#date option:selected").html();
-                                                        if (date) header += 'Date: ' + date + '\n';
-                                                        if (date_range == "custom") header += 'Date Range: ' + date_range + '\n';
-                                                        if (status) header += 'Status: ' + status + '\n';
-                                                }
-                                                return header + csv; // Prepend the filter information to the CSV content
+                                        exportOptions: {
+                                                columns: ':not(:first-child)'
                                         }
                                 },
                                 {
@@ -202,26 +325,8 @@
                                                 }
                                                 return date ? ' Settlement Details From Date : ' + date : 'Settlement Details';
                                         },
-                                        customize: function(xlsx) {
-                                                var sheet = xlsx.xl.worksheets['sheet1.xml']; // Access the sheet XML
-                                                // Construct the custom header
-                                                var header = '';
-                                                if (date || date_range || status) {
-                                                        var date = $("#date option:selected").html();
-                                                        if (date) header += 'Date: ' + date + '\n';
-                                                        if (date_range == "custom") header += 'Date Range: ' + date_range + '\n';
-                                                        if (status) header += 'Status: ' + status + '\n';
-                                                }
-                                                // Add the header in the first row
-                                                var rows = $('row', sheet); // Get all rows
-                                                var firstRow = rows[0]; // Access the first row
-                                                var newRow = '<row r="1">' +
-                                                        '<c t="inlineStr" r="A1"><is><t>' + header + '</t></is></c>' +
-                                                        '</row><row r="2">' +
-                                                        '<c t="inlineStr" r="A1"><is><t>' + header + '</t></is></c>' +
-                                                        '</row>';
-
-                                                $(firstRow).before(newRow); // Insert the custom header row before the first row
+                                        exportOptions: {
+                                                columns: ':not(:first-child)'
                                         }
                                 },
                                 {
@@ -234,17 +339,8 @@
                                                 }
                                                 return date ? ' Settlement Details From Date : ' + date : 'Settlement Details';
                                         },
-                                        customize: function(win) {
-                                                var filters = '';
-                                                if (date || date_range || status) {
-                                                        var date = $("#date option:selected").html();
-                                                        filters += '<h4>Filters Applied:</h4>';
-                                                        if (date) filters += '<p>Date: ' + date + '</p>';
-                                                        if (date_range == "custom") filters += '<p>Date Range: ' + date_range + '</p>';
-                                                        if (status) filters += '<p>Status: ' + status + '</p>';
-                                                }
-
-                                                $(win.document.body).prepend(filters);
+                                        exportOptions: {
+                                                columns: ':not(:first-child)'
                                         }
                                 },
                         ],
@@ -262,46 +358,7 @@
                                         console.log(xhr.responseText);
                                 },
                         },
-                        columns: [{
-                                        data: null,
-                                        name: 'srno',
-                                        render: function(data, type, row, meta) {
-                                                return meta.row + 1 + meta.settings._iDisplayStart;
-                                        },
-                                        orderable: false,
-                                        searchable: false
-                                },
-                                {
-                                        data: 'app_id',
-                                        name: 'application_id'
-                                },
-                                {
-                                        data: 'customer_name',
-                                        name: 'customer_name'
-                                },
-                                {
-                                        data: 'received_rate',
-                                        name: 'received_rate'
-                                },
-                                {
-                                        data: 'tds_amount',
-                                        name: 'tds_amount'
-                                },
-                                {
-                                        data: 'amount',
-                                        name: 'amount'
-                                },
-                                {
-                                        data: 'status',
-                                        name: 'status'
-                                },
-                                {
-                                        data: 'action',
-                                        name: 'action',
-                                        orderable: false,
-                                        searchable: false
-                                },
-                        ]
+                        columns: columns
                 });
         };
 
@@ -329,6 +386,128 @@
                 $('#refresh').click(function() {
                         window.location.reload();
                 });
+
+                @if($showCheckbox)
+                // Track selected IDs across pages
+                var selectedIds = [];
+
+                // Select All checkbox
+                $(document).on('change', '#selectAll', function() {
+                        var isChecked = $(this).is(':checked');
+                        $('.dist-checkbox').each(function() {
+                                $(this).prop('checked', isChecked);
+                                var id = $(this).val();
+                                if (isChecked && selectedIds.indexOf(id) === -1) {
+                                        selectedIds.push(id);
+                                } else if (!isChecked) {
+                                        selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                }
+                        });
+                        updateSummary();
+                });
+
+                // Individual checkbox
+                $(document).on('change', '.dist-checkbox', function() {
+                        var id = $(this).val();
+                        if ($(this).is(':checked')) {
+                                if (selectedIds.indexOf(id) === -1) {
+                                        selectedIds.push(id);
+                                }
+                        } else {
+                                selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                $('#selectAll').prop('checked', false);
+                        }
+                        updateSummary();
+                });
+
+                function formatIndianNumber(num) {
+                        num = parseFloat(num) || 0;
+                        var isNeg = num < 0;
+                        num = Math.abs(num);
+                        var parts = num.toFixed(2).split('.');
+                        var intPart = parts[0];
+                        var decPart = parts[1];
+                        var lastThree = intPart.substring(intPart.length - 3);
+                        var otherNumbers = intPart.substring(0, intPart.length - 3);
+                        if (otherNumbers !== '') {
+                                lastThree = ',' + lastThree;
+                        }
+                        var formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree + '.' + decPart;
+                        return (isNeg ? '-' : '') + formatted;
+                }
+
+                function updateSummary() {
+                        var count = selectedIds.length;
+                        $('#selectedCount').text(count);
+
+                        if (count > 0) {
+                                $('#transactionSummary').slideDown();
+                                $('#processBtn').show().prop('disabled', false);
+
+                                // Immediate client-side calculation from data attributes
+                                var clientGross = 0, clientTds = 0, clientNet = 0;
+                                $('.dist-checkbox:checked').each(function() {
+                                        clientGross += parseFloat($(this).data('gross')) || 0;
+                                        clientTds += parseFloat($(this).data('tds')) || 0;
+                                        clientNet += parseFloat($(this).data('net')) || 0;
+                                });
+
+                                // Show instant client-side totals
+                                $('#sumGross').text('₹ ' + formatIndianNumber(clientGross));
+                                $('#sumTds').text('₹ ' + formatIndianNumber(clientTds));
+                                $('#sumNetPayable').text('₹ ' + formatIndianNumber(clientNet));
+                                $('#sumAdvance').text('₹ 0.00');
+
+                                // AJAX call to refine with advance amounts from server
+                                $.ajax({
+                                        url: "{{ url('/transactions/calculate-totals') }}",
+                                        method: 'POST',
+                                        data: {
+                                                _token: '{{ csrf_token() }}',
+                                                distribution_ids: selectedIds
+                                        },
+                                        success: function(response) {
+                                                $('#sumGross').text(response.gross_formatted);
+                                                $('#sumTds').text(response.tds_formatted);
+                                                $('#sumAdvance').text(response.advance_formatted);
+                                                $('#sumNetPayable').text(response.net_payable_formatted);
+                                        },
+                                        error: function(xhr) {
+                                                console.log('Error calculating totals:', xhr.responseText);
+                                                // Client-side totals already displayed as fallback
+                                        }
+                                });
+                        } else {
+                                $('#transactionSummary').slideUp();
+                                $('#processBtn').hide().prop('disabled', true);
+                                $('#sumGross').text('₹ 0');
+                                $('#sumTds').text('₹ 0');
+                                $('#sumAdvance').text('₹ 0');
+                                $('#sumNetPayable').text('₹ 0');
+                        }
+                }
+
+                // Process button click
+                $(document).on('click', '#processBtn', function() {
+                        if (selectedIds.length === 0) {
+                                alert('Please select at least one distribution.');
+                                return;
+                        }
+
+                        if (!confirm('Are you sure you want to process ' + selectedIds.length + ' distribution(s) into a transaction?')) {
+                                return;
+                        }
+
+                        var form = $('#processForm');
+                        form.find('input[name^="distribution_ids"]').remove();
+
+                        selectedIds.forEach(function(id) {
+                                form.append('<input type="hidden" name="distribution_ids[]" value="' + id + '">');
+                        });
+
+                        form.submit();
+                });
+                @endif
         });
 </script>
 @endsection

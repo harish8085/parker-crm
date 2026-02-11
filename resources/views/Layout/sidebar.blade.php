@@ -78,6 +78,22 @@
                     </a>
                 </li>
                 @endif
+
+                @if(auth()->user()->hasPermission('settlement','view') || in_array(auth()->user()->roles[0]->id, [2, 3]))
+                <li class="list-item {{(Request::path() == 'transactions')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'transactions')?'active-li':''}}" href="{{url('transactions')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'transactions')?'assets/images/settlement-active.svg':'assets/images/settlement.svg')}}" alt="error">Transactions
+                    </a>
+                </li>
+                @endif
+
+                @if(auth()->user()->hasPermission('settlement','view') || in_array(auth()->user()->roles[0]->id, [2, 3]))
+                <li class="list-item {{(Request::path() == 'transactions')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'transactions')?'active-li':''}}" href="{{url('transactions')}}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'transactions')?'assets/images/settlement-active.svg':'assets/images/settlement.svg')}}" alt="error">Transactions
+                    </a>
+                </li>
+                @endif
                 @if(auth()->user()->hasPermission('dsa-code','view'))
                 <li class="list-item {{(Request::path() == 'dsa-code')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'dsa-code')?'active-li':''}}" href="{{url('dsa-code')}}">

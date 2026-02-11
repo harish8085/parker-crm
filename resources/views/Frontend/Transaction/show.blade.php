@@ -1,0 +1,289 @@
+@extends('Layout.app')
+@section('style')
+<link rel="stylesheet" href="{{asset('assets/css/settlement.css')}}">
+<link rel="stylesheet" href="{{asset('assets/css/custom-table.css')}}">
+<style>
+    .invoice-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+    .invoice-header {
+        border-bottom: 2px solid #333;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+    .invoice-header h4 {
+        margin: 0;
+        font-weight: 700;
+    }
+    .invoice-meta {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .invoice-meta-item {
+        flex: 1;
+        min-width: 150px;
+    }
+    .invoice-meta-item label {
+        display: block;
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .invoice-meta-item span {
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .summary-table {
+        width: 100%;
+        max-width: 400px;
+        margin-left: auto;
+    }
+    .summary-table td {
+        padding: 8px 12px;
+    }
+    .summary-table .label-td {
+        text-align: right;
+        color: #666;
+    }
+    .summary-table .value-td {
+        text-align: right;
+        font-weight: 600;
+    }
+    .summary-table .total-row td {
+        border-top: 2px solid #333;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .status-badge.approved {
+        background: #cce5ff;
+        color: #004085;
+    }
+    .status-badge.completed {
+        background: #d4edda;
+        color: #155724;
+    }
+    .dist-table th {
+        background: #f8f9fa;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .dist-table td {
+        font-size: 14px;
+    }
+</style>
+@endsection
+@section('body')
+
+<div class="card">
+    <div class="settlement-header">
+        <h3 class="settlement-heading">Transaction Detail</h3>
+        <div class="settlement-btn-container">
+            <a href="{{ url('/transactions') }}" style="text-decoration: none;">
+                <button class="settlement-header-btn">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+            </a>
+        </div>
+    </div>
+
+    <div class="p-4">
+        <!-- Invoice Header -->
+        <div class="invoice-card">
+            <div class="invoice-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4>Transaction Invoice #{{ $transaction->id }}</h4>
+                    <span class="status-badge {{ $transaction->status }}">{{ ucwords($transaction->status) }}</span>
+                </div>
+            </div>
+
+            <!-- Transaction Meta -->
+            <div class="invoice-meta mb-4">
+                <div class="invoice-meta-item">
+                    <label>Channel</label>
+                    <span>{{ $channelUser ? $channelUser->first_name . ' ' . $channelUser->last_name : 'N/A' }}</span>
+                </div>
+                <div class="invoice-meta-item">
+                    <label>Created Date</label>
+                    <span>{{ $transaction->created_at->format('d M Y, h:i A') }}</span>
+                </div>
+                @if($transaction->approved_at)
+                <div class="invoice-meta-item">
+                    <label>Approved Date</label>
+                    <span>{{ $transaction->approved_at->format('d M Y, h:i A') }}</span>
+                </div>
+                @endif
+                @if($transaction->completed_at)
+                <div class="invoice-meta-item">
+                    <label>Completed Date</label>
+                    <span>{{ $transaction->completed_at->format('d M Y, h:i A') }}</span>
+                </div>
+                @endif
+            </div>
+
+            <!-- Application-wise Distribution -->
+            <h6 class="mb-3"><strong>Application-wise Breakdown</strong></h6>
+            <div class="table-responsive">
+                <table class="table table-bordered dist-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Application No.</th>
+                            <th>Customer Name</th>
+                            <th>Gross Amount</th>
+                            <th>TDS</th>
+                            <th>Advance</th>
+                            <th>Net Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($transaction->items as $index => $item)
+                        @php
+                            $app = $item->settlementDistribution && $item->settlementDistribution->application_id
+                                ? \App\Models\Application::find($item->settlementDistribution->application_id)
+                                : null;
+                        @endphp
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $app->app_id ?? 'N/A' }}</td>
+                            <td>{{ $app->customer_name ?? '-' }}</td>
+                            <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
+                            <td>₹ {{ indianNumberFormat($item->tds) }}</td>
+                            <td>
+                                @if($item->advance_amount > 0)
+                                    <span class="text-danger">₹ {{ indianNumberFormat($item->advance_amount) }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>₹ {{ indianNumberFormat($item->net_amount) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Summary -->
+            <table class="summary-table">
+                <tr>
+                    <td class="label-td">Gross Amount:</td>
+                    <td class="value-td">₹ {{ indianNumberFormat($transaction->gross_amount) }}</td>
+                </tr>
+                <tr>
+                    <td class="label-td">TDS (2%):</td>
+                    <td class="value-td">₹ {{ indianNumberFormat($transaction->tds_amount) }}</td>
+                </tr>
+                @if($transaction->advance_amount > 0)
+                <tr>
+                    <td class="label-td">Advance Deduction:</td>
+                    <td class="value-td text-danger">- ₹ {{ indianNumberFormat($transaction->advance_amount) }}</td>
+                </tr>
+                @endif
+                <tr class="total-row">
+                    <td class="label-td">Net Payable:</td>
+                    <td class="value-td text-success">₹ {{ indianNumberFormat($transaction->net_payable) }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Bank Allocation Details (if approved/completed) -->
+        @if($transaction->bankAllocations->count() > 0)
+        <div class="invoice-card">
+            <h6 class="mb-3"><strong>Bank Account Allocations</strong></h6>
+            <div class="table-responsive">
+                <table class="table table-bordered dist-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Bank Name</th>
+                            <th>Account Number</th>
+                            <th>IFSC Code</th>
+                            <th>Amount</th>
+                            <th>UTR Number</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($transaction->bankAllocations as $index => $allocation)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $allocation->bankAccount->bank_name ?? 'N/A' }}</td>
+                            <td>{{ $allocation->bankAccount->account_number ?? 'N/A' }}</td>
+                            <td>{{ $allocation->bankAccount->ifsc_code ?? 'N/A' }}</td>
+                            <td>₹ {{ indianNumberFormat($allocation->amount) }}</td>
+                            <td>{{ $allocation->utr_number ?? '-' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
+        <!-- Action buttons based on role -->
+        <div class="d-flex justify-content-end gap-2 mt-3">
+            @php $roleId = auth()->user()->roles[0]->id; @endphp
+
+            @if(in_array($roleId, [2, 3]) && $transaction->status === 'pending')
+                <a href="{{ url('/transactions/approve/' . $transaction->id) }}" class="btn btn-primary">
+                    <i class="fas fa-check-circle"></i> Approve & Add Bank Details
+                </a>
+            @endif
+
+            @if($roleId == 36 && $transaction->status === 'approved')
+                <button class="btn btn-success complete-transaction-btn" data-id="{{ $transaction->id }}">
+                    <i class="fas fa-check"></i> Mark as Completed
+                </button>
+            @endif
+        </div>
+    </div>
+</div>
+@endsection
+@section('script')
+<script type="text/javascript">
+    $(document).ready(function() {
+        // Complete transaction button
+        $('.complete-transaction-btn').click(function() {
+            var transactionId = $(this).data('id');
+            if (!confirm('Are you sure you want to mark this transaction as completed?')) {
+                return;
+            }
+
+            $.ajax({
+                url: '/transactions/complete/' + transactionId,
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    alert(response.success);
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON ? xhr.responseJSON.error : 'Error completing transaction.';
+                    alert(msg);
+                }
+            });
+        });
+    });
+</script>
+@endsection

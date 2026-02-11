@@ -12,13 +12,17 @@ class SettlementDistribution extends Model
     protected $fillable = [
         'settlement_id',
         'user_id',
-        'tds',                             
+        'application_id',
+        'received_rate',
+        'gross_amount',
+        'tds',
         'bank_account_id',
         'amount',
         'utr_number',
         'payment_status',
         'rejection_reason',
-        'file_name'
+        'file_name',
+        'transaction_id'
     ];
 
     public function settlement()
@@ -34,5 +38,21 @@ class SettlementDistribution extends Model
     public function bankAccount()
     {
         return $this->belongsTo(BankData::class);
+    }
+
+    /**
+     * The application this distribution relates to.
+     */
+    public function application()
+    {
+        return $this->belongsTo(Application::class, 'application_id');
+    }
+
+    /**
+     * The transaction this distribution belongs to (if processed).
+     */
+    public function transaction()
+    {
+        return $this->belongsTo(Transaction::class);
     }
 }

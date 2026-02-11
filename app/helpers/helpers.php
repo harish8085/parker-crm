@@ -555,6 +555,7 @@ if (!function_exists('getData')) {
                         "Katni",
                         "Khandwa",
                         "Khargone",
+                        "Kukshi",
                         "Mandla",
                         "Mandsaur",
                         "Morena",

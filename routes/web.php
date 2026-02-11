@@ -21,6 +21,7 @@ use App\Http\Controllers\Remark\RemarkController;
 use App\Http\Controllers\Setting\BankPayoutController;
 use App\Http\Controllers\Setting\ServiceController;
 use App\Http\Controllers\Settlement\SettlementController;
+use App\Http\Controllers\Transaction\TransactionController;
 use App\Http\Controllers\SheetMatching\SheetMatchingController;
 use App\Http\Controllers\SampleSheet\SampleSheetController;
 use App\Http\Controllers\Staff\PermissionController;
@@ -127,6 +128,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/getProduct', [BankProductController::class, 'getProduct']);
     Route::post('/getAllProduct', [BankProductController::class, 'getAllProduct']);
     Route::post('/getServiceProduct', [ServiceController::class, 'getServiceProduct']);
+    Route::post('/getUserCommission', [ApplicationController::class, 'getUserCommission']);
 
     //Manage Permission Route
     Route::get('/sheet-matching', [SheetMatchingController::class, 'index'])->name('sheet-matching.index');
@@ -183,6 +185,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+    // Transaction endpoints (under CheckLogin so they bypass CheckPermission)
+    Route::post('/transactions/process', [TransactionController::class, 'process'])->name('transactions.process');
+    Route::post('/transactions/calculate-totals', [TransactionController::class, 'calculateTotals'])->name('transactions.calculate-totals');
+    Route::get('/transactions/approve/{id}', [TransactionController::class, 'approveForm'])->name('transactions.approve.form');
+    Route::post('/transactions/approve/{id}', [TransactionController::class, 'approve'])->name('transactions.approve');
+    Route::post('/transactions/complete/{id}', [TransactionController::class, 'complete'])->name('transactions.complete');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {
@@ -221,6 +230,10 @@ Route::middleware([CheckPermission::class])->group(function () {
 
     Route::get('/settlement/create/upload', [SettlementController::class, 'uploadView']);
     Route::post('/settlement/create/upload', [SettlementController::class, 'storeExcel']);
+
+    // Transaction Routes (list and view under permission check)
+    Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+    Route::get('/transactions/view/{id}', [TransactionController::class, 'show'])->name('transactions.show');
 
     //Bank Route
     Route::get('/dsa-code', [DSAController::class, 'index'])->name('dsa.index');
