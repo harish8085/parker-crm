@@ -64,15 +64,15 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             @if($application->parentChannel)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Parent Channel </label>
-                <input class="bank-detail-input form-control"  disabled type="text" name="parent_channel_id" id="parent_channel_id" placeholder="Enter parent channel"  value="{{$application->parentChannel->first_name . ' '. $application->parentChannel->last_name}}" disabled />
+                <input class="bank-detail-input form-control" disabled type="text" name="parent_channel_id" id="parent_channel_id" placeholder="Enter parent channel" value="{{$application->parentChannel->first_name . ' '. $application->parentChannel->last_name}}" disabled />
             </div>
             @endif
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Channel Partner </label>
-                <input class="bank-detail-input form-control"  disabled type="text" name="channel_partner" id="channel_partner" placeholder="Enter channel partner"  value="{{$application->user->first_name . ' '. $application->user->last_name}}" disabled />
+                <input class="bank-detail-input form-control" disabled type="text" name="channel_partner" id="channel_partner" placeholder="Enter channel partner" value="{{$application->user->first_name . ' '. $application->user->last_name}}" disabled />
             </div>
             @endif
-            
+
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Application Number/LAN No.
                     @if($application->bank_mis_id && $application->bankData)
@@ -140,7 +140,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                     <span class="required {{(strtolower($application->case_location) == strtolower($application->bankData->case_location)?'text-success':'')}}">({{($application->bankData->case_location? $application->bankData->case_location:'')}})</span>
                     @endif
                 </label>
-                <select class="bank-detail-input form-select"  name="case_location" id="case_location">
+                <select class="bank-detail-input form-select" name="case_location" id="case_location">
                     <option value="" selected disabled>Select District</option>
                     @foreach($districts as $district)
                     <option value="{{$district}}" @if($district==$application->case_location) selected @endif>{{$district}}</option>
@@ -232,7 +232,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Commission Rate
-                    @if($application->bank_mis_id && $application->bankData) 
+                    @if($application->bank_mis_id && $application->bankData)
                     <span class="required {{(strtolower($application->commission_rate) == strtolower($application->bankData->payout_rate)?'text-success':'')}}">* ({{($application->bankData->payout_rate? $application->bankData->payout_rate:'')}})</span>
                     <i
                         class="fa fa-copy"
@@ -245,7 +245,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate" value="{{$application->commission_rate}}">
             </div>
 
-            @if(Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
+            @if(Auth::user()->roles[0]->pivot->role_id == 1 || Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Sharing Commission</label>
@@ -287,15 +287,14 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select Status<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="status" id="status">
-                    <option value="pending" @if($application->status =='pending') selected @endif>Pending</option>
-                    @if(Auth::user()->roles[0]->name =='Maker') 
+                    @if(Auth::user()->roles[0]->pivot->role_id == 1 || Auth::user()->roles[0]->pivot->role_id == 35)
                     <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
-                    @else($application->status =='in-progress')
-                    <option value="in-progress" @if($application->status =='in-progress') selected @endif>In progress</option>
+                    @endif
+                    @if(Auth::user()->roles[0]->pivot->role_id == 36)
+                    <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
                     <option value="completed" @if($application->status =='completed') selected @endif>Completed</option>
                     @endif
                     <option value="rejected" @if($application->status =='rejected') selected @endif>Rejected</option>
-
                 </select>
             </div>
             @endif
@@ -307,12 +306,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
 
     <div class="save-btn-container">
-        <button class="save-btn" id="submitBtn">Save</button>
+        <button class="btn btn-primary" id="submitBtn">Save</button>
+        <button class="btn btn-secondary" onclick="window.location.href='{{ url('/application') }}'; return false;">Cancel</button>
     </div>
 
-    <div class="save-btn-container">
-        <a class="save-btn" href="{{url('application')}}">Cancel</a>
-    </div>
 </form>
 
 @endsection
@@ -495,7 +492,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             } else {
                 $('#customer_name').addClass('is-valid').removeClass('is-invalid');
             }
-           
+
 
 
             if (!$('#bank_id').val()) {
@@ -541,6 +538,21 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
             } else {
                 $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
+            }
+
+            // Validate Sharing Commission when approving (for Admin, Maker, and Checker)
+            var status = $('#status').val();
+            var roleId2 = `{{Auth::user()->roles[0]->pivot->role_id}}`;
+            if (status === 'approved' && (roleId2 == 1 || roleId2 == 35 || roleId2 == 36)) {
+                if (!$('#sharing_commission').val() || $('#sharing_commission').val().trim() === '') {
+                    alert('Sharing Commission field cannot be empty when approving an application!');
+                    $('#sharing_commission').removeClass('is-valid').addClass('is-invalid');
+                    $('#sharing_commission').focus();
+                    isValid = false;
+                    return false;
+                } else {
+                    $('#sharing_commission').addClass('is-valid').removeClass('is-invalid');
+                }
             }
 
             var roleId = `{{Auth::user()->roles[0]->pivot->role_id}}`;
@@ -600,15 +612,14 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         }
 
     });
-    
-    function copyValue(selectedValue) {
-            // Copy the selected value to the clipboard
-            navigator.clipboard.writeText(selectedValue).then(() => {
-                alert(`Copied`);
-            }).catch(err => {
-                console.error('Error copying text: ', err);
-            });
-        }
 
+    function copyValue(selectedValue) {
+        // Copy the selected value to the clipboard
+        navigator.clipboard.writeText(selectedValue).then(() => {
+            alert(`Copied`);
+        }).catch(err => {
+            console.error('Error copying text: ', err);
+        });
+    }
 </script>
 @endsection

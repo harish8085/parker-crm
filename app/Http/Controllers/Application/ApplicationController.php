@@ -832,6 +832,17 @@ class ApplicationController extends Controller
 
         // Find the application by ID
         $application = Application::findOrFail($id);
+        
+        // Validate Sharing Commission when approving (for Admin, Maker, and Checker)
+        $roleId = $user->roles[0]->pivot->role_id;
+        if ($request->status === 'approved' && ($roleId == 1 || $roleId == 35 || $roleId == 36)) {
+            if (empty($request->sharing_commission)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['sharing_commission' => 'Sharing Commission field cannot be empty when approving an application.']);
+            }
+        }
+        
         // if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
         //     $application->user_id = $user->id;
         // } else {

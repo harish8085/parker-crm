@@ -969,6 +969,7 @@ if (!function_exists('getData')) {
                         "Fatehpur",
                         "Firozabad",
                         "Gautam Buddh Nagar",
+                        "Gurugram",
                         "Ghaziabad",
                         "Ghazipur",
                         "Gonda",

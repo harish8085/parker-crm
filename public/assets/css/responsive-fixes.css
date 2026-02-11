@@ -147,12 +147,12 @@
     }
     
     .main-container {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 240px;
+        width: calc(100% - 240px);
     }
     
     .navbar-container {
-        width: calc(100% - 220px);
+        width: calc(100% - 240px);
         padding: 10px 30px;
     }
     
@@ -203,12 +203,12 @@
     }
     
     .main-container {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 240px;
+        width: calc(100% - 240px);
     }
     
     .navbar-container {
-        width: calc(100% - 220px);
+        width: calc(100% - 240px);
         padding: 8px 35px;
     }
     
@@ -298,12 +298,12 @@
 /* Large desktop devices (1367px to 1440px) */
 @media (min-width: 1367px) and (max-width: 1440px) {
     .main-container {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 240px;
+        width: calc(100% - 240px);
     }
     
     .navbar-container {
-        width: calc(100% - 220px);
+        width: calc(100% - 240px);
     }
     
     .dashboard-content {
@@ -324,12 +324,12 @@
 /* Extra large devices (large desktops, 1201px and up) */
 @media (min-width: 1201px) {
     .main-container {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 240px;
+        width: calc(100% - 240px);
     }
     
     .navbar-container {
-        width: calc(100% - 220px);
+        width: calc(100% - 240px);
     }
     
     /* Larger spacing for big screens */
