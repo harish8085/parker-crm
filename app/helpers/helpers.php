@@ -705,6 +705,7 @@ if (!function_exists('getData')) {
                         "Angul",
                         "Balangir",
                         "Balasore",
+                        "Bhubaneswar",
                         "Bargarh",
                         "Bhadrak",
                         "Boudh",
