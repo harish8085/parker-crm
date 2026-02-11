@@ -54,6 +54,11 @@ class SettlementController extends Controller
                     $query->whereIn('settlement_id', $settlementIds);
                 }
 
+                // Hide completed/paid distributions
+                $query->where(function ($q) {
+                    $q->whereNull('payment_status')->orWhere('payment_status', '!=', 'Success');
+                });
+
                 // Date filter
                 if ($request->date) {
                     $now = Carbon::now();
@@ -106,6 +111,17 @@ class SettlementController extends Controller
 
                 return DataTables::of($query)
                     ->addIndexColumn()
+                    ->addColumn('checkbox', function ($row) use ($p) {
+                        $roleId = auth()->user()->roles[0]->id;
+                        // Only show checkboxes for admin/maker/checker and only if distribution is not yet in a transaction
+                        if ($p && in_array($roleId, [1, 35, 36]) && is_null($row->transaction_id)) {
+                            return '<input type="checkbox" class="dist-checkbox" value="' . $row->id . '" data-gross="' . ($row->gross_amount ?? 0) . '" data-tds="' . ($row->tds ?? 0) . '" data-net="' . ($row->amount ?? 0) . '">';
+                        }
+                        if ($p && in_array($roleId, [1, 35, 36]) && !is_null($row->transaction_id)) {
+                            return '<span class="badge bg-secondary">Processed</span>';
+                        }
+                        return '';
+                    })
                     ->addColumn('app_id', function ($row) {
                         $application = DB::table('applications')->where('id', $row->application_id)->first();
                         return $application ? $application->app_id : 'N/A';
@@ -151,7 +167,7 @@ class SettlementController extends Controller
                         }
                         return $buttons;
                     })
-                    ->rawColumns(['advance_flag', 'status', 'action'])
+                    ->rawColumns(['checkbox', 'advance_flag', 'status', 'action'])
                     ->make(true);
             }
             return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p'));
