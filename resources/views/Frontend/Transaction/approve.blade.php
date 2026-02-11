@@ -84,11 +84,11 @@
             <h6 class="mb-3"><strong>Transaction Summary</strong></h6>
             <div class="summary-info">
                 <div class="summary-info-item">
-                    <span class="label">Gross Amount</span>
+                    <span class="label">Commission Amount</span>
                     <span class="value">₹ {{ indianNumberFormat($transaction->gross_amount) }}</span>
                 </div>
                 <div class="summary-info-item">
-                    <span class="label">TDS (2%)</span>
+                    <span class="label">TDS ({{ $tdsPercentage }}%)</span>
                     <span class="value">₹ {{ indianNumberFormat($transaction->tds_amount) }}</span>
                 </div>
                 <div class="summary-info-item">
@@ -112,7 +112,7 @@
                             <th>#</th>
                             <th>Application No.</th>
                             <th>Customer Name</th>
-                            <th>Gross Amount</th>
+                            <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Net Amount</th>
                         </tr>

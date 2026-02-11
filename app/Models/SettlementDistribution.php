@@ -16,6 +16,7 @@ class SettlementDistribution extends Model
         'received_rate',
         'gross_amount',
         'tds',
+        'tds_percentage',
         'bank_account_id',
         'amount',
         'utr_number',

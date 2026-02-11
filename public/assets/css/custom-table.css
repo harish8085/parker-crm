@@ -48,6 +48,10 @@ button.status-buttons {
     background-color: #42cc7d;
 }
 
+.approved {
+    background-color: #2196F3;
+}
+
 .inprogress,
 .in-progress,
 .checker {
@@ -59,7 +63,7 @@ button.status-buttons {
 }
 
 .total {
-    background-color: #5e5e5e;
+    background-color: #f9f2f2;
 }
 
 ul.dropdown-menu.show {

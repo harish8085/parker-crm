@@ -98,10 +98,11 @@ class ProcessSettlement implements ShouldQueue
         $settlement_distribution->user_id = $application->user_id;
         $settlement_distribution->application_id = $application->id;
         $settlement_distribution->received_rate = $percentage;
-        $settlement_distribution->gross_amount = $grossAmount;
+        $settlement_distribution->gross_amount = $amount; // commission amount (not bank payout)
         $settlement_distribution->amount = $netAmount;
         $settlement_distribution->bank_account_id = $bank_data ? $bank_data->id : null;
         $settlement_distribution->tds = $tds;
+        $settlement_distribution->tds_percentage = $tds_percentage;
         $settlement_distribution->save();
         Log::info('Settlement distribution created for application: ' . $application->id);
     }

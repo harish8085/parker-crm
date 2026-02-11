@@ -10,30 +10,51 @@
         }
         .transaction-summary {
                 display: none;
-                background: #f8f9fa;
+                background: #ffffff;
                 border: 1px solid #dee2e6;
                 border-radius: 8px;
                 padding: 15px 20px;
                 margin-bottom: 15px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .transaction-summary .summary-row {
                 display: flex;
                 justify-content: space-between;
-                padding: 5px 0;
+                padding: 8px 0;
                 font-size: 14px;
+                border-bottom: 1px solid #f0f0f0;
+        }
+        .transaction-summary .summary-row:last-child {
+                border-bottom: none;
         }
         .transaction-summary .summary-row.total {
                 border-top: 2px solid #333;
+                border-bottom: none;
                 font-weight: bold;
-                font-size: 16px;
-                padding-top: 10px;
+                font-size: 18px;
+                padding-top: 12px;
                 margin-top: 5px;
         }
         .transaction-summary .summary-label {
-                color: #666;
+                color: #0a0000;
+                font-weight: 500;
         }
         .transaction-summary .summary-value {
-                font-weight: 600;
+                font-weight: 700;
+                color: #333;
+        }
+        .transaction-summary .summary-value.val-gross {
+                color: #333;
+        }
+        .transaction-summary .summary-value.val-tds {
+                color: #555;
+        }
+        .transaction-summary .summary-value.val-advance {
+                color: #dc3545;
+        }
+        .transaction-summary .summary-value.val-net {
+                color: #28a745;
+                font-size: 20px;
         }
         #processBtn {
                 display: none;
@@ -62,25 +83,56 @@
         </div>
 
         @if(isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]))
+        <!-- Channel Advance Balance Info -->
+        @if(($channelAdvance ?? 0) > 0)
+        <div class="p-4 pb-0">
+                <div class="alert alert-warning d-flex align-items-center mb-0" style="border-radius: 8px;">
+                        <i class="fas fa-info-circle me-2" style="font-size: 18px;"></i>
+                        <span>Channel Advance Balance: <strong>₹ {{ indianNumberFormat($channelAdvance) }}</strong></span>
+                </div>
+        </div>
+        @endif
+
         <!-- Dynamic totals summary -->
         <div class="p-4 pb-0">
                 <div class="transaction-summary" id="transactionSummary">
                         <h6 class="mb-3"><strong>Selected Distribution Summary</strong></h6>
                         <div class="summary-row">
-                                <span class="summary-label">Gross Amount:</span>
-                                <span class="summary-value" id="sumGross">₹ 0</span>
+                                <span class="summary-label">Commission Amount:</span>
+                                <span class="summary-value val-gross" id="sumGross">₹ 0</span>
                         </div>
                         <div class="summary-row">
-                                <span class="summary-label">TDS (2%):</span>
-                                <span class="summary-value" id="sumTds">₹ 0</span>
+                                <span class="summary-label">TDS ({{ $tdsPercentage }}%):</span>
+                                <span class="summary-value val-tds" id="sumTds">₹ 0</span>
                         </div>
+
+                        <!-- Advance Deduction: checker-only controls -->
+                        @if(auth()->user()->roles[0]->id == 36 && ($channelAdvance ?? 0) > 0)
+                        <div class="summary-row" style="align-items: center;">
+                                <span class="summary-label">
+                                        <label style="cursor: pointer; margin: 0;">
+                                                <input type="checkbox" id="deductAdvanceCheck" style="margin-right: 6px; transform: scale(1.2); cursor: pointer;">
+                                                Deduct Advance
+                                        </label>
+                                </span>
+                                <span class="summary-value val-advance" id="sumAdvance">₹ 0</span>
+                        </div>
+                        <div class="summary-row" id="advanceInputRow" style="display: none; align-items: center; padding: 8px 0;">
+                                <span class="summary-label">Advance Amount (max ₹ {{ indianNumberFormat($channelAdvance) }}):</span>
+                                <span>
+                                        <input type="number" id="advanceAmountInput" class="form-control form-control-sm" style="width: 160px; display: inline-block; font-weight: 600;" step="0.01" min="0" max="{{ $channelAdvance }}" value="{{ $channelAdvance }}">
+                                </span>
+                        </div>
+                        @else
                         <div class="summary-row">
                                 <span class="summary-label">Advance Deduction:</span>
-                                <span class="summary-value text-danger" id="sumAdvance">₹ 0</span>
+                                <span class="summary-value val-advance" id="sumAdvance">₹ 0</span>
                         </div>
+                        @endif
+
                         <div class="summary-row total">
                                 <span class="summary-label">Net Payable:</span>
-                                <span class="summary-value text-success" id="sumNetPayable">₹ 0</span>
+                                <span class="summary-value val-net" id="sumNetPayable">₹ 0</span>
                         </div>
                         <div class="mt-2 text-muted" style="font-size: 12px;">
                                 <span id="selectedCount">0</span> distribution(s) selected
@@ -436,6 +488,16 @@
                         return (isNeg ? '-' : '') + formatted;
                 }
 
+                // Get current advance deduction amount
+                function getAdvanceDeduction() {
+                        var advanceCheckbox = document.getElementById('deductAdvanceCheck');
+                        var advanceInput = document.getElementById('advanceAmountInput');
+                        if (advanceCheckbox && advanceCheckbox.checked && advanceInput) {
+                                return parseFloat(advanceInput.value) || 0;
+                        }
+                        return 0;
+                }
+
                 function updateSummary() {
                         var count = selectedIds.length;
                         $('#selectedCount').text(count);
@@ -444,7 +506,7 @@
                                 $('#transactionSummary').slideDown();
                                 $('#processBtn').show().prop('disabled', false);
 
-                                // Immediate client-side calculation from data attributes
+                                // Client-side calculation from data attributes
                                 var clientGross = 0, clientTds = 0, clientNet = 0;
                                 $('.dist-checkbox:checked').each(function() {
                                         clientGross += parseFloat($(this).data('gross')) || 0;
@@ -452,31 +514,14 @@
                                         clientNet += parseFloat($(this).data('net')) || 0;
                                 });
 
-                                // Show instant client-side totals
+                                var advanceDeduction = getAdvanceDeduction();
+                                var netPayable = clientNet - advanceDeduction;
+                                if (netPayable < 0) netPayable = 0;
+
                                 $('#sumGross').text('₹ ' + formatIndianNumber(clientGross));
                                 $('#sumTds').text('₹ ' + formatIndianNumber(clientTds));
-                                $('#sumNetPayable').text('₹ ' + formatIndianNumber(clientNet));
-                                $('#sumAdvance').text('₹ 0.00');
-
-                                // AJAX call to refine with advance amounts from server
-                                $.ajax({
-                                        url: "{{ url('/transactions/calculate-totals') }}",
-                                        method: 'POST',
-                                        data: {
-                                                _token: '{{ csrf_token() }}',
-                                                distribution_ids: selectedIds
-                                        },
-                                        success: function(response) {
-                                                $('#sumGross').text(response.gross_formatted);
-                                                $('#sumTds').text(response.tds_formatted);
-                                                $('#sumAdvance').text(response.advance_formatted);
-                                                $('#sumNetPayable').text(response.net_payable_formatted);
-                                        },
-                                        error: function(xhr) {
-                                                console.log('Error calculating totals:', xhr.responseText);
-                                                // Client-side totals already displayed as fallback
-                                        }
-                                });
+                                $('#sumAdvance').text('₹ ' + formatIndianNumber(advanceDeduction));
+                                $('#sumNetPayable').text('₹ ' + formatIndianNumber(netPayable));
                         } else {
                                 $('#transactionSummary').slideUp();
                                 $('#processBtn').hide().prop('disabled', true);
@@ -486,6 +531,30 @@
                                 $('#sumNetPayable').text('₹ 0');
                         }
                 }
+
+                // Checker advance checkbox toggle
+                $(document).on('change', '#deductAdvanceCheck', function() {
+                        if ($(this).is(':checked')) {
+                                $('#advanceInputRow').slideDown();
+                        } else {
+                                $('#advanceInputRow').slideUp();
+                                $('#advanceAmountInput').val({{ $channelAdvance ?? 0 }});
+                        }
+                        updateSummary();
+                });
+
+                // Advance amount input change
+                $(document).on('input', '#advanceAmountInput', function() {
+                        var maxAdvance = {{ $channelAdvance ?? 0 }};
+                        var val = parseFloat($(this).val()) || 0;
+                        if (val > maxAdvance) {
+                                $(this).val(maxAdvance);
+                        }
+                        if (val < 0) {
+                                $(this).val(0);
+                        }
+                        updateSummary();
+                });
 
                 // Process button click
                 $(document).on('click', '#processBtn', function() {
@@ -500,10 +569,15 @@
 
                         var form = $('#processForm');
                         form.find('input[name^="distribution_ids"]').remove();
+                        form.find('input[name="advance_amount"]').remove();
 
                         selectedIds.forEach(function(id) {
                                 form.append('<input type="hidden" name="distribution_ids[]" value="' + id + '">');
                         });
+
+                        // Add advance amount
+                        var advanceAmount = getAdvanceDeduction();
+                        form.append('<input type="hidden" name="advance_amount" value="' + advanceAmount + '">');
 
                         form.submit();
                 });

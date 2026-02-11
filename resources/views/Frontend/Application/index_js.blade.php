@@ -324,7 +324,7 @@
                                         orderable: false,
                                         searchable: false
                                 },
-                                @if($user->roles[0]->id == 1 || $user->roles[0]->id == 36 || $user->roles[0]->id == 35) {
+                                @if($user->roles[0]->id == 1 || $user->roles[0]->id == 36 || $user->roles[0]->id == 35 || $user->roles[0]->id == 2 || $user->roles[0]->id == 2) {
                                         data: 'user_id',
                                         name: 'user_id'
                                 },

@@ -23,13 +23,13 @@
         @endif
 
         <div class="bank-detail-inputs">
-            <label class="bank-input-label">Total Settlement Amount</label>
+            <label class="bank-input-label">Total Commission Amount</label>
             <input class="bank-detail-input form-control" type="text" value="₹ {{ number_format($settlement->amount, 2) }}" disabled />
         </div>
 
         @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
         <div class="bank-detail-inputs">
-            <label class="bank-input-label">Total Gross Amount</label>
+            <label class="bank-input-label">Total Disbursement Amount</label>
             <input class="bank-detail-input form-control" type="text" value="₹ {{ number_format($settlement->gross_amount, 2) }}" disabled />
         </div>
         @endif
@@ -53,9 +53,9 @@
                     <th class="table-header">Application No.</th>
                     <th class="table-header">Customer Name</th>
                     <th class="table-header">Rate %</th>
-                    <th class="table-header">Gross Amount</th>
-                    <th class="table-header">TDS (2%)</th>
-                    <th class="table-header">Net Amount</th>
+                    <th class="table-header">Commission Amount</th>
+                    <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
+                    <th class="table-header">Net Payable</th>
                     <th class="table-header">Payment Status</th>
                 </tr>
             </thead>

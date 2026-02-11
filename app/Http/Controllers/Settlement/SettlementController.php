@@ -9,6 +9,8 @@ use App\Models\BankData;
 use App\Models\Settlement;
 use App\Models\SettlementDistribution;
 use App\Models\StaffAssign;
+use App\Models\Settings;
+use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use DateTime;
@@ -170,12 +172,19 @@ class SettlementController extends Controller
                     ->rawColumns(['checkbox', 'advance_flag', 'status', 'action'])
                     ->make(true);
             }
-            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p'));
+            // Fetch channel advance balance for display
+            $channelAdvance = 0;
+            if ($p) {
+                $channelAdvance = \App\Models\Advance::where('user_id', $p)->value('advance_amount') ?? 0;
+            }
+            $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p', 'channelAdvance', 'tdsPercentage'));
         } else {
             // Admin/Staff view: Show parent channels list
             if ($request->ajax()) {
-                // Only show parent channels that have settlements
-                $query = $this->getParentChannelQuery($user);
+                $tab = $request->input('tab', 'pending');
+                // Only show parent channels that have settlements matching the tab filter
+                $query = $this->getParentChannelQuery($user, $tab);
 
                 if ($request->first_name) {
                     $query->where('first_name', $request->first_name);
@@ -186,36 +195,54 @@ class SettlementController extends Controller
                     ->editColumn('first_name', function ($row) {
                         return $row->first_name . ' ' . $row->last_name;
                     })
-                    ->addColumn('net_amount', function ($row) {
+                    ->addColumn('net_amount', function ($row) use ($tab) {
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($amount);
                     })
-                    ->addColumn('tds_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
+                    ->addColumn('tds_amount', function ($row) use ($tab) {
+                        $settlementIds = DB::table('settlements')
+                            ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
+                            ->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
                         return '₹ ' . indianNumberFormat($tdsAmount);
                     })
-                    ->addColumn('payout_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
+                    ->addColumn('payout_amount', function ($row) use ($tab) {
+                        $settlementIds = DB::table('settlements')
+                            ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
+                            ->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($amount - $tdsAmount);
                     })
-                    ->addColumn('remaining_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
+                    ->addColumn('remaining_amount', function ($row) use ($tab) {
+                        $settlementIds = DB::table('settlements')
+                            ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
+                            ->pluck('id');
                         $tdsAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->sum('tds');
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
                         $paidAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
@@ -228,25 +255,34 @@ class SettlementController extends Controller
                         $advance = DB::table('advances')->where('user_id', $row->id)->first();
                         return '₹ ' . indianNumberFormat($advance->advance_amount ?? 0);
                     })
-                    ->addColumn('paid_amount', function ($row) {
-                        $settlementIds = DB::table('settlements')->where('user_id', $row->id)->pluck('id');
+                    ->addColumn('paid_amount', function ($row) use ($tab) {
+                        $settlementIds = DB::table('settlements')
+                            ->where('user_id', $row->id)
+                            ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                            ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
+                            ->pluck('id');
                         $paidAmount = DB::table('settlement_distributions')
                             ->whereIn('settlement_id', $settlementIds)
                             ->where('payment_status', 'Success')
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($paidAmount);
                     })
-                    ->addColumn('action', function ($row) {
+                    ->addColumn('action', function ($row) use ($tab) {
                         $btn = '';
                         if (auth()->user()->hasPermission('application', 'view')) {
-                            $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
+                            if ($tab === 'completed') {
+                                $btn = "<img onclick=\"window.location.href='" . url('/settlement/summary/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Summary'>";
+                            } else {
+                                $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Details'>";
+                            }
                         }
                         return $btn;
                     })
                     ->rawColumns(['action'])
                     ->make(true);
             }
-            return view('Frontend.Settlement.index', compact('Route', 'settlements', 'p'));
+            $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+            return view('Frontend.Settlement.index', compact('Route', 'settlements', 'p', 'tdsPercentage'));
         }
     }
 
@@ -293,7 +329,8 @@ class SettlementController extends Controller
         // Get the channel user info
         $channelUser = User::find($settlement->user_id);
 
-        return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser'));
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage'));
     }
 
     public function update(Request $request, $id)
@@ -372,17 +409,24 @@ class SettlementController extends Controller
         // Get the channel user info
         $channelUser = User::find($settlement->user_id);
 
-        return view('Frontend.Settlement.show', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser'));
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        return view('Frontend.Settlement.show', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage'));
     }
 
 
     /**
      * Get parent channels that have settlements (for admin list view).
+     * @param string $tab 'pending' or 'completed' - filters by settlement status
      */
-    private function getParentChannelQuery($user)
+    private function getParentChannelQuery($user, $tab = 'pending')
     {
-        // Get user IDs that have settlements
-        $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+        // Get user IDs filtered by settlement status
+        if ($tab === 'completed') {
+            $userIdsWithSettlements = Settlement::where('status', 'completed')->pluck('user_id')->unique()->toArray();
+        } else {
+            $userIdsWithSettlements = Settlement::where('status', '!=', 'completed')->pluck('user_id')->unique()->toArray();
+        }
+
         $roleId = $user->roles[0]->id;
 
         if (in_array($roleId, [1, 35, 36])) {
@@ -528,5 +572,46 @@ class SettlementController extends Controller
         }
 
         return redirect()->to('/settlement')->with('success', 'Settlement status updated successfully');
+    }
+
+    /**
+     * Show completed settlement summary with all transactions for a channel.
+     */
+    public function settlementSummary($userId)
+    {
+        $Route = 'Settlement Summary';
+        $channelUser = User::findOrFail($userId);
+
+        // Get all completed settlements for this channel
+        $settlements = Settlement::where('user_id', $userId)
+            ->where('status', 'completed')
+            ->get();
+
+        $settlementIds = $settlements->pluck('id');
+
+        // Calculate totals from distributions
+        $totalCommission = DB::table('settlement_distributions')
+            ->whereIn('settlement_id', $settlementIds)
+            ->sum('gross_amount');
+
+        $totalTds = DB::table('settlement_distributions')
+            ->whereIn('settlement_id', $settlementIds)
+            ->sum('tds');
+
+        $totalNetPayable = DB::table('settlement_distributions')
+            ->whereIn('settlement_id', $settlementIds)
+            ->sum('amount');
+
+        // Get all transactions linked to these settlements
+        $transactions = Transaction::whereIn('settlement_id', $settlementIds)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+
+        return view('Frontend.Settlement.completed_detail', compact(
+            'Route', 'channelUser', 'settlements', 'transactions',
+            'totalCommission', 'totalTds', 'totalNetPayable', 'tdsPercentage'
+        ));
     }
 }
