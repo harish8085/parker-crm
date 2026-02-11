@@ -540,18 +540,32 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
             }
 
-            // Validate Sharing Commission when approving (for Admin, Maker, and Checker)
+            // Validate Sharing Commission when approving or completing (for Admin, Maker, and Checker)
             var status = $('#status').val();
             var roleId2 = `{{Auth::user()->roles[0]->pivot->role_id}}`;
-            if (status === 'approved' && (roleId2 == 1 || roleId2 == 35 || roleId2 == 36)) {
+            if ((status === 'approved' || status === 'completed') && (roleId2 == 1 || roleId2 == 35 || roleId2 == 36)) {
                 if (!$('#sharing_commission').val() || $('#sharing_commission').val().trim() === '') {
-                    alert('Sharing Commission field cannot be empty when approving an application!');
+                    var statusText = status === 'completed' ? 'completing' : 'approving';
+                    alert('Sharing Commission field cannot be empty when ' + statusText + ' an application!');
                     $('#sharing_commission').removeClass('is-valid').addClass('is-invalid');
                     $('#sharing_commission').focus();
                     isValid = false;
                     return false;
                 } else {
                     $('#sharing_commission').addClass('is-valid').removeClass('is-invalid');
+                }
+            }
+
+            // Validate Commission Rate when completing an application
+            if (status === 'completed') {
+                if (!$('#commission_rate').val() || $('#commission_rate').val().trim() === '') {
+                    alert('Commission Rate field cannot be empty when completing an application!');
+                    $('#commission_rate').removeClass('is-valid').addClass('is-invalid');
+                    $('#commission_rate').focus();
+                    isValid = false;
+                    return false;
+                } else {
+                    $('#commission_rate').addClass('is-valid').removeClass('is-invalid');
                 }
             }
 

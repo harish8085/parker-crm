@@ -5,26 +5,26 @@
 @endsection
 @section('body')
 
-
-<div class="card ">
-    <div class="settlement-header">
-        <h3 class="settlement-heading">Settlements</h3>
-        <div class="settlement-btn-container">
-            <a href="{{ url('/settlement/create/upload') }}" style="text-decoration: none;">
-                <button class="settlement-header-btn">
-                    <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload
-                </button>
-            </a>
-            @if(auth()->user()->roles[0]->id !=2 || auth()->user()->roles[0]->id !=3)
-            <a href="{{url('settlement/view/export-settlement')}}" style="text-decoration: none;">
-                 <button class="settlement-header-btn">
-                     <img class="application-header-icon" src="{{asset('assets/images/download.svg')}}">Download
-                 </button>
-             </a>
-             @endif
-        </div>
-    </div>
-
+    @if(!auth()->user()->roles[0]->name == 'Checker' && !auth()->user()->roles[0]->name == 'Maker')
+        <div class="card ">
+            <div class="settlement-header">
+                <h3 class="settlement-heading">Settlements</h3>
+                <div class="settlement-btn-container">
+                    <a href="{{ url('/settlement/create/upload') }}" style="text-decoration: none;">
+                        <button class="settlement-header-btn">
+                            <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload
+                        </button>
+                    </a>
+                    @if(auth()->user()->roles[0]->id !=2 || auth()->user()->roles[0]->id !=3)
+                    <a href="{{url('settlement/view/export-settlement')}}" style="text-decoration: none;">
+                        <button class="settlement-header-btn">
+                            <img class="application-header-icon" src="{{asset('assets/images/download.svg')}}">Download
+                        </button>
+                    </a>
+                    @endif
+                </div>
+            </div>
+    @endif
 
     <!-- filter form -->
     <div class="bank-card p-4">

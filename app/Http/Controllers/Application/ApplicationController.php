@@ -833,13 +833,42 @@ class ApplicationController extends Controller
         // Find the application by ID
         $application = Application::findOrFail($id);
         
-        // Validate Sharing Commission when approving (for Admin, Maker, and Checker)
+        // Validate Sharing Commission and other mandatory fields when approving or completing
         $roleId = $user->roles[0]->pivot->role_id;
         if ($request->status === 'approved' && ($roleId == 1 || $roleId == 35 || $roleId == 36)) {
             if (empty($request->sharing_commission)) {
                 return redirect()->back()
                     ->withInput()
                     ->withErrors(['sharing_commission' => 'Sharing Commission field cannot be empty when approving an application.']);
+            }
+        }
+        
+        // Validate mandatory fields when completing an application
+        if ($request->status === 'completed') {
+            if (empty($request->sharing_commission)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['sharing_commission' => 'Sharing Commission field cannot be empty when completing an application.']);
+            }
+            if (empty($request->commission_rate)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['commission_rate' => 'Commission Rate field cannot be empty when completing an application.']);
+            }
+            if (empty($request->disburse_amount)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['disburse_amount' => 'Disburse Amount field cannot be empty when completing an application.']);
+            }
+            if (empty($request->customer_name)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['customer_name' => 'Customer Name field cannot be empty when completing an application.']);
+            }
+            if (empty($request->bank_id)) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['bank_id' => 'Bank field cannot be empty when completing an application.']);
             }
         }
         
