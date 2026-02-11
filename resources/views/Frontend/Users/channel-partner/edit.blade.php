@@ -138,6 +138,7 @@
                  </select>
              </div>
 
+             @if($channelPartner->channelUser->isEmpty())
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">User Commission <div class="tooltip-wrapper">
                          <span class="info-icon">i</span>
@@ -145,6 +146,7 @@
                      </div></label>
                  <input class="bank-detail-input form-control" type="number" name="user_commission" id="user_commission" placeholder="Enter commission" value="{{$channelPartner->user_commission}}" min="0" step="any" oninput="if(this.value < 0) this.value = 0;">
              </div>
+             @endif
 
          </div>
      </div>

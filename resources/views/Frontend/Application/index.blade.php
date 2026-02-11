@@ -19,6 +19,7 @@
     <div class="application-header">
         <h3 class="application-heading">All Application</h3>
         <div class="btn-container">
+            <!-- // user should not not have checker or maker role to access add and upload button -->
             @if(auth()->user()->hasPermission('application','create'))
             <a href="{{ url('/application/create') }}" style="text-decoration: none;">
                 <button class="application-header-btn">
@@ -26,14 +27,15 @@
                 </button>
             </a>
             @endif
-            @if(auth()->user()->hasPermission('application','create'))
 
+            @if(auth()->user()->hasPermission('application','create'))
             <a href="{{ url('/application/create/upload') }}" style="text-decoration: none;">
                 <button class="application-header-btn">
                     <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload
                 </button>
             </a>
             @endif
+
         </div>
     </div>
 

@@ -33,13 +33,13 @@ img {
 
 .main-container {
     width: 100%;
-    margin-left: 220px;
+    margin-left: 240px;
     overflow: hidden;
 }
 
 /* navbar */
 .navbar-container {
-    width: calc(100% - 220px);
+    width: calc(100% - 240px);
     position: fixed;
     box-shadow: 0px 0px 10px 0px #80808036;
     padding: 5px 40px;
@@ -85,7 +85,7 @@ img.admin-icon {
 
 .sidebar-container {
     background-color: #012670;
-    width: 220px;
+    width: 240px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -345,12 +345,12 @@ ul.dropdown-menu.sidebar-menu.show {
 /* Laptop specific styles (1025px to 1366px) */
 @media (min-width: 1025px) and (max-width: 1366px) {
     .main-container {
-        margin-left: 220px;
-        width: calc(100% - 220px);
+        margin-left: 240px;
+        width: calc(100% - 240px);
     }
 
     .navbar-container {
-        width: calc(100% - 220px);
+        width: calc(100% - 240px);
         padding: 8px 35px;
     }
 
