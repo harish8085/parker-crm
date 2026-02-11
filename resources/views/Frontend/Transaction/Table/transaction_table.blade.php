@@ -3,7 +3,7 @@
         <tr>
             <th class="table-header">Sr. No.</th>
             <th class="table-header">Channel Name</th>
-            <th class="table-header">Gross Amount</th>
+            <th class="table-header">Commission Amount</th>
             <th class="table-header">TDS</th>
             <th class="table-header">Advance Deduction</th>
             <th class="table-header">Net Payable</th>

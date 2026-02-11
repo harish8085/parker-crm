@@ -9,6 +9,7 @@ use App\Models\SettlementDistribution;
 use App\Models\Transaction;
 use App\Models\TransactionBankAllocation;
 use App\Models\TransactionItem;
+use App\Models\Settings;
 use App\Models\User;
 use App\Notifications\TransactionCreatedNotification;
 use App\Notifications\TransactionApprovedNotification;
@@ -110,17 +111,20 @@ class TransactionController extends Controller
             $channels = User::whereIn('id', $channelIds)->get();
         }
 
-        return view('Frontend.Transaction.index', compact('Route', 'channels'));
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        return view('Frontend.Transaction.index', compact('Route', 'channels', 'tdsPercentage'));
     }
 
     /**
      * Process selected distributions into a transaction.
+     * Advance deduction amount is passed from the form (checker decision), not per-case lookup.
      */
     public function process(Request $request)
     {
         $request->validate([
             'distribution_ids' => 'required|array|min:1',
             'distribution_ids.*' => 'exists:settlement_distributions,id',
+            'advance_amount' => 'nullable|numeric|min:0',
         ]);
 
         $distributionIds = $request->distribution_ids;
@@ -147,12 +151,22 @@ class TransactionController extends Controller
 
         $userId = $settlement->user_id; // parent channel
 
+        // Advance amount from form (checker-decided, channel-level deduction)
+        $totalAdvance = round(floatval($request->input('advance_amount', 0)), 2);
+
+        // Validate advance does not exceed channel's available balance
+        if ($totalAdvance > 0) {
+            $channelAdvanceBalance = \App\Models\Advance::where('user_id', $userId)->value('advance_amount') ?? 0;
+            if ($totalAdvance > $channelAdvanceBalance) {
+                return redirect()->back()->with('error', 'Advance deduction amount (₹' . number_format($totalAdvance, 2) . ') exceeds channel advance balance (₹' . number_format($channelAdvanceBalance, 2) . ').');
+            }
+        }
+
         DB::beginTransaction();
         try {
             $totalGross = 0;
             $totalTds = 0;
             $totalNet = 0;
-            $totalAdvance = 0;
 
             $itemsData = [];
 
@@ -161,22 +175,16 @@ class TransactionController extends Controller
                 $tds = $dist->tds ?? 0;
                 $net = $dist->amount ?? 0;
 
-                // Check for case-wise advance
-                $advanceAmount = DB::table('advance_payment_cases')
-                    ->where('application_id', $dist->application_id)
-                    ->sum('advance_payment_amount');
-
                 $totalGross += $gross;
                 $totalTds += $tds;
                 $totalNet += $net;
-                $totalAdvance += $advanceAmount;
 
                 $itemsData[] = [
                     'settlement_distribution_id' => $dist->id,
                     'gross_amount' => $gross,
                     'tds' => $tds,
                     'net_amount' => $net,
-                    'advance_amount' => $advanceAmount,
+                    'advance_amount' => 0, // per-item advance not used; channel-level only
                 ];
             }
 
@@ -191,7 +199,7 @@ class TransactionController extends Controller
                 'user_id' => $userId,
                 'gross_amount' => round($totalGross, 2),
                 'tds_amount' => round($totalTds, 2),
-                'advance_amount' => round($totalAdvance, 2),
+                'advance_amount' => $totalAdvance,
                 'net_payable' => round($netPayable, 2),
                 'status' => 'pending',
                 'created_by' => Auth::id(),
@@ -233,7 +241,8 @@ class TransactionController extends Controller
 
         $channelUser = User::find($transaction->user_id);
 
-        return view('Frontend.Transaction.show', compact('Route', 'transaction', 'channelUser'));
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        return view('Frontend.Transaction.show', compact('Route', 'transaction', 'channelUser', 'tdsPercentage'));
     }
 
     /**
@@ -257,7 +266,8 @@ class TransactionController extends Controller
             ->where('status', 1)
             ->get();
 
-        return view('Frontend.Transaction.approve', compact('Route', 'transaction', 'bankAccounts'));
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        return view('Frontend.Transaction.approve', compact('Route', 'transaction', 'bankAccounts', 'tdsPercentage'));
     }
 
     /**
@@ -323,6 +333,7 @@ class TransactionController extends Controller
 
     /**
      * Checker marks transaction as completed.
+     * Also deducts advance from channel balance if applicable.
      */
     public function complete(Request $request, $id)
     {
@@ -334,32 +345,54 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Unauthorized or transaction is not approved.'], 403);
         }
 
-        $transaction->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-            'completed_by' => $user->id,
-        ]);
+        DB::beginTransaction();
+        try {
+            $transaction->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+                'completed_by' => $user->id,
+            ]);
 
-        // Mark linked settlement distributions as paid
-        SettlementDistribution::where('transaction_id', $transaction->id)
-            ->update(['payment_status' => 'Success']);
+            // Mark linked settlement distributions as paid
+            SettlementDistribution::where('transaction_id', $transaction->id)
+                ->update(['payment_status' => 'Success']);
 
-        // Check if all distributions for this settlement are now paid
-        $settlement = Settlement::find($transaction->settlement_id);
-        if ($settlement) {
-            $totalDist = SettlementDistribution::where('settlement_id', $settlement->id)->count();
-            $paidDist = SettlementDistribution::where('settlement_id', $settlement->id)
-                ->where('payment_status', 'Success')->count();
-            if ($totalDist === $paidDist) {
-                $settlement->update(['status' => 'completed', 'settlement_date' => now()]);
+            // Deduct advance from channel balance if transaction has advance_amount
+            if ($transaction->advance_amount > 0) {
+                \App\Models\Advance::createAdvance([
+                    'user_id' => $transaction->user_id,
+                    'advance_amount' => $transaction->advance_amount,
+                    'advance_type' => 'deduct',
+                    'advance_date' => now()->toDateString(),
+                    'advance_status' => 1,
+                    'advance_remark' => 'Deducted via transaction #' . $transaction->id . ' settlement',
+                    'created_by' => $user->id,
+                ]);
             }
-        }
 
-        return response()->json(['success' => 'Transaction marked as completed.']);
+            // Check if all distributions for this settlement are now paid
+            $settlement = Settlement::find($transaction->settlement_id);
+            if ($settlement) {
+                $totalDist = SettlementDistribution::where('settlement_id', $settlement->id)->count();
+                $paidDist = SettlementDistribution::where('settlement_id', $settlement->id)
+                    ->where('payment_status', 'Success')->count();
+                if ($totalDist === $paidDist) {
+                    $settlement->update(['status' => 'completed', 'settlement_date' => now()]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json(['success' => 'Transaction marked as completed.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error completing transaction: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
      * AJAX endpoint to calculate totals for selected distributions.
+     * Advance deduction is handled client-side by the checker, not computed here.
      */
     public function calculateTotals(Request $request)
     {
@@ -372,34 +405,20 @@ class TransactionController extends Controller
         $totalGross = 0;
         $totalTds = 0;
         $totalNet = 0;
-        $totalAdvance = 0;
 
         foreach ($distributions as $dist) {
             $totalGross += $dist->gross_amount ?? 0;
             $totalTds += $dist->tds ?? 0;
             $totalNet += $dist->amount ?? 0;
-
-            // Check for case-wise advance
-            $advanceAmount = DB::table('advance_payment_cases')
-                ->where('application_id', $dist->application_id)
-                ->sum('advance_payment_amount');
-            $totalAdvance += $advanceAmount;
-        }
-
-        $netPayable = $totalNet - $totalAdvance;
-        if ($netPayable < 0) {
-            $netPayable = 0;
         }
 
         return response()->json([
             'gross' => round($totalGross, 2),
             'tds' => round($totalTds, 2),
-            'advance' => round($totalAdvance, 2),
-            'net_payable' => round($netPayable, 2),
+            'net_payable' => round($totalNet, 2),
             'gross_formatted' => '₹ ' . indianNumberFormat(round($totalGross, 2)),
             'tds_formatted' => '₹ ' . indianNumberFormat(round($totalTds, 2)),
-            'advance_formatted' => '₹ ' . indianNumberFormat(round($totalAdvance, 2)),
-            'net_payable_formatted' => '₹ ' . indianNumberFormat(round($netPayable, 2)),
+            'net_payable_formatted' => '₹ ' . indianNumberFormat(round($totalNet, 2)),
         ]);
     }
 }

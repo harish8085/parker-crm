@@ -26,7 +26,7 @@ class AddOriginnalNameInAnnoucementAttachement extends Migration
     public function down()
     {
         Schema::table('announcement_attachments', function (Blueprint $table) {
-            $table->dropColumn('original_name');
+            $table->dropColumnIfExists('original_name');
         });
     }
 }

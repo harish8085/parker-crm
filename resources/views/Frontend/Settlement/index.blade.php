@@ -50,8 +50,20 @@
     </div>
 
 
+    <!-- Tabs -->
+    <div class="p-4 pb-0">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active settlement-tab" data-tab="pending" href="#" role="tab">Pending</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link settlement-tab" data-tab="completed" href="#" role="tab">Completed</a>
+            </li>
+        </ul>
+    </div>
+
     <div class="table-responsive p-4" id="myTable">
-        @include('Frontend.Settlement.Table.settlement_table')
+        @include('Frontend.Settlement.Table.settlement_table', compact('tdsPercentage'))
     </div>
 </div>
 @endsection

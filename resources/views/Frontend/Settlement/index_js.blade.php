@@ -3,7 +3,9 @@
 <script type="text/javascript">
                 $.fn.dataTable.ext.errMode = 'none';
 
-       function load_data(partner_name = '') {
+                var currentTab = 'pending';
+
+       function load_data(partner_name = '', tab = 'pending') {
                 var table = $('.data-table').DataTable({
                         debug: false, // Disable debugging
                         dom: 'Bfrtip<"bottom"l>', // 'l' adds the "Show entries" dropdown
@@ -110,6 +112,7 @@
                                 url: "{{ route('settlement.index') }}",
                                 data: {
                                         partner_name: partner_name,
+                                        tab: tab,
                                 },
                                 error: function(xhr, error, thrown) {
                                         console.log(xhr.responseText);
@@ -165,18 +168,33 @@
         };
 
         $(document).ready(function() {
-                load_data();
+                load_data('', currentTab);
 
                 $('.select').select2({
                         placeholder: "Select an option",
                         allowClear: true
                 });
 
+                // Tab switching
+                $(document).on('click', '.settlement-tab', function(e) {
+                        e.preventDefault();
+                        var tab = $(this).data('tab');
+                        if (tab === currentTab) return;
+
+                        currentTab = tab;
+                        $('.settlement-tab').removeClass('active');
+                        $(this).addClass('active');
+
+                        // Destroy and reload DataTable with new tab
+                        $('.data-table').DataTable().destroy();
+                        load_data($('#partner_name').val() || '', currentTab);
+                });
+
                 $('#filter').click(function() {
                         var partner_name = $('#partner_name').val();
                         if (partner_name) {
                                 $('.data-table').DataTable().destroy();
-                                load_data(partner_name);
+                                load_data(partner_name, currentTab);
                         } else {
                                 alert('Select at least one filter!');
                         }

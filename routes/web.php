@@ -228,6 +228,7 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/settlement/view/export-settlement', [SettlementController::class, 'exportSettlement']);
     Route::get('/settlement/view/{id}', [SettlementController::class, 'show']);
 
+    Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
     Route::get('/settlement/create/upload', [SettlementController::class, 'uploadView']);
     Route::post('/settlement/create/upload', [SettlementController::class, 'storeExcel']);
 
