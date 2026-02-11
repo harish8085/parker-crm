@@ -268,7 +268,7 @@ class ApplicationController extends Controller
                                     break;
                                 case 'completed':
                                     $statusClass = 'completed';
-                                    $statusText = 'Case Matched';
+                                    $statusText = 'completed';
                                     break;
                                 case 'pending':
                                     $statusClass = 'pending';
@@ -963,7 +963,7 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 37) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->get();

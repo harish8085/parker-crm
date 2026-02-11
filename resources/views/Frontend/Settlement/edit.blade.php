@@ -31,12 +31,12 @@
                 <input class="bank-detail-input form-control" type="date" name="settlement_date" id="settlement_date" value="{{$settlement->settlement_date}}" />
             </div>
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Total Settlement Amount</label>
+                <label class="bank-input-label">Total Commission Amount</label>
                 <input class="bank-detail-input form-control" type="number" name="amount" id="amount" placeholder="Enter amount" value="{{$settlement->amount}}" @if($settlement->status =='completed') readonly @endif/>
             </div>
             @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Total Gross Amount</label>
+                <label class="bank-input-label">Total Disbursement Amount</label>
                 <input class="bank-detail-input form-control" type="text" value="{{$settlement->gross_amount}}" id="totalAmount" disabled />
             </div>
             @endif
@@ -70,9 +70,9 @@
                         <th class="table-header">Application No.</th>
                         <th class="table-header">Customer Name</th>
                         <th class="table-header">Rate %</th>
-                        <th class="table-header">Gross Amount</th>
-                        <th class="table-header">TDS (2%)</th>
-                        <th class="table-header">Net Amount</th>
+                        <th class="table-header">Commission Amount</th>
+                        <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
+                        <th class="table-header">Net Payable</th>
                     </tr>
                 </thead>
                 <tbody>

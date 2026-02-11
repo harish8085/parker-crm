@@ -118,7 +118,7 @@ log::info($application);
         // Check if all conditions in `$updateData` (except timestamps and IDs) are true
         $checkKeys = ['app_id_is_matched', 'customer_name_is_matched', 'bank_id_is_matched', 'product_id_is_matched', 'disburse_amount_is_matched'];
         if (collect($updateData)->only($checkKeys)->every(fn($value) => $value === true)) {
-            $application->update(['status' => 'in-progress']);
+            $application->update(['status' => 'pending']);
             if ($this->status == 'completed') {
                 $application->update(['status' => 'completed']);
                 $this->createSettlement($record, $application);
@@ -187,10 +187,11 @@ log::info($application);
         $settlement_distribution->user_id = $application->user_id;
         $settlement_distribution->application_id = $application->id;
         $settlement_distribution->received_rate = $percentage;
-        $settlement_distribution->gross_amount = $grossAmount;
+        $settlement_distribution->gross_amount = $amount; // commission amount (not bank payout)
         $settlement_distribution->amount = $netAmount;
         $settlement_distribution->bank_account_id = $bank_data ? $bank_data->id : null;
         $settlement_distribution->tds = $tds;
+        $settlement_distribution->tds_percentage = $tds_percentage;
         $settlement_distribution->save();
         Log::info('Settlement distribution created for application: ' . $application->id);
     }

@@ -150,7 +150,7 @@
                             <th>#</th>
                             <th>Application No.</th>
                             <th>Customer Name</th>
-                            <th>Gross Amount</th>
+                            <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Advance</th>
                             <th>Net Amount</th>
@@ -186,11 +186,11 @@
             <!-- Summary -->
             <table class="summary-table">
                 <tr>
-                    <td class="label-td">Gross Amount:</td>
+                    <td class="label-td">Commission Amount:</td>
                     <td class="value-td">₹ {{ indianNumberFormat($transaction->gross_amount) }}</td>
                 </tr>
                 <tr>
-                    <td class="label-td">TDS (2%):</td>
+                    <td class="label-td">TDS ({{ $tdsPercentage }}%):</td>
                     <td class="value-td">₹ {{ indianNumberFormat($transaction->tds_amount) }}</td>
                 </tr>
                 @if($transaction->advance_amount > 0)
