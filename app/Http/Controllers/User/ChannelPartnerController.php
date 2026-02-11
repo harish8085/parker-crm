@@ -615,13 +615,14 @@ class ChannelPartnerController extends Controller
         $channelPartner->landmark       = $request->landmark;
         $channelPartner->pincode        = $request->pincode;
         $channelPartner->service_type   = $request->service_type;
-        $channelPartner->user_commission = $request->user_commission;
+        if ($request->has('user_commission')) {
+            $channelPartner->user_commission = $request->user_commission;
+        }
         $channelPartner->state          = $request->state;
         $channelPartner->district       = $request->district;
         $channelPartner->status         = $request->status;
         $channelPartner->pan_number     = $request->pan_number;
         $channelPartner->aadhar_number  = $request->aadhar_number;
-        $channelPartner->user_commission = $request->user_commission ?? null;
 
         $bank->branch_name              = $request->branch_name;
         $bank->bank_name                = $request->bank_name;
