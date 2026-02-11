@@ -41,8 +41,8 @@ class CreateInvoicePaymentViewTable extends Migration
             $table->string('payment_paid2')->nullable();
             $table->string('payment_date1')->nullable();
             $table->string('payment_date2')->nullable();
-            $table->string('refrance_no1')->nullable();
-            $table->string('refrance_no2')->nullable();
+            $table->string('referance_no1')->nullable();
+            $table->string('referance_no2')->nullable();
             $table->timestamps();
         });
     }
