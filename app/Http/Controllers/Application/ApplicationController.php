@@ -1375,26 +1375,8 @@ class ApplicationController extends Controller
                         }
                     }
 
-                    // Calculate 'payout_rate' and 'payout_amount' if not provided
-                    if (!isset($data['payout_rate'])) {
-                        if (isset($data['payout_amount'], $data['disbAmount'])) {
-                            $payoutAmount = (float) $data['payout_amount'];
-                            $disbursementAmount = (float) $data['disbAmount'];
-
-                            // Fetch rate from database or calculate
-                            $rate = BankPayout::where('bank_id', $data['bank_id'])
-                                ->where('product_id', $data['product_id'])
-                                ->value('rate');
-                            $data['payout_rate'] = $rate ?: ($disbursementAmount != 0 ? $payoutAmount / $disbursementAmount : 0);
-                        }
-                    }
-
-                    if (!isset($data['payout_amount'])) {
-                        if (isset($data['payout_rate'], $data['disbAmount'])) {
-                            $disbursementAmount = (float) $data['disbAmount'];
-                            $data['payout_amount'] = $disbursementAmount * ((float) $data['payout_rate'] / 100);
-                        }
-                    }
+                    // Note: payout_rate and payout_amount are saved as-is from the mapped Excel columns
+                    // No calculations or transformations are applied - raw values from Bank MIS are preserved
 
                     // Attach selected month to data so it is saved and used in duplicate checks
                     $data['bank_mis_month'] = $bank_mis_month;
