@@ -112,6 +112,10 @@
                             <th>#</th>
                             <th>Application No.</th>
                             <th>Customer Name</th>
+                            <th>Disbursement Amount</th>
+                            <th>Submitted By</th>
+                            <th>Company Receiving</th>
+                            <th>Sharing Commission</th>
                             <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Net Amount</th>
@@ -128,6 +132,17 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $app->app_id ?? 'N/A' }}</td>
                             <td>{{ $app->customer_name ?? '-' }}</td>
+                            <td>₹ {{ indianNumberFormat($app->disburse_amount ?? 0) }}</td>
+                            <td>
+                                @if($app && $app->user_id)
+                                    @php $submitter = \App\Models\User::find($app->user_id); @endphp
+                                    {{ $submitter ? $submitter->first_name . ' ' . ($submitter->last_name ?? '') : '-' }}
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
+                            <td>{{ $item->settlementDistribution && $item->settlementDistribution->received_rate ? $item->settlementDistribution->received_rate . '%' : '-' }}</td>
                             <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
                             <td>₹ {{ indianNumberFormat($item->tds) }}</td>
                             <td>₹ {{ indianNumberFormat($item->net_amount) }}</td>
@@ -175,16 +190,26 @@
                     </div>
                     @else
                     <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> No active bank accounts found. Please add a bank account first from your profile.
+                        <i class="fas fa-exclamation-triangle"></i> No active bank accounts found. Please add a new bank account below.
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#addNewBankModal">
+                            <i class="fas fa-university"></i> Add New Bank Account
+                        </button>
                     </div>
                     @endif
                 </div>
 
                 @if($bankAccounts->count() > 0)
                 <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
-                    <button type="button" class="btn btn-outline-primary btn-sm" id="addBankRow">
-                        <i class="fas fa-plus"></i> Add Another Bank Account
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addBankRow">
+                            <i class="fas fa-plus"></i> Add Another Bank Account
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#addNewBankModal">
+                            <i class="fas fa-university"></i> Add New Bank Account
+                        </button>
+                    </div>
                     <div>
                         <span class="text-muted me-2">Remaining:</span>
                         <span class="remaining-display" id="remainingAmount">₹ {{ indianNumberFormat($transaction->net_payable) }}</span>
@@ -209,6 +234,82 @@
         </div>
     </div>
 </div>
+<!-- Add New Bank Account Modal -->
+<div class="modal fade" id="addNewBankModal" tabindex="-1" aria-labelledby="addNewBankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addNewBankModalLabel"><i class="fas fa-university"></i> Add New Bank Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="quickBankForm" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="user_id" value="{{ $transaction->user_id }}">
+                <div class="modal-body">
+                    <div id="quickBankErrors" class="alert alert-danger d-none">
+                        <ul class="mb-0" id="quickBankErrorList"></ul>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bank Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="bank_name" required placeholder="Enter bank name">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Account Holder Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="holder_name" required placeholder="Enter holder name">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Account Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="account_number" required placeholder="Enter account number" pattern="[0-9]+" title="Only digits allowed">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Confirm Account Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="confirm_account_number" required placeholder="Re-enter account number" pattern="[0-9]+" title="Only digits allowed">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">IFSC Code <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ifsc_code" required placeholder="Enter IFSC code">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Branch Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="branch_name" required placeholder="Enter branch name">
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3"><strong>Documents</strong></h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">PAN Photo <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" name="pan_photo" required accept="image/jpeg,image/jpg,image/png">
+                            <small class="text-muted">JPEG, JPG, PNG (max 4MB)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Aadhar Photo <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" name="aadhar_photo" required accept="image/jpeg,image/jpg,image/png">
+                            <small class="text-muted">JPEG, JPG, PNG (max 4MB)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Passbook Photo <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" name="passbook_photo" required accept="image/jpeg,image/jpg,image/png">
+                            <small class="text-muted">JPEG, JPG, PNG (max 4MB)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="quickBankSubmitBtn">
+                        <i class="fas fa-save"></i> Save Bank Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 @section('script')
 <script type="text/javascript">
@@ -336,6 +437,162 @@
         });
 
         updateTotals();
+
+        // ---- Quick Add Bank Account (AJAX) ----
+        // Keep a dynamic list of bank options so new rows also get newly added banks
+        var dynamicBankOptions = [];
+        @foreach($bankAccounts as $bank)
+        dynamicBankOptions.push({ id: '{{ $bank->id }}', label: '{{ $bank->bank_name }} - {{ $bank->account_number }} ({{ $bank->holder_name }})' });
+        @endforeach
+
+        function buildBankOptionsHtml() {
+            var html = '<option value="">Select Bank Account</option>';
+            dynamicBankOptions.forEach(function(b) {
+                html += '<option value="' + b.id + '">' + b.label + '</option>';
+            });
+            return html;
+        }
+
+        // Override addBankRow to use dynamic options
+        $('#addBankRow').off('click').on('click', function() {
+            var optionsHtml = buildBankOptionsHtml();
+            var newRow = `
+                <div class="bank-row" data-index="${bankIndex}">
+                    <div class="row align-items-end">
+                        <div class="col-lg-5 mb-2">
+                            <label class="form-label">Bank Account</label>
+                            <select class="form-select bank-select" name="bank_accounts[${bankIndex}][bank_account_id]" required>
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div class="col-lg-4 mb-2">
+                            <label class="form-label">Amount (₹)</label>
+                            <input type="number" class="form-control bank-amount" name="bank_accounts[${bankIndex}][amount]" step="0.01" min="0.01" required placeholder="Enter amount">
+                        </div>
+                        <div class="col-lg-3 mb-2">
+                            <button type="button" class="btn btn-danger btn-sm remove-bank-row">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('#bankRows').append(newRow);
+            bankIndex++;
+            updateTotals();
+        });
+
+        // Quick Bank Form Submit
+        $('#quickBankForm').on('submit', function(e) {
+            e.preventDefault();
+
+            var $form = $(this);
+            var $submitBtn = $('#quickBankSubmitBtn');
+            var $errors = $('#quickBankErrors');
+            var $errorList = $('#quickBankErrorList');
+
+            // Client-side: check account numbers match
+            var accNum = $form.find('[name="account_number"]').val();
+            var confirmAccNum = $form.find('[name="confirm_account_number"]').val();
+            if (accNum !== confirmAccNum) {
+                $errors.removeClass('d-none');
+                $errorList.html('<li>Account number and confirm account number must match.</li>');
+                return;
+            }
+
+            // Disable button and show loading
+            $submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+            $errors.addClass('d-none');
+            $errorList.html('');
+
+            var formData = new FormData(this);
+
+            $.ajax({
+                url: '{{ route("transactions.quick-add-bank") }}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        var bank = response.bank;
+                        var optionText = bank.bank_name + ' - ' + bank.account_number + ' (' + bank.holder_name + ')';
+                        var newOption = '<option value="' + bank.id + '">' + optionText + '</option>';
+
+                        // Add to dynamic list
+                        dynamicBankOptions.push({ id: bank.id.toString(), label: optionText });
+
+                        // Append to all existing dropdowns
+                        $('.bank-select').each(function() {
+                            $(this).append(newOption);
+                        });
+
+                        // If there are no bank rows yet (was showing "no accounts" warning), create the first row
+                        if ($('.bank-row').length === 0) {
+                            var optionsHtml = buildBankOptionsHtml();
+                            var firstRow = `
+                                <div class="bank-row" data-index="0">
+                                    <div class="row align-items-end">
+                                        <div class="col-lg-5 mb-2">
+                                            <label class="form-label">Bank Account</label>
+                                            <select class="form-select bank-select" name="bank_accounts[0][bank_account_id]" required>
+                                                ${optionsHtml}
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-4 mb-2">
+                                            <label class="form-label">Amount (₹)</label>
+                                            <input type="number" class="form-control bank-amount" name="bank_accounts[0][amount]" step="0.01" min="0.01" required placeholder="Enter amount">
+                                        </div>
+                                        <div class="col-lg-3 mb-2">
+                                            <button type="button" class="btn btn-danger btn-sm remove-bank-row" style="display:none;">
+                                                <i class="fas fa-trash"></i> Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            $('#bankRows').html(firstRow);
+                            // Select the newly added bank
+                            $('.bank-select').first().val(bank.id);
+                            bankIndex = 1;
+                        }
+
+                        // Close modal and reset form
+                        $('#addNewBankModal').modal('hide');
+                        $form[0].reset();
+
+                        alert('Bank account added successfully! You can now select it from the dropdown.');
+                    } else {
+                        $errors.removeClass('d-none');
+                        $errorList.html('<li>' + (response.message || 'Something went wrong.') + '</li>');
+                    }
+                },
+                error: function(xhr) {
+                    $errors.removeClass('d-none');
+                    if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                        var errors = xhr.responseJSON.errors;
+                        var html = '';
+                        $.each(errors, function(key, msgs) {
+                            msgs.forEach(function(msg) {
+                                html += '<li>' + msg + '</li>';
+                            });
+                        });
+                        $errorList.html(html);
+                    } else {
+                        $errorList.html('<li>' + (xhr.responseJSON?.message || 'Failed to add bank account. Please try again.') + '</li>');
+                    }
+                },
+                complete: function() {
+                    $submitBtn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Bank Account');
+                }
+            });
+        });
+
+        // Reset errors when modal is closed
+        $('#addNewBankModal').on('hidden.bs.modal', function() {
+            $('#quickBankErrors').addClass('d-none');
+            $('#quickBankErrorList').html('');
+        });
     });
 </script>
 @endsection
