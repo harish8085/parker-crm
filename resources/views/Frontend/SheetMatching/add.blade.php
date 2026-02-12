@@ -98,9 +98,9 @@
             </div>
 
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Payout Rate</label>
+                <label class="bank-input-label">Payout Rate<span class="required">*</span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="payout_rate" id="payout_rate" placeholder="Enter Payout Rate"> -->
-                <input class="bank-detail-input form-control row_input" name="payout_rate" id="payout_rate" list="fileCols" placeholder="Type or choose column name">
+                <input class="bank-detail-input form-control row_input" required name="payout_rate" id="payout_rate" list="fileCols" placeholder="Type or choose column name">
             </div>
 
 

@@ -1346,6 +1346,32 @@ class ApplicationController extends Controller
                 return redirect()->to('/bank_mis')->with('error', 'No header mappings found for the selected bank and product.');
             }
 
+            // Define critical fields required for matching applications with bank MIS
+            $criticalFields = [
+                'app_id' => 'Application ID',
+                'customer_name' => 'Customer Name',
+                'payout_rate' => 'Commission Rate',
+                'disbAmount' => 'Disbursement Amount'
+            ];
+
+            // Check if critical fields are empty in SheetMatching
+            $missingFields = [];
+            foreach ($criticalFields as $fieldKey => $fieldLabel) {
+                if (empty($sheetData->$fieldKey)) {
+                    $missingFields[] = "$fieldLabel ({$fieldKey})";
+                }
+            }
+
+            // If critical fields are missing, return error
+            if (!empty($missingFields)) {
+                $bank = Bank::find($bank_id);
+                $product = Product::find($product_id);
+                $missingFieldsList = implode(', ', $missingFields);
+                $errorMessage = "Sheet matching configuration incomplete for {$bank->name} - {$product->name}. " .
+                    "Please configure these critical columns in Sheet Matching: {$missingFieldsList}";
+                return redirect()->to('/bank_mis')->with('error', $errorMessage);
+            }
+
             // Convert sheetData to an array and remove unnecessary fields
             $keysMapping = $sheetData->toArray();
             unset($keysMapping['id'], $keysMapping['bank_id'], $keysMapping['product_id'], $keysMapping['group'], $keysMapping['created_at'], $keysMapping['updated_at']);
