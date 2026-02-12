@@ -421,4 +421,70 @@ class TransactionController extends Controller
             'net_payable_formatted' => '₹ ' . indianNumberFormat(round($totalNet, 2)),
         ]);
     }
+
+    /**
+     * Quick-add a new bank account from the transaction approve page.
+     * Creates the bank with status = 1 so it can be used immediately.
+     */
+    public function storeQuickBank(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id'                => 'required|exists:users,id',
+            'holder_name'            => 'required|string|max:255',
+            'account_number'         => 'required|string|max:64|regex:/^[0-9]+$/',
+            'confirm_account_number' => 'required|string|max:64|regex:/^[0-9]+$/|same:account_number',
+            'ifsc_code'              => 'required|string|max:32',
+            'bank_name'              => 'required|string|max:255',
+            'branch_name'            => 'required|string|max:255',
+            'pan_photo'              => 'required|image|mimes:jpeg,jpg,png|max:4096',
+            'aadhar_photo'           => 'required|image|mimes:jpeg,jpg,png|max:4096',
+            'passbook_photo'         => 'required|image|mimes:jpeg,jpg,png|max:4096',
+        ], [
+            'account_number.regex'          => 'The account number must contain only digits.',
+            'confirm_account_number.regex'  => 'The confirm account number must contain only digits.',
+            'confirm_account_number.same'   => 'The account number and confirm account number must match.',
+            'pan_photo.mimes'               => 'PAN photo must be a JPEG, JPG, or PNG image.',
+            'aadhar_photo.mimes'            => 'Aadhar photo must be a JPEG, JPG, or PNG image.',
+            'passbook_photo.mimes'          => 'Passbook photo must be a JPEG, JPG, or PNG image.',
+        ]);
+
+        try {
+            $bankData = new BankData();
+            $bankData->user_id        = $request->user_id;
+            $bankData->holder_name    = $request->holder_name;
+            $bankData->account_number = $request->account_number;
+            $bankData->ifsc_code      = $request->ifsc_code;
+            $bankData->bank_name      = $request->bank_name;
+            $bankData->branch_name    = $request->branch_name;
+
+            if ($request->hasFile('pan_photo')) {
+                $bankData->pan_photo = $request->file('pan_photo')->store('uploads/bankdata/pan', 'public');
+            }
+            if ($request->hasFile('aadhar_photo')) {
+                $bankData->aadhar_photo = $request->file('aadhar_photo')->store('uploads/bankdata/aadhar', 'public');
+            }
+            if ($request->hasFile('passbook_photo')) {
+                $bankData->passbook_photo = $request->file('passbook_photo')->store('uploads/bankdata/passbook', 'public');
+            }
+
+            $bankData->status = 1; // Active immediately for transaction approval
+            $bankData->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bank account added successfully!',
+                'bank'    => [
+                    'id'             => $bankData->id,
+                    'bank_name'      => $bankData->bank_name,
+                    'account_number' => $bankData->account_number,
+                    'holder_name'    => $bankData->holder_name,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add bank account: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

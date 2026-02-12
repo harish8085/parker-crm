@@ -150,6 +150,10 @@
                             <th>#</th>
                             <th>Application No.</th>
                             <th>Customer Name</th>
+                            <th>Disbursement Amount</th>
+                            <th>Submitted By</th>
+                            <th>Company Receiving</th>
+                            <th>Sharing Commission</th>
                             <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Advance</th>
@@ -167,6 +171,17 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $app->app_id ?? 'N/A' }}</td>
                             <td>{{ $app->customer_name ?? '-' }}</td>
+                            <td>₹ {{ indianNumberFormat($app->disburse_amount ?? 0) }}</td>
+                            <td>
+                                @if($app && $app->user_id)
+                                    @php $submitter = \App\Models\User::find($app->user_id); @endphp
+                                    {{ $submitter ? $submitter->first_name . ' ' . ($submitter->last_name ?? '') : '-' }}
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
+                            <td>{{ $item->settlementDistribution && $item->settlementDistribution->received_rate ? $item->settlementDistribution->received_rate . '%' : '-' }}</td>
                             <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
                             <td>₹ {{ indianNumberFormat($item->tds) }}</td>
                             <td>
