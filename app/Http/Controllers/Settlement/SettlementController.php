@@ -181,7 +181,7 @@ class SettlementController extends Controller
                             $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/view/' . $row->settlement_id) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
                         }
                         if (auth()->user()->hasPermission('settlement', 'update')) {
-                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/update/' . $row->settlement_id) . '\'" src="' . asset('assets/images/Edit.svg') . '">';
+                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/distribution/edit/' . $row->id) . '\'" src="' . asset('assets/images/Edit.svg') . '">';
                         }
                         return $buttons;
                     })
@@ -629,5 +629,97 @@ class SettlementController extends Controller
             'Route', 'channelUser', 'settlements', 'transactions',
             'totalCommission', 'totalTds', 'totalNetPayable', 'tdsPercentage'
         ));
+    }
+
+    /**
+     * Show the edit page for a single settlement distribution's sharing commission.
+     */
+    public function editDistribution($id)
+    {
+        $Route = 'Edit Distribution';
+        $distribution = SettlementDistribution::findOrFail($id);
+        $app = Application::find($distribution->application_id);
+        $settlement = Settlement::find($distribution->settlement_id);
+        $channelUser = User::find($settlement->user_id);
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+
+        // Get the bank payout amount (base for commission calculation)
+        $payoutAmount = 0;
+        if ($app && $app->bank_mis_id) {
+            $bankMis = DB::table('bank_mis')->where('id', $app->bank_mis_id)->first();
+            $payoutAmount = $bankMis ? round(floatval($bankMis->payout_amount), 2) : 0;
+        }
+
+        // Get the submitter name
+        $submitter = null;
+        if ($app && $app->user_id) {
+            $submitter = User::find($app->user_id);
+        }
+
+        return view('Frontend.Settlement.edit_distribution', compact(
+            'Route', 'distribution', 'app', 'settlement', 'channelUser', 'tdsPercentage', 'submitter', 'payoutAmount'
+        ));
+    }
+
+    /**
+     * Update a single settlement distribution's sharing commission and recalculate amounts.
+     */
+    public function updateDistribution(Request $request, $id)
+    {
+        $request->validate([
+            'received_rate' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $distribution = SettlementDistribution::findOrFail($id);
+        $app = Application::find($distribution->application_id);
+        $settlement = Settlement::find($distribution->settlement_id);
+
+        if (!$app || !$settlement) {
+            return redirect()->back()->with('error', 'Application or settlement not found.');
+        }
+
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+        $newRate = round(floatval($request->received_rate), 2);
+
+        // Get the bank payout amount (base for commission calculation)
+        $payoutAmount = 0;
+        if ($app->bank_mis_id) {
+            $bankMis = DB::table('bank_mis')->where('id', $app->bank_mis_id)->first();
+            $payoutAmount = $bankMis ? round(floatval($bankMis->payout_amount), 2) : 0;
+        }
+
+        // Recalculate amounts: commission = payout_amount * sharing_commission% / 100
+        $newCommission = round($payoutAmount * $newRate / 100, 2);
+        $newTds = round($newCommission * $tdsPercentage / 100, 2);
+        $newNet = round($newCommission - $newTds, 2);
+
+        DB::beginTransaction();
+        try {
+            // Update distribution
+            $distribution->update([
+                'received_rate' => $newRate,
+                'gross_amount' => $newCommission,
+                'tds' => $newTds,
+                'amount' => $newNet,
+            ]);
+
+            // Update application sharing_commission
+            $app->sharing_commission = $newRate;
+            $app->save();
+
+            // Recalculate settlement totals
+            $allDistributions = SettlementDistribution::where('settlement_id', $settlement->id)->get();
+            $settlement->amount = $allDistributions->sum('gross_amount'); // total commission
+            // settlement.gross_amount (bank payout total) stays unchanged
+            $settlement->save();
+
+            DB::commit();
+
+            return redirect('/settlement?p=' . $settlement->user_id)
+                ->with('success', 'Distribution updated successfully. Sharing commission changed to ' . $newRate . '%.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Error updating distribution: ' . $e->getMessage());
+        }
     }
 }

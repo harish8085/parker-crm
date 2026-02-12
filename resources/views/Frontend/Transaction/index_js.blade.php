@@ -80,6 +80,12 @@
                     name: 'status_display'
                 },
                 {
+                    data: 'rejection_reason_display',
+                    name: 'rejection_reason_display',
+                    orderable: false,
+                    searchable: false
+                },
+                {
                     data: 'action',
                     name: 'action',
                     orderable: false,
@@ -136,6 +142,40 @@
                     alert(msg);
                 }
             });
+        });
+
+        // Reprocess rejected transaction (Checker)
+        $(document).on('click', '.reprocess-btn', function() {
+            var transactionId = $(this).data('id');
+            if (!confirm('Are you sure you want to reprocess this transaction? The current transaction will be cancelled and distributions will be unlinked for reprocessing.')) {
+                return;
+            }
+
+            // Create and submit a form for POST request
+            var form = $('<form>', {
+                method: 'POST',
+                action: '/transactions/reprocess/' + transactionId
+            });
+            form.append($('<input>', { type: 'hidden', name: '_token', value: '{{ csrf_token() }}' }));
+            $('body').append(form);
+            form.submit();
+        });
+
+        // Read More / Read Less toggle for rejection reason
+        $(document).on('click', '.read-more-reason', function() {
+            var $parent = $(this).closest('.reason-text');
+            var $short = $parent.find('.reason-short');
+            var $full = $parent.find('.reason-full');
+
+            if ($full.is(':visible')) {
+                $full.hide();
+                $short.show();
+                $(this).text('Read More');
+            } else {
+                $short.hide();
+                $full.show();
+                $(this).text('Read Less');
+            }
         });
     });
 </script>
