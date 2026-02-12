@@ -216,7 +216,7 @@ class SheetMatchingController extends Controller
             'insurance' => 'nullable|string', // Not required
             'otc_pdd_status' => 'nullable|string', // Not required
             'payout_amount' => 'nullable|string', // Not required
-            'payout_rate' => 'nullable|string', // Not required
+            'payout_rate' => 'required|string', // Commission rate mapping - REQUIRED
             'date' => 'nullable|string', // Not required
             'month' => 'nullable|string', // Not required
             'pf_per' => 'nullable|string', // Not required
@@ -267,7 +267,7 @@ class SheetMatchingController extends Controller
             'insurance' => 'nullable|string',
             'otc_pdd_status' => 'nullable|string',
             'payout_amount' => 'nullable|string',
-            'payout_rate' => 'nullable|string',
+            'payout_rate' => 'required|string',
             'date' => 'nullable|string', // Not required
             'month' => 'nullable|string', // Not required
             'pf_per' => 'nullable|string', // Not required

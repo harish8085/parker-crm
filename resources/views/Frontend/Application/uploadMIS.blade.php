@@ -189,7 +189,7 @@
                 $('#p').html('Remove')
                 $('#p').addClass('text-dark')
                 $('#img').attr('src', `{{asset('assets/images/delete.svg')}}`);
-                if (role_id != 2 && role_id != 3) {
+                if (role_id != 2 && role_id != 3 && role_id != 37) {
 
                     $('#myModal').modal('show')
                 } else {

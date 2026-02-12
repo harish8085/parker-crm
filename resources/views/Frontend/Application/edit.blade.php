@@ -31,7 +31,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id !=35 && Auth::user()->roles[0]->pivot->role_id !=36)
+            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id !=35 && Auth::user()->roles[0]->pivot->role_id !=36 && Auth::user()->roles[0]->pivot->role_id !=37)
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type<span class="required">*</span></label>
@@ -245,13 +245,8 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate" value="{{$application->commission_rate}}">
             </div>
 
-            @if(Auth::user()->roles[0]->pivot->role_id == 1 || Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
-
-            <div class="bank-detail-inputs">
-                <label class="bank-input-label">Sharing Commission</label>
-                <input class="bank-detail-input form-control" type="number" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission" value="{{$application->sharing_commission}}">
-            </div>
-            @endif
+            <!-- Sharing Commission - Hidden field, auto-populated from parent's commission rate -->
+            <input type="hidden" name="sharing_commission" id="sharing_commission" value="{{$application->sharing_commission}}">
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Name
@@ -283,7 +278,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
 
 
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
+            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id!=37)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select Status<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="status" id="status">
@@ -540,21 +535,8 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
             }
 
-            // Validate Sharing Commission when approving or completing (for Admin, Maker, and Checker)
-            var status = $('#status').val();
-            var roleId2 = `{{Auth::user()->roles[0]->pivot->role_id}}`;
-            if ((status === 'approved' || status === 'completed') && (roleId2 == 1 || roleId2 == 35 || roleId2 == 36)) {
-                if (!$('#sharing_commission').val() || $('#sharing_commission').val().trim() === '') {
-                    var statusText = status === 'completed' ? 'completing' : 'approving';
-                    alert('Sharing Commission field cannot be empty when ' + statusText + ' an application!');
-                    $('#sharing_commission').removeClass('is-valid').addClass('is-invalid');
-                    $('#sharing_commission').focus();
-                    isValid = false;
-                    return false;
-                } else {
-                    $('#sharing_commission').addClass('is-valid').removeClass('is-invalid');
-                }
-            }
+            // Sharing Commission is now auto-populated from parent's commission rate (hidden field)
+            // No validation needed as it's automatically set
 
             // Validate Commission Rate when completing an application
             if (status === 'completed') {

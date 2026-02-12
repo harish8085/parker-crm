@@ -26,7 +26,7 @@
                 Basic Details
             </div>
             <div class="col-sm-3 d-flex justify-content-end">
-                <input class="input-file" type="file" accept=".xlsx" required name="xlsx_file" id="xlsx_file" style="display: none;" />
+                <input class="input-file" type="file" accept=".xlsx" name="xlsx_file" id="xlsx_file" style="display: none;" />
                 <button type="button" class="sample-btn" id="uploadBtn">
                     <img class="sample-icon" src="{{asset('assets/images/import.svg')}}">Upload
                 </button>
@@ -35,6 +35,7 @@
 
         </div>
         <div class="card-form">
+            <datalist id="fileCols"></datalist>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select Bank<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="bank_id" id="bank_id">
@@ -65,183 +66,119 @@
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Application ID<span class="required">*</span></label>
-                <!-- <input class="bank-detail-input form-control" type="text" name="app_id" id="app_id" placeholder="Enter Application ID"> -->
-                <select class="bank-detail-input form-select row_select" required name="app_id" id="app_id">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->app_id}}">{{$data->app_id}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" required name="app_id" id="app_id" list="fileCols" value="{{$data->app_id}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case Location</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" placeholder="Enter Case Location"> -->
-                <select class="bank-detail-input form-select row_select" name="case_location" id="case_location">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->case_location}}">{{$data->case_location}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="case_location" id="case_location" list="fileCols" value="{{$data->case_location}}" placeholder="Type or choose column name">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer Name</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter customer name" maxlength="80"> -->
-                <select class="bank-detail-input form-select row_select" name="customer_name" id="customer_name">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->customer_name}}">{{$data->customer_name}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="customer_name" id="customer_name" list="fileCols" value="{{$data->customer_name}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer's Firm Name</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="customer_firm_name" id="firm_name" placeholder="Enter customer firm name" maxlength="150"> -->
-                <select class="bank-detail-input form-select row_select" name="customer_firm_name" id="customer_firm_name">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->customer_firm_name}}">{{$data->customer_firm_name}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="customer_firm_name" id="customer_firm_name" list="fileCols" value="{{$data->customer_firm_name}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Disburse Amount<span class="required">*</span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="disbAmount" id="disbAmount" placeholder="Enter Disburse Amount" required> -->
-                <select class="bank-detail-input form-select row_select" required name="disbAmount" id="disbAmount">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->disbAmount}}">{{$data->disbAmount}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" required name="disbAmount" id="disbAmount" list="fileCols" value="{{$data->disbAmount}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Payout Amount</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="payout_amount" id="payout_amount" placeholder="Enter Payout Amount" required> -->
-                <select class="bank-detail-input form-select row_select" name="payout_amount" id="payout_amount">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->payout_amount}}">{{$data->payout_amount}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="payout_amount" id="payout_amount" list="fileCols" value="{{$data->payout_amount}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Payout Rate</label>
+                <label class="bank-input-label">Payout Rate<span class="required">*</span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="payout_rate" id="payout_rate" placeholder="Enter Payout Rate"> -->
-                <select class="bank-detail-input form-select row_select" name="payout_rate" id="payout_rate">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->payout_rate}}">{{$data->payout_rate}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" required name="payout_rate" id="payout_rate" list="fileCols" value="{{$data->payout_rate}}" placeholder="Type or choose column name">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">OTC/PDD Status<span class="required"></span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="otc_pdd_status" id="otc_pdd_status" placeholder="Enter OTC/PDD Status"> -->
-                <select class="bank-detail-input form-select row_select" name="otc_pdd_status" id="otc_pdd_status">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->otc_pdd_status}}">{{$data->otc_pdd_status}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="otc_pdd_status" id="otc_pdd_status" list="fileCols" value="{{$data->otc_pdd_status}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs ">
                 <label class="bank-input-label">Any Subvention</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="subvention" id="subvention" placeholder="Enter Any Subvention"> -->
-                <select class="bank-detail-input form-select row_select" name="subvention" id="subvention">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->subvention}}">{{$data->subvention}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="subvention" id="subvention" list="fileCols" value="{{$data->subvention}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">PF Taken</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="pf" id="pf" placeholder="Enter PF Taken"> -->
-                <select class="bank-detail-input form-select row_select" name="pf" id="pf">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->pf}}">{{$data->pf}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="pf" id="pf" list="fileCols" value="{{$data->pf}}" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">ROI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="roi" id="roi" placeholder="Enter ROI"> -->
-                <select class="bank-detail-input form-select row_select" name="roi" id="roi">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->roi}}">{{$data->roi}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="roi" id="roi" list="fileCols" value="{{$data->roi}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Insurance</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="insurance" id="insurance">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->insurance}}">{{$data->insurance}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="insurance" id="insurance" list="fileCols" value="{{$data->insurance}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Date</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="date" id="date">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->date}}">{{$data->date}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="date" id="date" list="fileCols" value="{{$data->date}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Month</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="month" id="month">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->month}}">{{$data->month}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="month" id="month" list="fileCols" value="{{$data->month}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">PF%</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="pf_per" id="pf%">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->pf_per}}">{{$data->pf_per}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="pf_per" id="pf%" list="fileCols" value="{{$data->pf_per}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli" id="kli">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kli}}">{{$data->kli}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli" id="kli" list="fileCols" value="{{$data->kli}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI Payout %</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli_payout_per" id="kli_payout%">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kli_payout_per}}">{{$data->kli_payout_per}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli_payout_per" id="kli_payout%" list="fileCols" value="{{$data->kli_payout_per}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI Payout</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli_payout" id="kli_payout">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kli_payout}}">{{$data->kli_payout}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli_payout" id="kli_payout" list="fileCols" value="{{$data->kli_payout}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi" id="kgi">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kgi}}">{{$data->kgi}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi" id="kgi" list="fileCols" value="{{$data->kgi}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI Payout %</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi_payout_per" id="kgi_payout%">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kgi_payout_per}}">{{$data->kgi_payout_per}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi_payout_per" id="kgi_payout%" list="fileCols" value="{{$data->kgi_payout_per}}" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI Payout</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi_payout" id="kgi_payout">
-                    <option value="" selected disabled>Select</option>
-                    <option value="{{$data->kgi_payout}}">{{$data->kgi_payout}}</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi_payout" id="kgi_payout" list="fileCols" value="{{$data->kgi_payout}}" placeholder="Type or choose column name">
             </div>
 
 
@@ -283,18 +220,12 @@
                 contentType: false,
                 processData: false,
                 success: function(response) {
-                    var select = $('.row_select');
-                    select.empty().append($('<option>', {
-                        value: '',
-                        text: 'Select',
-                        disabled: true,
-                        selected: true
-                    }));
+                    var datalist = $('#fileCols');
+                    datalist.empty();
 
                     $.each(response, function(key, value) {
-                        select.append($('<option>', {
-                            value: value,
-                            text: value
+                        datalist.append($('<option>', {
+                            value: value
                         }));
                     });
                 },
