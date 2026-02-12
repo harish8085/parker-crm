@@ -29,7 +29,7 @@
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
+            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id!=37)
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type</label>

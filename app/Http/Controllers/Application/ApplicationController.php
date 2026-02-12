@@ -63,14 +63,22 @@ class ApplicationController extends Controller
                      
                     $channel_assign = ChannelUser::where('channel_id', Auth::id())->pluck('associate_channel_id');
 
-                    // If there are channel assignments, show records where user_id is either the logged in user OR assigned associate channels
+                    // If there are channel assignments, show records where:
+                    // 1. user_id is either the logged in user OR assigned associate channels
+                    // 2. OR parent_channel_id matches the logged-in user (cases uploaded by associates)
                     if ($channel_assign->isNotEmpty()) {
                         $query->where(function ($q) use ($channel_assign, $user) {
-                            $q->whereIn('user_id', $channel_assign)
-                                ->orWhere('user_id', $user->id);
+                            $q->where(function ($subQ) use ($channel_assign, $user) {
+                                $subQ->whereIn('user_id', $channel_assign)
+                                    ->orWhere('user_id', $user->id);
+                            })
+                            ->orWhere('parent_channel_id', $user->id);
                         });
                     } else {
-                        $query->where('user_id', $user->id);
+                        $query->where(function ($q) use ($user) {
+                            $q->where('user_id', $user->id)
+                                ->orWhere('parent_channel_id', $user->id);
+                        });
                     }
                 } else {
 
@@ -563,6 +571,7 @@ class ApplicationController extends Controller
         $banks = Bank::get();
         $channelroleId = 2;
         $salesroleId = 3;
+        $associateChannelRoleId = 37;
 
         if ($user->roles[0]->id == 1) {
             $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
@@ -572,7 +581,7 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == $associateChannelRoleId) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->get();
@@ -583,13 +592,20 @@ class ApplicationController extends Controller
         } else {
             $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
             $channel_assign = json_decode($channel_assign, true);
-            $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-                $query->where('id', $channelroleId);
-            })->get();
+            
+            // Ensure $channel_assign is an array
+            if (empty($channel_assign) || !is_array($channel_assign)) {
+                $channels = collect();
+                $sales = collect();
+            } else {
+                $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
+                    $query->where('id', $channelroleId);
+                })->get();
 
-            $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-                $query->where('id', $salesroleId);
-            })->get();
+                $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
+                    $query->where('id', $salesroleId);
+                })->get();
+            }
         }
 
         $states = getState();
@@ -833,23 +849,17 @@ class ApplicationController extends Controller
         // Find the application by ID
         $application = Application::findOrFail($id);
         
-        // Validate Sharing Commission and other mandatory fields when approving or completing
-        $roleId = $user->roles[0]->pivot->role_id;
-        if ($request->status === 'approved' && ($roleId == 1 || $roleId == 35 || $roleId == 36)) {
-            if (empty($request->sharing_commission)) {
+        // Associates can only update their own applications without changing status
+        if ($user->roles[0]->pivot->role_id == 37) {
+            if ($request->status && $request->status !== $application->status) {
                 return redirect()->back()
                     ->withInput()
-                    ->withErrors(['sharing_commission' => 'Sharing Commission field cannot be empty when approving an application.']);
+                    ->withErrors(['status' => 'Associates cannot change application status.']);
             }
         }
         
         // Validate mandatory fields when completing an application
         if ($request->status === 'completed') {
-            if (empty($request->sharing_commission)) {
-                return redirect()->back()
-                    ->withInput()
-                    ->withErrors(['sharing_commission' => 'Sharing Commission field cannot be empty when completing an application.']);
-            }
             if (empty($request->commission_rate)) {
                 return redirect()->back()
                     ->withInput()
@@ -889,9 +899,12 @@ class ApplicationController extends Controller
         $application->group = $request->group;
         $application->remark = '';
         $application->commission_rate = $request->commission_rate;
-        if ($request->status) {
+        
+        // Only allow status update if user is not an associate
+        if ($request->status && $user->roles[0]->pivot->role_id != 37) {
             $application->status = $request->status;
         }
+        
         if ($request->group == 'Secured') {
             $application->fresh_or_bt = $request->fresh_bt;
             $application->any_subvention = $request->any_subvention;
@@ -904,13 +917,31 @@ class ApplicationController extends Controller
         $application->banker_number = $request->banker_number;
         $application->banker_email = $request->banker_email;
 
+        // Update sharing_commission if provided, otherwise auto-populate from parent's commission rate
         if ($request->sharing_commission) {
             $application->sharing_commission = $request->sharing_commission;
+        } elseif (!$application->sharing_commission) {
+            // Auto-populate if not already set
+            $selectedUser = User::find($application->user_id);
+            if ($selectedUser) {
+                $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+                if ($parentChannel) {
+                    $parentUser = User::find($parentChannel->channel_id);
+                    $application->sharing_commission = $parentUser->user_commission ?? null;
+                } else {
+                    $application->sharing_commission = $selectedUser->user_commission ?? null;
+                }
+            }
         }
+
+        // Update parent_channel_id for associate channels
         if (Auth::user()->roles[0]->pivot->role_id == 37) {
             $parent_channel_id = ChannelUser::where('associate_channel_id', Auth::id())->first();
-            $application->parent_channel_id = $parent_channel_id->channel_id;
+            if ($parent_channel_id) {
+                $application->parent_channel_id = $parent_channel_id->channel_id;
+            }
         }
+        
         // Save the updated application to the database
         $application->save();
         if ($request->status == 'completed') {
@@ -995,6 +1026,8 @@ class ApplicationController extends Controller
         $user_id = $user->id;
         $channelroleId = 2;
         $salesroleId = 3;
+        $associateChannelRoleId = 37;
+        
         if ($user->roles[0]->id == 1) {
             $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
@@ -1003,9 +1036,18 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 37) {
+        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
+            })->get();
+
+            $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
+                $query->where('id', $salesroleId);
+            })->get();
+        } elseif ($user->roles[0]->id == $associateChannelRoleId) {
+            // Associate channels can only upload for themselves
+            $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($associateChannelRoleId) {
+                $query->where('id', $associateChannelRoleId);
             })->get();
 
             $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
