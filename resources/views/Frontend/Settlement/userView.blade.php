@@ -527,7 +527,16 @@
                                 });
 
                                 var advanceDeduction = getAdvanceDeduction();
-                                var netPayable = clientNet - advanceDeduction;
+                                var tdsPercentage = {{ $tdsPercentage }};
+                                if (advanceDeduction > 0) {
+                                        var taxableAmount = clientGross - advanceDeduction;
+                                        if (taxableAmount < 0) taxableAmount = 0;
+                                        clientTds = taxableAmount * (tdsPercentage / 100);
+                                        clientTds = Math.round(clientTds * 100) / 100;
+                                        var netPayable = taxableAmount - clientTds;
+                                } else {
+                                        var netPayable = clientNet;
+                                }
                                 if (netPayable < 0) netPayable = 0;
 
                                 $('#sumGross').text('₹ ' + formatIndianNumber(clientGross));

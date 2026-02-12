@@ -9,6 +9,7 @@
             <th class="table-header">Net Payable</th>
             <th class="table-header">Date</th>
             <th class="table-header">Status <img src="{{asset('assets/images/sorting-icon.svg')}}"></th>
+            <th class="table-header">Rejection Reason</th>
             <th class="table-header">Actions</th>
         </tr>
     </thead>

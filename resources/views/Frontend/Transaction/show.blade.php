@@ -81,6 +81,14 @@
         background: #d4edda;
         color: #155724;
     }
+    .status-badge.rejected {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .status-badge.cancelled {
+        background: #e2e3e5;
+        color: #383d41;
+    }
     .dist-table th {
         background: #f8f9fa;
         font-size: 13px;
@@ -139,7 +147,23 @@
                     <span>{{ $transaction->completed_at->format('d M Y, h:i A') }}</span>
                 </div>
                 @endif
+                @if($transaction->rejected_at)
+                <div class="invoice-meta-item">
+                    <label>Rejected Date</label>
+                    <span>{{ $transaction->rejected_at->format('d M Y, h:i A') }}</span>
+                </div>
+                @endif
             </div>
+
+            @if(in_array($transaction->status, ['rejected', 'cancelled']) && $transaction->rejection_reason)
+            <div class="alert alert-danger mb-4">
+                <h6 class="alert-heading"><i class="fas fa-times-circle"></i> Transaction Rejected</h6>
+                <p class="mb-0"><strong>Reason:</strong> {{ $transaction->rejection_reason }}</p>
+                @if($transaction->rejected_at)
+                <small class="text-muted">Rejected on {{ $transaction->rejected_at->format('d M Y, h:i A') }}</small>
+                @endif
+            </div>
+            @endif
 
             <!-- Application-wise Distribution -->
             <h6 class="mb-3"><strong>Application-wise Breakdown</strong></h6>
@@ -269,6 +293,15 @@
                     <i class="fas fa-check"></i> Mark as Completed
                 </button>
             @endif
+
+            @if($roleId == 36 && $transaction->status === 'rejected')
+                <form action="{{ url('/transactions/reprocess/' . $transaction->id) }}" method="POST" class="d-inline" id="reprocessForm">
+                    @csrf
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-redo"></i> Reprocess
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 </div>
@@ -276,6 +309,15 @@
 @section('script')
 <script type="text/javascript">
     $(document).ready(function() {
+        // Complete transaction button
+        // Reprocess confirmation
+        $('#reprocessForm').on('submit', function(e) {
+            if (!confirm('Are you sure you want to reprocess this transaction? The current transaction will be cancelled and distributions will be unlinked for reprocessing.')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
         // Complete transaction button
         $('.complete-transaction-btn').click(function() {
             var transactionId = $(this).data('id');

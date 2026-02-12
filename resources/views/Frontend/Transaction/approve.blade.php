@@ -225,11 +225,44 @@
                         <span class="text-muted ms-3">of</span>
                         <span class="fw-bold text-success">₹ {{ indianNumberFormat($transaction->net_payable) }}</span>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
-                        <i class="fas fa-check-circle"></i> Submit & Approve
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#rejectTransactionModal">
+                            <i class="fas fa-times-circle"></i> Reject
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                            <i class="fas fa-check-circle"></i> Submit & Approve
+                        </button>
+                    </div>
                 </div>
                 @endif
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Transaction Modal -->
+<div class="modal fade" id="rejectTransactionModal" tabindex="-1" aria-labelledby="rejectTransactionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectTransactionModalLabel"><i class="fas fa-times-circle text-danger"></i> Reject Transaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url('/transactions/reject/' . $transaction->id) }}" method="POST" id="rejectForm">
+                @csrf
+                <div class="modal-body">
+                    <p class="text-muted">Please provide a reason for rejecting this transaction. This will be visible to the checker.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="rejection_reason" id="rejectionReason" rows="4" required placeholder="Enter the reason for rejection (e.g., commission dispute, incorrect advance deduction, etc.)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="confirmRejectBtn">
+                        <i class="fas fa-times-circle"></i> Confirm Rejection
+                    </button>
+                </div>
             </form>
         </div>
     </div>
@@ -592,6 +625,20 @@
         $('#addNewBankModal').on('hidden.bs.modal', function() {
             $('#quickBankErrors').addClass('d-none');
             $('#quickBankErrorList').html('');
+        });
+
+        // Reject form validation
+        $('#rejectForm').on('submit', function(e) {
+            var reason = $('#rejectionReason').val().trim();
+            if (!reason) {
+                e.preventDefault();
+                alert('Please provide a rejection reason.');
+                return false;
+            }
+            if (!confirm('Are you sure you want to reject this transaction? This action will notify the checker.')) {
+                e.preventDefault();
+                return false;
+            }
         });
     });
 </script>

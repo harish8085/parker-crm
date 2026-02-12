@@ -62,6 +62,10 @@ button.status-buttons {
     background-color: #ea334b;
 }
 
+.cancelled {
+    background-color: #6c757d;
+}
+
 .total {
     background-color: #f9f2f2;
 }
