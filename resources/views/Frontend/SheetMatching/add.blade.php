@@ -25,7 +25,7 @@
                 Basic Details
             </div>
             <div class="col-sm-3 d-flex justify-content-end">
-                <input class="input-file" type="file" accept=".xlsx" required name="xlsx_file" id="xlsx_file" style="display: none;" />
+                <input class="input-file" type="file" accept=".xlsx" name="xlsx_file" id="xlsx_file" style="display: none;" />
                 <button type="button" class="sample-btn" id="uploadBtn">
                     <img class="sample-icon" src="{{asset('assets/images/import.svg')}}">Upload
                 </button>
@@ -60,164 +60,122 @@
                 </select>
             </div>
 
+            <datalist id="fileCols"></datalist>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Application ID<span class="required">*</span></label>
-                <!-- <input class="bank-detail-input form-control" type="text" name="app_id" id="app_id" placeholder="Enter Application ID"> -->
-                <select class="bank-detail-input form-select row_select" required name="app_id" id="app_id">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" required name="app_id" id="app_id" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case Location</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" placeholder="Enter Case Location"> -->
-                <select class="bank-detail-input form-select row_select" name="case_location" id="case_location">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="case_location" id="case_location" list="fileCols" placeholder="Type or choose column name">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer Name</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter customer name" maxlength="80"> -->
-                <select class="bank-detail-input form-select row_select" name="customer_name" id="customer_name">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="customer_name" id="customer_name" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer's Firm Name</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="customer_firm_name" id="firm_name" placeholder="Enter customer firm name" maxlength="150"> -->
-                <select class="bank-detail-input form-select row_select" name="customer_firm_name" id="customer_firm_name">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="customer_firm_name" id="customer_firm_name" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Disburse Amount<span class="required">*</span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="disbAmount" id="disbAmount" placeholder="Enter Disburse Amount" required> -->
-                <select class="bank-detail-input form-select row_select" required name="disbAmount" id="disbAmount">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" required name="disbAmount" id="disbAmount" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Payout Amount</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="payout_amount" id="payout_amount" placeholder="Enter Payout Amount" required> -->
-                <select class="bank-detail-input form-select row_select" name="payout_amount" id="payout_amount">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="payout_amount" id="payout_amount" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Payout Rate</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="payout_rate" id="payout_rate" placeholder="Enter Payout Rate"> -->
-                <select class="bank-detail-input form-select row_select" name="payout_rate" id="payout_rate">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="payout_rate" id="payout_rate" list="fileCols" placeholder="Type or choose column name">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">OTC/PDD Status<span class="required"></span></label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="otc_pdd_status" id="otc_pdd_status" placeholder="Enter OTC/PDD Status"> -->
-                <select class="bank-detail-input form-select row_select" name="otc_pdd_status" id="otc_pdd_status">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="otc_pdd_status" id="otc_pdd_status" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs ">
                 <label class="bank-input-label">Any Subvention</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="subvention" id="subvention" placeholder="Enter Any Subvention"> -->
-                <select class="bank-detail-input form-select row_select" name="subvention" id="subvention">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="subvention" id="subvention" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">PF Taken</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="pf" id="pf" placeholder="Enter PF Taken"> -->
-                <select class="bank-detail-input form-select row_select" name="pf" id="pf">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="pf" id="pf" list="fileCols" placeholder="Type or choose column name">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">ROI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="roi" id="roi" placeholder="Enter ROI"> -->
-                <select class="bank-detail-input form-select row_select" name="roi" id="roi">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="roi" id="roi" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Insurance</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="insurance" id="insurance">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="insurance" id="insurance" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Date</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="date" id="date">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="date" id="date" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Month</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="month" id="month">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="month" id="month" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">PF%</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="pf_per" id="pf%">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="pf_per" id="pf%" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli" id="kli">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli" id="kli" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI Payout %</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli_payout_per" id="kli_payout%">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli_payout_per" id="kli_payout%" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KLI Payout</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kli_payout" id="kli_payout">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kli_payout" id="kli_payout" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi" id="kgi">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi" id="kgi" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI Payout %</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi_payout_per" id="kgi_payout%">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi_payout_per" id="kgi_payout%" list="fileCols" placeholder="Type or choose column name">
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">KGI Payout</label>
                 <!-- <input class="bank-detail-input form-control" type="text" name="insurance" id="insurance" placeholder="Enter Insurance"> -->
-                <select class="bank-detail-input form-select row_select" name="kgi_payout" id="kgi_payout">
-                    <option value="" selected>Select</option>
-                </select>
+                <input class="bank-detail-input form-control row_input" name="kgi_payout" id="kgi_payout" list="fileCols" placeholder="Type or choose column name">
             </div>
 
 
@@ -260,18 +218,12 @@
                 contentType: false,
                 processData: false,
                 success: function(response) {
-                    var select = $('.row_select');
-                    select.empty().append($('<option>', {
-                        value: '',
-                        text: 'Select',
-                        disabled: true,
-                        selected: true
-                    }));
+                    var datalist = $('#fileCols');
+                    datalist.empty();
 
                     $.each(response, function(key, value) {
-                        select.append($('<option>', {
-                            value: value,
-                            text: value
+                        datalist.append($('<option>', {
+                            value: value
                         }));
                     });
                 },
