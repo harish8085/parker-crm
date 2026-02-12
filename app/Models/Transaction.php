@@ -17,6 +17,8 @@ class Transaction extends Model
         'advance_amount',
         'net_payable',
         'status',
+        'rejection_reason',
+        'rejected_at',
         'created_by',
         'approved_at',
         'completed_at',
@@ -26,6 +28,7 @@ class Transaction extends Model
     protected $casts = [
         'approved_at' => 'datetime',
         'completed_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     public function settlement()

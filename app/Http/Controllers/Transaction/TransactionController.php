@@ -78,6 +78,17 @@ class TransactionController extends Controller
                     $statusText = ucwords($row->status);
                     return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
                 })
+                ->addColumn('rejection_reason_display', function ($row) {
+                    if (empty($row->rejection_reason)) {
+                        return '-';
+                    }
+                    $reason = e($row->rejection_reason);
+                    if (strlen($row->rejection_reason) > 50) {
+                        $truncated = e(substr($row->rejection_reason, 0, 50)) . '...';
+                        return '<span class="reason-text"><span class="reason-short">' . $truncated . '</span><span class="reason-full" style="display:none;">' . $reason . '</span> <a href="javascript:void(0)" class="read-more-reason text-primary" style="font-size:12px;">Read More</a></span>';
+                    }
+                    return $reason;
+                })
                 ->addColumn('created_date', function ($row) {
                     return $row->created_at ? $row->created_at->format('d M Y') : '-';
                 })
@@ -98,9 +109,14 @@ class TransactionController extends Controller
                         $buttons .= ' <button class="btn btn-sm btn-success complete-btn" data-id="' . $row->id . '" title="Complete"><i class="fas fa-check"></i></button>';
                     }
 
+                    // Reprocess button for checker when status is rejected
+                    if ($roleId == 36 && $row->status === 'rejected') {
+                        $buttons .= ' <button class="btn btn-sm btn-warning reprocess-btn" data-id="' . $row->id . '" title="Reprocess"><i class="fas fa-redo"></i></button>';
+                    }
+
                     return $buttons;
                 })
-                ->rawColumns(['status_display', 'action'])
+                ->rawColumns(['status_display', 'rejection_reason_display', 'action'])
                 ->make(true);
         }
 
@@ -188,7 +204,18 @@ class TransactionController extends Controller
                 ];
             }
 
-            $netPayable = $totalNet - $totalAdvance;
+            // Recalculate TDS when advance is applied: TDS on (Commission - Advance)
+            if ($totalAdvance > 0) {
+                $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+                $taxableAmount = $totalGross - $totalAdvance;
+                if ($taxableAmount < 0) {
+                    $taxableAmount = 0;
+                }
+                $totalTds = round($taxableAmount * ($tdsPercentage / 100), 2);
+                $netPayable = $taxableAmount - $totalTds;
+            } else {
+                $netPayable = $totalNet;
+            }
             if ($netPayable < 0) {
                 $netPayable = 0;
             }
@@ -329,6 +356,43 @@ class TransactionController extends Controller
             DB::rollBack();
             return redirect()->back()->with('error', 'Error approving transaction: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Channel user rejects a pending transaction with a mandatory reason.
+     */
+    public function reject(Request $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        $user = Auth::user();
+        $roleId = $user->roles[0]->id;
+
+        // Only channel/sales (roles 2, 3) can reject, and only pending transactions
+        if (!in_array($roleId, [2, 3]) || $transaction->status !== 'pending') {
+            return redirect('/transactions')->with('error', 'Unauthorized or transaction is not pending.');
+        }
+
+        $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+
+        $transaction->update([
+            'status' => 'rejected',
+            'rejection_reason' => $request->rejection_reason,
+            'rejected_at' => now(),
+        ]);
+
+        // Notify all checkers about the rejection
+        $channelUser = User::find($transaction->user_id);
+        $checkers = User::whereHas('roles', function ($q) {
+            $q->where('roles.id', 36);
+        })->get();
+
+        foreach ($checkers as $checker) {
+            $checker->notify(new \App\Notifications\TransactionRejectedNotification($transaction, $channelUser));
+        }
+
+        return redirect('/transactions')->with('success', 'Transaction rejected successfully.');
     }
 
     /**
@@ -485,6 +549,46 @@ class TransactionController extends Controller
                 'success' => false,
                 'message' => 'Failed to add bank account: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Checker reprocesses a rejected transaction.
+     * Unlinks distributions, deletes items and bank allocations, cancels the transaction,
+     * and redirects to the settlement page for reprocessing.
+     */
+    public function reprocess($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        $user = Auth::user();
+
+        // Only checker (role 36) can reprocess, and only rejected transactions
+        if ($user->roles[0]->id != 36 || $transaction->status !== 'rejected') {
+            return redirect('/transactions')->with('error', 'Unauthorized or transaction is not rejected.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Unlink settlement distributions (set transaction_id to NULL)
+            SettlementDistribution::where('transaction_id', $transaction->id)
+                ->update(['transaction_id' => null, 'payment_status' => null]);
+
+            // Delete bank allocations
+            TransactionBankAllocation::where('transaction_id', $transaction->id)->delete();
+
+            // Keep transaction items intact as historical record (application breakdown)
+
+            // Mark transaction as cancelled
+            $transaction->update(['status' => 'cancelled']);
+
+            DB::commit();
+
+            // Redirect to the settlement userView page for this channel
+            $settlementUserId = $transaction->user_id;
+            return redirect('/settlement?p=' . $settlementUserId)->with('success', 'Transaction #' . $transaction->id . ' has been cancelled. You can now reprocess the distributions.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect('/transactions')->with('error', 'Error reprocessing transaction: ' . $e->getMessage());
         }
     }
 }

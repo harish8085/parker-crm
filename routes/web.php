@@ -192,7 +192,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/transactions/approve/{id}', [TransactionController::class, 'approveForm'])->name('transactions.approve.form');
     Route::post('/transactions/approve/{id}', [TransactionController::class, 'approve'])->name('transactions.approve');
     Route::post('/transactions/complete/{id}', [TransactionController::class, 'complete'])->name('transactions.complete');
+    Route::post('/transactions/reject/{id}', [TransactionController::class, 'reject'])->name('transactions.reject');
+    Route::post('/transactions/reprocess/{id}', [TransactionController::class, 'reprocess'])->name('transactions.reprocess');
     Route::post('/transactions/quick-add-bank', [TransactionController::class, 'storeQuickBank'])->name('transactions.quick-add-bank');
+
+    // Settlement distribution edit (under CheckLogin so they bypass CheckPermission)
+    Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
+    Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {
