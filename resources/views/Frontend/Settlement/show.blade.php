@@ -52,7 +52,10 @@
                     <th class="table-header">Sr. No.</th>
                     <th class="table-header">Application No.</th>
                     <th class="table-header">Customer Name</th>
-                    <th class="table-header">Rate %</th>
+                    <th class="table-header">Disbursement Amount</th>
+                    <th class="table-header">Submitted By</th>
+                    <th class="table-header">Company Receiving</th>
+                    <th class="table-header">Sharing Commission</th>
                     <th class="table-header">Commission Amount</th>
                     <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
                     <th class="table-header">Net Payable</th>
@@ -74,6 +77,16 @@
                         @endif
                     </td>
                     <td>{{ $app->customer_name ?? '-' }}</td>
+                    <td>₹ {{ number_format($app->disburse_amount ?? 0, 2) }}</td>
+                    <td>
+                        @if($app && $app->user_id)
+                            @php $submitter = \App\Models\User::find($app->user_id); @endphp
+                            {{ $submitter ? $submitter->first_name . ' ' . ($submitter->last_name ?? '') : '-' }}
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
                     <td>{{ $dist->received_rate ?? '-' }}%</td>
                     <td>₹ {{ number_format($dist->gross_amount ?? 0, 2) }}</td>
                     <td>₹ {{ number_format($dist->tds ?? 0, 2) }}</td>
@@ -84,7 +97,7 @@
             </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f5f5f5;">
-                    <td colspan="4" class="text-end">Totals:</td>
+                    <td colspan="7" class="text-end">Totals:</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('gross_amount'), 2) }}</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('tds'), 2) }}</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('amount'), 2) }}</td>

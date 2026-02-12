@@ -312,6 +312,18 @@
                                 name: 'customer_name'
                         },
                         {
+                                data: 'disbursement_amount',
+                                name: 'disbursement_amount'
+                        },
+                        {
+                                data: 'submitted_by',
+                                name: 'submitted_by'
+                        },
+                        {
+                                data: 'company_receiving',
+                                name: 'company_receiving'
+                        },
+                        {
                                 data: 'received_rate',
                                 name: 'received_rate'
                         },

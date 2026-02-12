@@ -192,6 +192,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/transactions/approve/{id}', [TransactionController::class, 'approveForm'])->name('transactions.approve.form');
     Route::post('/transactions/approve/{id}', [TransactionController::class, 'approve'])->name('transactions.approve');
     Route::post('/transactions/complete/{id}', [TransactionController::class, 'complete'])->name('transactions.complete');
+    Route::post('/transactions/quick-add-bank', [TransactionController::class, 'storeQuickBank'])->name('transactions.quick-add-bank');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {

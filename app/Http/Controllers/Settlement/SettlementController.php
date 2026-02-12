@@ -132,8 +132,24 @@ class SettlementController extends Controller
                         $application = DB::table('applications')->where('id', $row->application_id)->first();
                         return $application->customer_name ?? '-';
                     })
+                    ->addColumn('disbursement_amount', function ($row) {
+                        $application = DB::table('applications')->where('id', $row->application_id)->first();
+                        return $application ? '₹ ' . indianNumberFormat($application->disburse_amount ?? 0) : '-';
+                    })
+                    ->addColumn('submitted_by', function ($row) {
+                        $application = DB::table('applications')->where('id', $row->application_id)->first();
+                        if ($application && $application->user_id) {
+                            $user = DB::table('users')->where('id', $application->user_id)->first();
+                            return $user ? $user->first_name . ' ' . ($user->last_name ?? '') : '-';
+                        }
+                        return '-';
+                    })
+                    ->addColumn('company_receiving', function ($row) {
+                        $application = DB::table('applications')->where('id', $row->application_id)->first();
+                        return $application && $application->commission_rate ? $application->commission_rate . '%' : '-';
+                    })
                     ->addColumn('received_rate', function ($row) {
-                        return $row->received_rate ?? '-';
+                        return $row->received_rate ? $row->received_rate . '%' : '-';
                     })
                     ->addColumn('gross_amount', function ($row) {
                         return '₹ ' . indianNumberFormat($row->gross_amount ?? 0);
