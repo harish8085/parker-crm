@@ -41,10 +41,7 @@ class ApplicationController extends Controller
         $channelroleId = 2;
         $salesroleId = 3;
         $applications = Application::all();
-        $associateChannelRoleId = 37;
-        $users = User::with('roles:id')->whereHas('roles', function ($query) use ($channelroleId, $associateChannelRoleId) {
-            $query->whereIn('id', [$channelroleId, $associateChannelRoleId]);
-        })->get();
+        $users = User::all();
         $bank = Bank::all();
         $product = Product::all();
         // Fetching channels and sales persons
@@ -58,16 +55,7 @@ class ApplicationController extends Controller
         if ($request->ajax()) {
 
 
-            $query = Application::with(['bank', 'product', 'user.roles'])->orderBy('id', 'desc');
-            $formatPartnerName = function ($partner) {
-                if (!$partner) {
-                    return '-';
-                }
-
-                $identifier = $partner->Emp_Id ?: $partner->id;
-
-                return trim($partner->first_name . ' ' . $partner->last_name) . ' (' . $identifier . ')';
-            };
+            $query = Application::with(['bank', 'product'])->orderBy('id', 'desc');
 
             if($user->roles[0]->name == 'Channel' || $user->roles[0]->name == 'Associate_Channel') {
                 
@@ -138,8 +126,8 @@ class ApplicationController extends Controller
                         }
                         return '';
                     })
-                    ->editColumn('user_id', function ($row) use ($formatPartnerName) {
-                        return $formatPartnerName($row->user);
+                    ->editColumn('user_id', function ($row) {
+                        return $row->user ? $row->user->first_name . ' ' . $row->user->last_name : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -313,11 +301,11 @@ class ApplicationController extends Controller
 
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
                     })
-                    // ->editColumn('remark', function ($row) {
-                    //     return '<div class="table-row ">' .
-                    //         $row->remark ?? '-' .
-                    //         '</div>';
-                    // })
+                    ->editColumn('remark', function ($row) {
+                        return '<div class="table-row ">' .
+                            $row->remark ?? '-' .
+                            '</div>';
+                    })
                     ->addColumn('action', function ($row) {
                         $btn = '';
 
@@ -353,8 +341,8 @@ class ApplicationController extends Controller
                         }
                         return '';
                     })
-                    ->editColumn('user_id', function ($row) use ($formatPartnerName) {
-                        return $formatPartnerName($row->user);
+                    ->editColumn('user_id', function ($row) {
+                        return $row->user ? $row->user->first_name . ' ' . $row->user->last_name : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched

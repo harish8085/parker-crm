@@ -73,8 +73,7 @@
                     <select class="bank-detail-input form-select select" required name="partner_name" id="partner_name">
                         <option value=""></option>
                         @foreach($users as $u)
-                        @php $identifier = $u->Emp_Id ?: $u->id; @endphp
-                        <option value="{{$u->id}}">{{$u->first_name}} {{$u->last_name}} ({{$identifier}})</option>
+                        <option value="{{$u->id}}">{{$u->first_name}} {{$u->last_name}}</option>
                         @endforeach
                     </select>
                 </div>
