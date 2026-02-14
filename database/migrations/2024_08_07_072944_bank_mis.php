@@ -24,6 +24,7 @@ class BankMis extends Migration
             $table->string('disbAmount');
             $table->string('payout_amount');
             $table->string('payout_rate');
+            $table->string(('bank_mis_month'));
             $table->string('case_location');
             $table->string('customer_firm_name');
             $table->string('pf');

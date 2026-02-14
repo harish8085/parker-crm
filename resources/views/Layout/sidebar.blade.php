@@ -157,17 +157,16 @@
                                 <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice')?'assets/images/invoice_blue.svg':'assets/images/invoice_white.svg')}}" alt="error">Invoices
                             </a>
                         </li>
-                        <li class="dropdown-list-li {{(Request::path() == 'mis_tracker')?'active-li':''}}">
-                            <a class="dropdown-item nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
-                                <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
-                            </a>
-                        </li>
                         <li class="dropdown-list-li {{(Request::path() == 'invoice_payment')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'invoice_payment')?'active-li':''}}" href="{{url('invoice_payment')}}">
                                 <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice_payment')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
                             </a>
                         </li>
-
+                        <li class="dropdown-list-li {{(Request::path() == 'mis_tracker')?'active-li':''}}">
+                            <a class="dropdown-item nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
+                                <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endif
