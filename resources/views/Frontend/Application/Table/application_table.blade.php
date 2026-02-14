@@ -12,7 +12,7 @@
               <th class="table-header">Product Name</th>
               <th class="table-header">Disburse Amount</th>
               <th class="table-header">Commission Rate</th>
-              <th class="table-header">Remark</th>
+              <!-- <th class="table-header">Remark</th> -->
               <th class="table-header">Status</th>
               <th class="table-header">Actions</th>
           </tr>
