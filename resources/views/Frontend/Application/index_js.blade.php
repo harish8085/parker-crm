@@ -353,10 +353,6 @@
                                         name: 'commission_rate'
                                 },
                                 {
-                                        data: 'remark',
-                                        name: 'remark'
-                                },
-                                {
                                         data: 'status',
                                         name: 'status'
                                 },

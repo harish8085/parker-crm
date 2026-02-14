@@ -282,6 +282,9 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select Status<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="status" id="status">
+                    @if($application->status != 'approved' || Auth::user()->roles[0]->pivot->role_id != 36)
+                    <option value="pending" @if($application->status =='pending') selected @endif>Pending</option>
+                    @endif
                     @if(Auth::user()->roles[0]->pivot->role_id == 1 || Auth::user()->roles[0]->pivot->role_id == 35)
                     <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
                     @endif
