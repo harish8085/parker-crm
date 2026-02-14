@@ -17,6 +17,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         </ol>
     </nav>
 </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="application-heading mb-0">Edit Application</h3>
+    <a href="{{ url('/application') }}" class="btn btn-secondary">Back</a>
+</div>
 <form class="needs-validation" action="{{url('/application/update/'.$application->id)}}" method="POST" novalidate>
     @csrf
     @if ($errors->any())
@@ -91,7 +95,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Disbursment Date<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="date" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" value="{{$application->disbursement_date}}" />
+                <input class="bank-detail-input form-control" type="text" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" value="{{ $application->disbursement_date ? \Carbon\Carbon::parse($application->disbursement_date)->format('d-m-Y') : '' }}" autocomplete="off" />
             </div>
 
             <div class="bank-detail-inputs">
@@ -355,7 +359,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         })
 
         $('#disbursement_date').datepicker({
-            format: 'yyyy-mm-dd', // Specify the date format
+            format: 'dd-mm-yyyy', // Specify the date format
             autoclose: true, // Close the datepicker automatically after selection
             todayHighlight: true, // Highlight today's date
             endDate: new Date() // Set the end date to today, preventing future dates

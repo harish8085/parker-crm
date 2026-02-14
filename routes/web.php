@@ -129,6 +129,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/getAllProduct', [BankProductController::class, 'getAllProduct']);
     Route::post('/getServiceProduct', [ServiceController::class, 'getServiceProduct']);
     Route::post('/getUserCommission', [ApplicationController::class, 'getUserCommission']);
+    Route::get('/application/channel/{channelId}/associates', [ApplicationController::class, 'getAssociatedPartnersByChannel'])->name('application.channel.associates');
 
     //Manage Permission Route
     Route::get('/sheet-matching', [SheetMatchingController::class, 'index'])->name('sheet-matching.index');

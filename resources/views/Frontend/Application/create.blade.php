@@ -13,6 +13,11 @@
     </nav>
 </div>
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="application-heading mb-0">Add Application</h3>
+    <a href="{{ url('/application') }}" class="btn btn-secondary">Back</a>
+</div>
+
 
 
 <form class="needs-validation" action="{{url('/application/create')}}" method="POST" novalidate>
@@ -29,32 +34,53 @@
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id!=37)
-
+            @php
+                $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::user()->roles[0]->id);
+            @endphp
+            @if(!in_array($roleId, [3,37]))
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type</label>
                 <select class="bank-detail-input form-select select" required name="user_type" id="user_type">
                     <option value="" selected disabled>Select User Type</option>
+                    @if($roleId == 2)
                     <option value="channel">Channel Partner</option>
-                    <option value="sales">Sales Person</option>
+                    @else
+                    <option value="channel">Channel Partner</option>
+                    @endif
+                    <option value="associate">Associate Partner</option>
                 </select>
             </div>
             <div class="bank-detail-inputs channel">
                 <label class="bank-input-label" for="validationCustom01">Channel Partner</label>
-                <select class="bank-detail-input form-select select" required name="channel_sales_id" id="channel_id">
+                <select class="bank-detail-input form-select select" name="channel_id" id="channel_id">
                     <option value="" selected disabled>Select Channel Partner</option>
                     @foreach($channels as $channel)
-                    <option value="{{$channel->id}}">{{$channel->first_name}}</option>
+                    <option value="{{$channel->id}}" @if($roleId == 2 && $channel->id == Auth::id()) selected @endif>{{$channel->first_name}}</option>
                     @endforeach
                 </select>
             </div>
             <div class="bank-detail-inputs sales">
                 <label class="bank-input-label" for="validationCustom01">Sales Person<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select select" required name="channel_sales_id" id="sales_id">
+                <select class="bank-detail-input form-select select" name="sales_id" id="sales_id">
                     <option value="" selected disabled>Select Sales Person</option>
                     @foreach($sales as $sale)
                     <option value="{{$sale->id}}">{{$sale->first_name}} {{$sale->last_name}}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="bank-detail-inputs associate-channel">
+                <label class="bank-input-label">Channel Partner<span class="required">*</span></label>
+                <select class="bank-detail-input form-select select" name="associate_channel_id" id="associate_channel_id">
+                    <option value="" selected disabled>Select Channel Partner</option>
+                    @foreach($channels as $channel)
+                    <option value="{{$channel->id}}" @if($roleId == 2 && $channel->id == Auth::id()) selected @endif>{{$channel->first_name}}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="bank-detail-inputs associate">
+                <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
+                <select class="bank-detail-input form-select select" name="associate_id" id="associate_id">
+                    <option value="" selected disabled>Select Associate Partner</option>
                 </select>
             </div>
             @endif
@@ -64,7 +90,7 @@
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Disbursment Date<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="date" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" />
+                <input class="bank-detail-input form-control" type="text" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" autocomplete="off" />
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer Name<span class="required">*</span></label>
@@ -218,10 +244,18 @@
 @endsection
 
 @section('script')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 
 <!-- select search -->
 <script>
     $(document).ready(function() {
+        $('#disbursement_date').datepicker({
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            todayHighlight: true,
+            endDate: new Date()
+        });
+
         // Initialize Select2 for all select elements
         $('.select').select2({
             placeholder: "Select an option",
@@ -235,6 +269,61 @@
         $('.unsecured').hide()
         $('.channel').hide()
         $('.sales').hide()
+        $('.associate-channel').hide()
+        $('.associate').hide()
+
+        var roleId = Number(`{{Auth::user()->roles[0]->pivot->role_id}}`);
+        var authUserId = Number(`{{Auth::id()}}`);
+
+        function loadAssociates(channelId) {
+            $('#associate_id').html('<option value=\"\" selected disabled>Select Associate Partner</option>');
+            if (!channelId) {
+                return;
+            }
+
+            $.ajax({
+                url: '/application/channel/' + channelId + '/associates',
+                type: 'GET',
+                success: function(response) {
+                    $.each(response, function(_, associate) {
+                        var emp = associate.emp_id ? associate.emp_id : associate.id;
+                        $('#associate_id').append('<option value=\"' + associate.id + '\">' + associate.name + ' (' + emp + ')</option>');
+                    });
+                },
+                error: function() {
+                    $('#associate_id').html('<option value=\"\" selected disabled>No associates found</option>');
+                }
+            });
+        }
+
+        $('#associate_channel_id').change(function() {
+            loadAssociates($(this).val());
+        });
+
+        function handleUserTypeVisibility() {
+            var userType = $('#user_type').val();
+            $('.channel, .sales, .associate-channel, .associate').hide();
+
+            if (userType === 'channel') {
+                $('.channel').show();
+            } else if (userType === 'sales') {
+                $('.sales').show();
+            } else if (userType === 'associate') {
+                $('.associate-channel, .associate').show();
+                if (roleId === 2) {
+                    $('#associate_channel_id').val(authUserId).trigger('change');
+                }
+            }
+        }
+
+        $('#user_type').change(handleUserTypeVisibility);
+
+        if (roleId === 2) {
+            $('#user_type').val('channel').trigger('change');
+            $('#channel_id').val(authUserId).trigger('change');
+            $('#associate_channel_id').val(authUserId).trigger('change');
+        }
+
         $('#group').change(function() {
             if ($(this).val() == 'Secured') {
                 $('.unsecured').hide()
@@ -269,18 +358,6 @@
 
         });
         // });
-        $('#user_type').change(function() {
-
-            if ($(this).val() == 'channel') {
-                $('.sales').hide()
-                $('.channel').show()
-
-            } else {
-                $('.sales').show()
-                $('.channel').hide()
-
-            }
-        })
 
 
         $('#bank_id,#group').change(function() {
@@ -316,8 +393,8 @@
 
             // Perform form validation
             var isValid = true;
-            var roleId = `{{Auth::user()->roles[0]->pivot->role_id}}`;
-            if (roleId == 1) {
+            var roleId = Number(`{{Auth::user()->roles[0]->pivot->role_id}}`);
+            if (roleId != 3 && roleId != 37) {
                 if (!$('#user_type').val()) {
                     $('#user_type').next('.select2-container').find('.select2-selection').addClass('is-invalid');
                     $('#user_type').focus();
@@ -336,7 +413,7 @@
                     } else {
                         $('#channel_id').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
                     }
-                } else {
+                } else if ($('#user_type').val() == 'sales') {
                     if (!$('#sales_id').val()) {
                         $('#sales_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
                         $('#sales_id').focus();
@@ -344,6 +421,24 @@
                         return false;
                     } else {
                         $('#sales_id').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
+                    }
+                } else if ($('#user_type').val() == 'associate') {
+                    if (!$('#associate_channel_id').val()) {
+                        $('#associate_channel_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+                        $('#associate_channel_id').focus();
+                        isValid = false;
+                        return false;
+                    } else {
+                        $('#associate_channel_id').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
+                    }
+
+                    if (!$('#associate_id').val()) {
+                        $('#associate_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+                        $('#associate_id').focus();
+                        isValid = false;
+                        return false;
+                    } else {
+                        $('#associate_id').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
                     }
                 }
             }
@@ -505,6 +600,11 @@
 
             }
 
+
+            // Normalize channel selection for associate flow before submit
+            if ($('#user_type').val() === 'associate') {
+                $('#channel_id').val($('#associate_channel_id').val());
+            }
 
             // If form is valid, submit the form
             if (isValid) {

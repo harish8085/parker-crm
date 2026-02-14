@@ -580,12 +580,13 @@ class ApplicationController extends Controller
 
         $Route = 'Application';
         $user = Auth::user();
+        $effectiveRoleId = $this->getEffectiveRoleId($user);
         $banks = Bank::get();
         $channelroleId = 2;
         $salesroleId = 3;
         $associateChannelRoleId = 37;
 
-        if ($user->roles[0]->id == 1) {
+        if ($this->userHasAnyRole($user, [1, 35, 36])) {
             $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->where('status', 1)->get();
@@ -593,7 +594,7 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == $associateChannelRoleId) {
+        } elseif ($this->userHasAnyRole($user, [2, 3, $associateChannelRoleId])) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->where('status', 1)->get();
@@ -622,17 +623,18 @@ class ApplicationController extends Controller
         $states = getState();
 
 
-        return view('Frontend.Application.create', compact('Route', 'channels', 'sales', 'banks', 'states'));
+        return view('Frontend.Application.create', compact('Route', 'channels', 'sales', 'banks', 'states', 'effectiveRoleId'));
     }
 
     public function store(Request $request)
     {
         try {
             $user = Auth::user();
+            $parsedDisbursementDate = $this->parseDisbursementDate($request->disbursement_date);
             // Validate the form data
             $validatedData = $request->validate([
                 'app_id' => 'required',
-                'disbursement_date' => 'required|date',
+                'disbursement_date' => 'required',
                 'case_location' => 'nullable|string|max:255',
                 'case_state' => 'nullable|string|max:255',
                 'customer_name' => 'required|string|max:255',
@@ -641,16 +643,18 @@ class ApplicationController extends Controller
                 'group' => 'required|string|max:255',
             ]);
 
-            // Create a new Application instance with the validated data
-            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 37 ) {
-                $user_id = $user->id;
-            } else {
-                $user_id = $request->channel_sales_id;
+            if (!$parsedDisbursementDate) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['disbursement_date' => 'Invalid disbursement date format. Use DD-MM-YYYY.']);
             }
+
+            // Resolve selected target user based on role + selected user type
+            $user_id = $this->resolveSelectedApplicationUserId($request, $user);
             $application = new Application();
             $application->user_id = $user_id;
             $application->app_id = $request->app_id;
-            $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));
+            $application->disbursement_date = $parsedDisbursementDate;
             $application->case_location = $request->case_location;
             $application->case_state = $request->case_state;
             $application->customer_name = $request->customer_name;
@@ -856,6 +860,7 @@ class ApplicationController extends Controller
     {
         // Validate the form data
         $user = Auth::user();
+        $roleId = (int) ($user->roles[0]->pivot->role_id ?? $user->roles[0]->id ?? 0);
 
         // Find the application by ID
         $application = Application::findOrFail($id);
@@ -892,6 +897,42 @@ class ApplicationController extends Controller
                     ->withErrors(['bank_id' => 'Bank field cannot be empty when completing an application.']);
             }
         }
+
+        // Admin/Maker cannot approve until key fields are matched with bank values
+        if ($request->status === 'approved' && in_array($roleId, [1, 35], true)) {
+            $normalizeNumber = function ($value) {
+                if ($value === null || $value === '') {
+                    return null;
+                }
+
+                $cleanValue = preg_replace('/[^\d.\-]/', '', (string) $value);
+                return $cleanValue === '' ? null : (float) $cleanValue;
+            };
+
+            $requestAppId = trim((string) ($request->app_id ?? $application->app_id));
+            $requestDisburseAmount = $normalizeNumber($request->disburse_amount ?? $application->disburse_amount);
+            $requestCommissionRate = $normalizeNumber($request->commission_rate ?? $application->commission_rate);
+
+            $isAppIdMatched = !empty($application->app_id_is_value)
+                ? strcasecmp($requestAppId, trim((string) $application->app_id_is_value)) === 0
+                : (bool) $application->app_id_is_matched;
+
+            $isDisburseMatched = $application->disburse_amount_is_value !== null && $application->disburse_amount_is_value !== ''
+                ? $requestDisburseAmount !== null && $requestDisburseAmount == $normalizeNumber($application->disburse_amount_is_value)
+                : (bool) $application->disburse_amount_is_matched;
+
+            $isCommissionMatched = $application->commission_rate_is_value !== null && $application->commission_rate_is_value !== ''
+                ? $requestCommissionRate !== null && $requestCommissionRate == $normalizeNumber($application->commission_rate_is_value)
+                : (bool) $application->commission_rate_is_matched;
+
+            if (!$isAppIdMatched || !$isDisburseMatched || !$isCommissionMatched) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors([
+                        'status' => 'Approval blocked. Application No, Disburse Amount, and Commission Rate must match bank fields before approving.'
+                    ]);
+            }
+        }
         
         // if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
         //     $application->user_id = $user->id;
@@ -899,8 +940,15 @@ class ApplicationController extends Controller
         //     $application->user_id = $request->channel_sales_id;
         // }
         // Update the application with the validated data
+        $parsedDisbursementDate = $this->parseDisbursementDate($request->disbursement_date);
+        if (!$parsedDisbursementDate) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['disbursement_date' => 'Invalid disbursement date format. Use DD-MM-YYYY.']);
+        }
+
         $application->app_id = $request->app_id;
-        $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));
+        $application->disbursement_date = $parsedDisbursementDate;
         $application->case_location = $request->case_location;
         $application->case_state = $request->case_state;
         $application->customer_name = $request->customer_name;
@@ -1033,13 +1081,13 @@ class ApplicationController extends Controller
     {
         $Route = 'Application';
         $user = Auth::user();
-        $role_id = $user->roles[0]->id;
+        $role_id = $this->getEffectiveRoleId($user);
         $user_id = $user->id;
         $channelroleId = 2;
         $salesroleId = 3;
         $associateChannelRoleId = 37;
         
-        if ($user->roles[0]->id == 1) {
+        if ($this->userHasAnyRole($user, [1, 35, 36])) {
             $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->where('status', 1)->get();
@@ -1047,7 +1095,7 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        } elseif ($this->userHasAnyRole($user, [2, 3])) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->where('status', 1)->get();
@@ -1055,7 +1103,7 @@ class ApplicationController extends Controller
             $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == $associateChannelRoleId) {
+        } elseif ($this->userHasAnyRole($user, [$associateChannelRoleId])) {
             // Associate channels can only upload for themselves
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($associateChannelRoleId) {
                 $query->where('id', $associateChannelRoleId);
@@ -1170,7 +1218,7 @@ class ApplicationController extends Controller
 
             $user = Auth::user();
             $createdBy = $user->id;
-            $userId = $request->user_id;
+            $userId = $this->resolveSelectedApplicationUserId($request, $user);
 
             // Read the uploaded Excel file
             $file = $request->file('csv_file');
@@ -1317,8 +1365,9 @@ class ApplicationController extends Controller
                     'error_code' => 'ERR_NO_NEW_RECORDS'
                 ], 200);
             }
+        } catch (ValidationException $e) {
+            return redirect()->back()->withErrors($e->validator)->withInput();
         } catch (\Throwable $th) {
-            return $th;
             return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
         }
     }
@@ -1512,6 +1561,30 @@ class ApplicationController extends Controller
         return response()->json(['message' => $deletedCount . ' applications deleted successfully.'], 200);
     }
 
+    public function getAssociatedPartnersByChannel($channelId)
+    {
+        $user = Auth::user();
+        $channelId = (int) $channelId;
+
+        if (!$this->canAccessChannelForAssociateSelection($user, $channelId)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $associateIds = ChannelUser::where('channel_id', $channelId)->pluck('associate_channel_id');
+        $associates = User::whereIn('id', $associateIds)
+            ->get(['id', 'first_name', 'last_name', 'Emp_Id']);
+
+        $data = $associates->map(function ($associate) {
+            return [
+                'id' => $associate->id,
+                'name' => trim($associate->first_name . ' ' . $associate->last_name),
+                'emp_id' => $associate->Emp_Id,
+            ];
+        });
+
+        return response()->json($data);
+    }
+
     public function updateRemark(Request $request)
     {
         $request->validate([
@@ -1524,5 +1597,250 @@ class ApplicationController extends Controller
         $application->save();
        
         return response()->json(['success' => true, 'message' => 'Remark updated successfully']);
+    }
+
+    private function resolveSelectedApplicationUserId(Request $request, $authUser)
+    {
+        $roleId = $this->getEffectiveRoleId($authUser);
+
+        // Sales/Associate can only create/upload their own cases
+        if (in_array($roleId, [3, 37], true)) {
+            return $authUser->id;
+        }
+
+        // Channel can upload/create own case or linked associate case
+        if ($roleId === 2) {
+            $userType = $request->input('user_type', 'channel');
+            if ($userType === 'associate') {
+                $associateId = (int) $request->input('associate_id');
+                if (!$associateId) {
+                    throw ValidationException::withMessages([
+                        'associate_id' => 'Please select associate partner.',
+                    ]);
+                }
+
+                $isLinkedAssociate = ChannelUser::where('channel_id', $authUser->id)
+                    ->where('associate_channel_id', $associateId)
+                    ->exists();
+
+                if (!$isLinkedAssociate) {
+                    throw ValidationException::withMessages([
+                        'associate_id' => 'Selected associate partner is not linked with your channel.',
+                    ]);
+                }
+
+                return $associateId;
+            }
+
+            return $authUser->id;
+        }
+
+        // Admin/Maker/Checker
+        if (in_array($roleId, [1, 35, 36], true)) {
+            return $this->resolveAdminLikeTargetUserId($request);
+        }
+
+        // Staff and other roles: constrained by assigned channels/sales
+        return $this->resolveStaffTargetUserId($request, $authUser);
+    }
+
+    private function resolveAdminLikeTargetUserId(Request $request)
+    {
+        $userType = $request->input('user_type');
+        if (!$userType) {
+            throw ValidationException::withMessages([
+                'user_type' => 'Please select user type.',
+            ]);
+        }
+
+        if ($userType === 'channel') {
+            $channelId = (int) ($request->input('channel_id') ?: $request->input('channel_sales_id'));
+            if (!$channelId || !$this->userHasRole($channelId, 2)) {
+                throw ValidationException::withMessages([
+                    'channel_id' => 'Please select valid channel partner.',
+                ]);
+            }
+            return $channelId;
+        }
+
+        if ($userType === 'sales') {
+            $salesId = (int) ($request->input('sales_id') ?: $request->input('channel_sales_id'));
+            if (!$salesId || !$this->userHasRole($salesId, 3)) {
+                throw ValidationException::withMessages([
+                    'sales_id' => 'Please select valid sales person.',
+                ]);
+            }
+            return $salesId;
+        }
+
+        if ($userType === 'associate') {
+            $channelId = (int) $request->input('channel_id');
+            $associateId = (int) $request->input('associate_id');
+            if (!$channelId || !$this->userHasRole($channelId, 2)) {
+                throw ValidationException::withMessages([
+                    'channel_id' => 'Please select channel partner for associate.',
+                ]);
+            }
+            if (!$associateId) {
+                throw ValidationException::withMessages([
+                    'associate_id' => 'Please select valid associate partner.',
+                ]);
+            }
+
+            $isLinkedAssociate = ChannelUser::where('channel_id', $channelId)
+                ->where('associate_channel_id', $associateId)
+                ->exists();
+            if (!$isLinkedAssociate) {
+                throw ValidationException::withMessages([
+                    'associate_id' => 'Selected associate partner is not linked with selected channel.',
+                ]);
+            }
+
+            return $associateId;
+        }
+
+        throw ValidationException::withMessages([
+            'user_type' => 'Invalid user type selected.',
+        ]);
+    }
+
+    private function resolveStaffTargetUserId(Request $request, $authUser)
+    {
+        $assignedRaw = StaffAssign::where('user_id', $authUser->id)->value('channel_sales_id');
+        $assignedIds = json_decode($assignedRaw, true);
+        $assignedIds = is_array($assignedIds) ? array_map('intval', $assignedIds) : [];
+
+        $userType = $request->input('user_type');
+        if (!$userType) {
+            throw ValidationException::withMessages([
+                'user_type' => 'Please select user type.',
+            ]);
+        }
+
+        if ($userType === 'channel') {
+            $channelId = (int) ($request->input('channel_id') ?: $request->input('channel_sales_id'));
+            if (!$channelId || !in_array($channelId, $assignedIds, true) || !$this->userHasRole($channelId, 2)) {
+                throw ValidationException::withMessages([
+                    'channel_id' => 'Please select valid assigned channel partner.',
+                ]);
+            }
+            return $channelId;
+        }
+
+        if ($userType === 'sales') {
+            $salesId = (int) ($request->input('sales_id') ?: $request->input('channel_sales_id'));
+            if (!$salesId || !in_array($salesId, $assignedIds, true) || !$this->userHasRole($salesId, 3)) {
+                throw ValidationException::withMessages([
+                    'sales_id' => 'Please select valid assigned sales person.',
+                ]);
+            }
+            return $salesId;
+        }
+
+        if ($userType === 'associate') {
+            $channelId = (int) $request->input('channel_id');
+            $associateId = (int) $request->input('associate_id');
+            if (!$channelId || !in_array($channelId, $assignedIds, true) || !$this->userHasRole($channelId, 2)) {
+                throw ValidationException::withMessages([
+                    'channel_id' => 'Please select valid assigned channel partner for associate.',
+                ]);
+            }
+            if (!$associateId) {
+                throw ValidationException::withMessages([
+                    'associate_id' => 'Please select valid associate partner.',
+                ]);
+            }
+
+            $isLinkedAssociate = ChannelUser::where('channel_id', $channelId)
+                ->where('associate_channel_id', $associateId)
+                ->exists();
+            if (!$isLinkedAssociate) {
+                throw ValidationException::withMessages([
+                    'associate_id' => 'Selected associate partner is not linked with selected channel.',
+                ]);
+            }
+            return $associateId;
+        }
+
+        throw ValidationException::withMessages([
+            'user_type' => 'Invalid user type selected.',
+        ]);
+    }
+
+    private function canAccessChannelForAssociateSelection($authUser, $channelId)
+    {
+        $roleId = $this->getEffectiveRoleId($authUser);
+        if (in_array($roleId, [1, 35, 36], true)) {
+            return true;
+        }
+
+        if ($roleId === 2) {
+            return (int) $authUser->id === (int) $channelId;
+        }
+
+        $assignedRaw = StaffAssign::where('user_id', $authUser->id)->value('channel_sales_id');
+        $assignedIds = json_decode($assignedRaw, true);
+        $assignedIds = is_array($assignedIds) ? array_map('intval', $assignedIds) : [];
+
+        return in_array((int) $channelId, $assignedIds, true);
+    }
+
+    private function userHasRole($userId, $roleId)
+    {
+        return User::where('id', $userId)->whereHas('roles', function ($query) use ($roleId) {
+            $query->where('id', $roleId);
+        })->exists();
+    }
+
+    private function userHasAnyRole($user, array $roleIds)
+    {
+        $userRoleIds = $user->roles->pluck('id')->map(function ($id) {
+            return (int) $id;
+        })->toArray();
+
+        foreach ($roleIds as $roleId) {
+            if (in_array((int) $roleId, $userRoleIds, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getEffectiveRoleId($user)
+    {
+        $priority = [1, 35, 36, 2, 3, 37];
+        $userRoleIds = $user->roles->pluck('id')->map(function ($id) {
+            return (int) $id;
+        })->toArray();
+
+        foreach ($priority as $roleId) {
+            if (in_array($roleId, $userRoleIds, true)) {
+                return $roleId;
+            }
+        }
+
+        return isset($userRoleIds[0]) ? (int) $userRoleIds[0] : 0;
+    }
+
+    private function parseDisbursementDate($rawDate)
+    {
+        if (empty($rawDate)) {
+            return null;
+        }
+
+        $value = trim((string) $rawDate);
+        foreach (['d-m-Y', 'Y-m-d'] as $format) {
+            try {
+                $parsed = Carbon::createFromFormat($format, $value);
+                if ($parsed && $parsed->format($format) === $value) {
+                    return $parsed->format('Y-m-d');
+                }
+            } catch (\Exception $e) {
+                // Try next format
+            }
+        }
+
+        return null;
     }
 }
