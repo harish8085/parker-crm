@@ -58,7 +58,7 @@ class ApplicationController extends Controller
         if ($request->ajax()) {
 
 
-            $query = Application::with(['bank', 'product', 'user.roles'])->orderBy('id', 'desc');
+            $query = Application::with(['bank', 'product', 'user.roles', 'parentChannel'])->orderBy('id', 'desc');
             $formatPartnerName = function ($partner) {
                 if (!$partner) {
                     return '-';
@@ -67,6 +67,14 @@ class ApplicationController extends Controller
                 $identifier = $partner->Emp_Id ?: $partner->id;
 
                 return trim($partner->first_name . ' ' . $partner->last_name) . ' (' . $identifier . ')';
+            };
+            $formatParentName = function ($parentChannel) {
+                if (!$parentChannel) {
+                    return '-';
+                }
+
+                $identifier = $parentChannel->Emp_Id ?: $parentChannel->id;
+                return trim($parentChannel->first_name . ' ' . $parentChannel->last_name) . ' (' . $identifier . ')';
             };
 
             if($user->roles[0]->name == 'Channel' || $user->roles[0]->name == 'Associate_Channel') {
@@ -140,6 +148,9 @@ class ApplicationController extends Controller
                     })
                     ->editColumn('user_id', function ($row) use ($formatPartnerName) {
                         return $formatPartnerName($row->user);
+                    })
+                    ->addColumn('parent_name', function ($row) use ($formatParentName) {
+                        return $formatParentName($row->parentChannel);
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -355,6 +366,9 @@ class ApplicationController extends Controller
                     })
                     ->editColumn('user_id', function ($row) use ($formatPartnerName) {
                         return $formatPartnerName($row->user);
+                    })
+                    ->addColumn('parent_name', function ($row) use ($formatParentName) {
+                        return $formatParentName($row->parentChannel);
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -638,6 +652,7 @@ class ApplicationController extends Controller
                 'case_location' => 'nullable|string|max:255',
                 'case_state' => 'nullable|string|max:255',
                 'customer_name' => 'required|string|max:255',
+                'customer_phone' => 'nullable|string|max:20',
                 'bank_id' => 'required|string|max:255',
                 'product_id' => 'required|string|max:255',
                 'group' => 'required|string|max:255',
@@ -658,6 +673,7 @@ class ApplicationController extends Controller
             $application->case_location = $request->case_location;
             $application->case_state = $request->case_state;
             $application->customer_name = $request->customer_name;
+            $application->customer_phone = $request->customer_phone;
             $application->customer_firm_name = $request->firm_name;
             $application->bank_id = $request->bank_id;
             $application->product_id = $request->product_id;
@@ -676,8 +692,10 @@ class ApplicationController extends Controller
             $application->banker_email = $request->banker_email;
             $application->created_by = Auth::id();
 
-            // Auto-set parent_channel_id and sharing_commission from channel's user_commission
-            if ($user->roles[0]->id == 37) {
+            // Use submitted sharing_commission when provided, otherwise auto-set from role/channel mapping.
+            if ($request->filled('sharing_commission')) {
+                $application->sharing_commission = $request->sharing_commission;
+            } elseif ($user->roles[0]->id == 37) {
                 $parentChannel = ChannelUser::where('associate_channel_id', $user->id)->first();
                 if ($parentChannel) {
                     $application->parent_channel_id = $parentChannel->channel_id;
@@ -791,10 +809,11 @@ class ApplicationController extends Controller
         // Retrieve the staff member by ID
         $application = Application::findOrFail($id);
         $user = Auth::user();
+        $effectiveRoleId = $this->getEffectiveRoleId($user);
         $banks = Bank::get();
         $channelroleId = 2;
         $salesroleId = 3;
-        if ($user->roles[0]->id == 1) {
+        if ($this->userHasAnyRole($user, [1, 35, 36])) {
             $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->get();
@@ -802,7 +821,7 @@ class ApplicationController extends Controller
             $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
                 $query->where('id', $salesroleId);
             })->get();
-        } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
+        } elseif ($this->userHasAnyRole($user, [2, 3])) {
             $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
                 $query->where('id', $channelroleId);
             })->get();
@@ -843,6 +862,17 @@ class ApplicationController extends Controller
                 $districts = $state['districts'];
             }
         }
+
+        $selectedUser = User::find($application->user_id);
+        $selectedUserType = 'channel';
+        if ($selectedUser && $selectedUser->roles()->where('id', 37)->exists()) {
+            $selectedUserType = 'associate';
+        } elseif ($selectedUser && $selectedUser->roles()->where('id', 3)->exists()) {
+            $selectedUserType = 'sales';
+        }
+
+        $selectedChannelId = $application->parent_channel_id ?: $application->user_id;
+
         // Pass the staff member data to the edit view
         return view('Frontend.Application.edit', compact(
             'Route',
@@ -852,7 +882,10 @@ class ApplicationController extends Controller
             'banks',
             'states',
             'districts',
-            'bankProducts'
+            'bankProducts',
+            'effectiveRoleId',
+            'selectedUserType',
+            'selectedChannelId'
         ));
     }
 
@@ -939,6 +972,14 @@ class ApplicationController extends Controller
         // } else {
         //     $application->user_id = $request->channel_sales_id;
         // }
+        // Update selected target user (channel/associate/sales) when provided from edit form
+        if (
+            $roleId != 37 &&
+            ($request->filled('user_type') || $request->filled('channel_id') || $request->filled('associate_id') || $request->filled('sales_id') || $request->filled('channel_sales_id'))
+        ) {
+            $application->user_id = $this->resolveSelectedApplicationUserId($request, $user);
+        }
+
         // Update the application with the validated data
         $parsedDisbursementDate = $this->parseDisbursementDate($request->disbursement_date);
         if (!$parsedDisbursementDate) {
@@ -952,12 +993,15 @@ class ApplicationController extends Controller
         $application->case_location = $request->case_location;
         $application->case_state = $request->case_state;
         $application->customer_name = $request->customer_name;
+        $application->customer_phone = $request->customer_phone;
         $application->customer_firm_name = $request->firm_name;
         $application->bank_id = $request->bank_id;
         $application->product_id = $request->product_id;
         $application->group = $request->group;
         $application->remark = '';
-        $application->commission_rate = $request->commission_rate;
+        if ($request->has('commission_rate')) {
+            $application->commission_rate = $request->commission_rate;
+        }
         
         // Only allow status update if user is not an associate
         if ($request->status && $user->roles[0]->pivot->role_id != 37) {
@@ -977,7 +1021,7 @@ class ApplicationController extends Controller
         $application->banker_email = $request->banker_email;
 
         // Update sharing_commission if provided, otherwise auto-populate from parent's commission rate
-        if ($request->sharing_commission) {
+        if ($request->filled('sharing_commission')) {
             $application->sharing_commission = $request->sharing_commission;
         } elseif (!$application->sharing_commission) {
             // Auto-populate if not already set
@@ -1193,8 +1237,8 @@ class ApplicationController extends Controller
     {
         try {
 
-            // Define the expected headers for validation
-            $expectedHeaders = [
+            // Define required headers (extra headers are allowed)
+            $requiredHeaders = [
                 'S.NO',
                 'APP ID',
                 'DISBURSEMENT DATE',
@@ -1231,23 +1275,8 @@ class ApplicationController extends Controller
             // Get the headers of the first row (usually the header)
             $headers = array_keys($rows[0]);
 
-            // Initialize an array to hold any header mismatch errors
-            $headerErrors = [];
-
-            // Check each header against the expected headers
-            foreach ($expectedHeaders as $index => $expectedHeader) {
-                if (!isset($headers[$index]) || $headers[$index] !== $expectedHeader) {
-                    // If headers don't match, record the error
-                    $headerErrors[] = [
-                        'expected' => $expectedHeader,
-                        'found' => isset($headers[$index]) ? $headers[$index] : 'N/A',
-                        'index' => $index + 1, // Header index (1-based)
-                    ];
-                }
-            }
-
-            // If there are header errors, return a detailed error response
-            if (!empty($headerErrors)) {
+            $missingHeaders = array_values(array_diff($requiredHeaders, $headers));
+            if (!empty($missingHeaders)) {
                 return redirect()->back()->withErrors(['error' => 'Header format mismatch'])->withInput();
             }
 
@@ -1307,6 +1336,7 @@ class ApplicationController extends Controller
                     $application->case_location = trim(htmlspecialchars($row['CASE LOCATION']));
                     $application->case_state = trim(htmlspecialchars($row['CASE STATE']));
                     $application->customer_name = trim(htmlspecialchars($row['CUSTOMER NAME']));
+                    $application->customer_phone = isset($row['CUSTOMER PHONE NUMBER']) ? trim((string) $row['CUSTOMER PHONE NUMBER']) : null;
                     $application->customer_firm_name = trim(htmlspecialchars($row['CUSTOMER\'S FIRM NAME']));
                     $application->bank_id = $bank_id;
                     $application->product_id = $product_id;

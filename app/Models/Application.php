@@ -20,6 +20,7 @@ class Application extends Model
         'case_location_is_value',
         'case_state',
         'customer_name',
+        'customer_phone',
         'customer_name_is_matched',
         'customer_name_is_value',
         'customer_firm_name',

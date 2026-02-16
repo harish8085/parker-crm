@@ -1,5 +1,6 @@
 @php
 $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_type');
+$roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::user()->roles[0]->id ?? 0);
 @endphp
 @extends('Layout.app')
 @section('style')
@@ -35,32 +36,51 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id !=35 && Auth::user()->roles[0]->pivot->role_id !=36 && Auth::user()->roles[0]->pivot->role_id !=37)
+            @if(!in_array($roleId, [3,37]))
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="user_type" id="user_type">
                     <option value="" selected disabled>Select User Type</option>
-                    <option value="channel" @if($isChannel=='channel' ) selected @endif>Channel Partner</option>
-                    <option value="sales" @if($isChannel!='channel' ) selected @endif>Sales Person</option>
+                    @if($roleId == 2)
+                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
+                    @else
+                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
+                    @endif
+                    <option value="associate" @if($selectedUserType=='associate' ) selected @endif>Associate Partner</option>
                 </select>
             </div>
             <div class="bank-detail-inputs channel">
                 <label class="bank-input-label" for="validationCustom01">Channel Partner<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" required name="channel_sales_id" id="channel_id">
+                <select class="bank-detail-input form-select" name="channel_id" id="channel_id">
                     <option value="" selected disabled>Select Channel Partner</option>
                     @foreach($channels as $channel)
-                    <option value="{{$channel->id}}" @if($channel->id == $application->user_id) selected @endif>{{$channel->first_name}}</option>
+                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}}</option>
                     @endforeach
                 </select>
             </div>
             <div class="bank-detail-inputs sales">
                 <label class="bank-input-label" for="validationCustom01">Sales Person<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" required name="channel_sales_id" id="sales_id">
+                <select class="bank-detail-input form-select" name="sales_id" id="sales_id">
                     <option value="" selected disabled>Select Sales Person</option>
                     @foreach($sales as $sale)
                     <option value="{{$sale->id}}" @if($sale->id == $application->user_id) selected @endif>{{$sale->first_name}} {{$sale->last_name}}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="bank-detail-inputs associate-channel">
+                <label class="bank-input-label">Channel Partner<span class="required">*</span></label>
+                <select class="bank-detail-input form-select" name="associate_channel_id" id="associate_channel_id">
+                    <option value="" selected disabled>Select Channel Partner</option>
+                    @foreach($channels as $channel)
+                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="bank-detail-inputs associate">
+                <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
+                <select class="bank-detail-input form-select" name="associate_id" id="associate_id">
+                    <option value="" selected disabled>Select Associate Partner</option>
                 </select>
             </div>
             @endif
@@ -111,6 +131,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                     @endif
                 </label>
                 <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter customer name" value="{{$application->customer_name}}">
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Customer Phone</label>
+                <input class="bank-detail-input form-control" type="text" name="customer_phone" id="customer_phone" placeholder="Enter customer phone number" value="{{$application->customer_phone}}" maxlength="20">
             </div>
 
             <div class="bank-detail-inputs">
@@ -234,6 +258,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <input class="bank-detail-input form-control" type="number" name="disburse_amount" id="disburse_amount" placeholder="Enter Disburse Amount" value="{{$application->disburse_amount}}">
             </div>
 
+            @if($roleId != 37)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Commission Rate
                     @if($application->bank_mis_id && $application->bankData)
@@ -248,9 +273,16 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 </label>
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate" value="{{$application->commission_rate}}">
             </div>
+            @endif
 
-            <!-- Sharing Commission - Hidden field, auto-populated from parent's commission rate -->
+            @if(in_array($roleId, [1, 2, 35, 36]))
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sharing Commission</label>
+                <input class="bank-detail-input form-control" type="number" step="0.01" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission" value="{{$application->sharing_commission}}">
+            </div>
+            @else
             <input type="hidden" name="sharing_commission" id="sharing_commission" value="{{$application->sharing_commission}}">
+            @endif
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Name
@@ -326,17 +358,54 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
-        var user_type = `{{$isChannel}}`
+        var user_type = `{{$selectedUserType ?? $isChannel}}`
         var group = `{{$application->group}}`
+        var roleId = Number(`{{$roleId}}`);
+        var authUserId = Number(`{{Auth::id()}}`);
+        var applicationUserId = Number(`{{$application->user_id}}`);
 
-        if (user_type == 'channel') {
-            $('.channel').show()
-            $('.sales').hide()
+        $('.associate-channel').hide()
+        $('.associate').hide()
 
-        } else {
-            $('.channel').hide()
-            $('.sales').show()
+        function loadAssociates(channelId, selectedAssociateId = null) {
+            $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
+            if (!channelId) {
+                return;
+            }
+            $.ajax({
+                url: '/application/channel/' + channelId + '/associates',
+                type: 'GET',
+                success: function(response) {
+                    $.each(response, function(_, associate) {
+                        var emp = associate.emp_id ? associate.emp_id : associate.id;
+                        var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
+                        $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
+                    });
+                }
+            });
         }
+
+        function handleUserTypeVisibility() {
+            $('.channel, .sales, .associate-channel, .associate').hide();
+            if ($('#user_type').val() == 'channel') {
+                $('.channel').show();
+            } else if ($('#user_type').val() == 'sales') {
+                $('.sales').show();
+            } else if ($('#user_type').val() == 'associate') {
+                $('.associate-channel').show();
+                $('.associate').show();
+                if (roleId === 2) {
+                    $('#associate_channel_id').val(authUserId);
+                }
+                loadAssociates($('#associate_channel_id').val(), applicationUserId);
+            }
+        }
+
+        $('#associate_channel_id').change(function() {
+            loadAssociates($(this).val(), null);
+        });
+
+        handleUserTypeVisibility()
         if (group.toLowerCase() == 'secured') {
             $('.secured').show()
             $('.unsecured').hide()
@@ -387,18 +456,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
         });
         // });
-        $('#user_type').change(function() {
-
-            if ($(this).val() == 'channel') {
-                $('.sales').hide()
-                $('.channel').show()
-
-            } else {
-                $('.sales').show()
-                $('.channel').hide()
-
-            }
-        })
+        $('#user_type').change(handleUserTypeVisibility)
 
 
         $('#bank_id,#group').change(function() {
@@ -434,8 +492,8 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
             // Perform form validation
             var isValid = true;
-            var roleId = `{{Auth::user()->roles[0]->pivot->role_id}}`;
-            if (roleId == 1) {
+            var roleId = Number(`{{$roleId}}`);
+            if (roleId != 3 && roleId != 37) {
                 if (!$('#user_type').val()) {
                     $('#user_type').removeClass('is-valid').addClass('is-invalid');
                     $('#user_type').focus();
@@ -454,7 +512,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                     } else {
                         $('#channel_id').addClass('is-valid').removeClass('is-invalid');
                     }
-                } else {
+                } else if ($('#user_type').val() == 'sales') {
                     if (!$('#sales_id').val()) {
                         $('#sales_id').removeClass('is-valid').addClass('is-invalid');
                         $('#sales_id').focus();
@@ -462,6 +520,24 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                         return false;
                     } else {
                         $('#sales_id').addClass('is-valid').removeClass('is-invalid');
+                    }
+                } else if ($('#user_type').val() == 'associate') {
+                    if (!$('#associate_channel_id').val()) {
+                        $('#associate_channel_id').removeClass('is-valid').addClass('is-invalid');
+                        $('#associate_channel_id').focus();
+                        isValid = false;
+                        return false;
+                    } else {
+                        $('#associate_channel_id').addClass('is-valid').removeClass('is-invalid');
+                    }
+
+                    if (!$('#associate_id').val()) {
+                        $('#associate_id').removeClass('is-valid').addClass('is-invalid');
+                        $('#associate_id').focus();
+                        isValid = false;
+                        return false;
+                    } else {
+                        $('#associate_id').addClass('is-valid').removeClass('is-invalid');
                     }
                 }
             }
@@ -542,7 +618,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
             }
 
-            // Sharing Commission is now auto-populated from parent's commission rate (hidden field)
+            // Sharing Commission is role-based in UI and auto-populated when not submitted
             // No validation needed as it's automatically set
 
             // Validate Commission Rate when completing an application
@@ -593,6 +669,9 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             }
 
 
+            if ($('#user_type').val() === 'associate') {
+                $('#channel_id').val($('#associate_channel_id').val());
+            }
 
 
 

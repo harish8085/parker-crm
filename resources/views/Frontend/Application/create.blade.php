@@ -96,6 +96,10 @@
                 <label class="bank-input-label">Customer Name<span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter customer name" maxlength="80">
             </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Customer Phone</label>
+                <input class="bank-detail-input form-control" type="text" name="customer_phone" id="customer_phone" placeholder="Enter customer phone number" maxlength="20">
+            </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Customer's Firm Name</label>
@@ -193,6 +197,13 @@
                 <label class="bank-input-label">Commission Rate</label>
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate">
             </div>
+
+            @if(in_array($roleId, [1, 2, 35, 36]))
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sharing Commission</label>
+                <input class="bank-detail-input form-control" type="number" step="0.01" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission">
+            </div>
+            @endif
 
 
             <div class="bank-detail-inputs">
