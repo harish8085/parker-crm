@@ -329,6 +329,47 @@ class InvoicePaymentController extends Controller
 
         try {
             $invoicePayment = InvoicePaymentView::findOrFail($id);
+            $referenceNo1 = isset($validated['referance_no1']) ? trim((string) $validated['referance_no1']) : '';
+            $referenceNo2 = isset($validated['referance_no2']) ? trim((string) $validated['referance_no2']) : '';
+
+            if ($referenceNo1 !== '' && $referenceNo2 !== '' && strcasecmp($referenceNo1, $referenceNo2) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'UTR No 1 and UTR No 2 must be different.'
+                ], 422);
+            }
+
+            if ($referenceNo1 !== '') {
+                $existsRef1 = InvoicePaymentView::where('id', '!=', $id)
+                    ->where(function ($query) use ($referenceNo1) {
+                        $query->where('referance_no1', $referenceNo1)
+                            ->orWhere('referance_no2', $referenceNo1);
+                    })
+                    ->exists();
+
+                if ($existsRef1) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'UTR No 1 / Reference No already exists. Please use a unique value.'
+                    ], 422);
+                }
+            }
+
+            if ($referenceNo2 !== '') {
+                $existsRef2 = InvoicePaymentView::where('id', '!=', $id)
+                    ->where(function ($query) use ($referenceNo2) {
+                        $query->where('referance_no1', $referenceNo2)
+                            ->orWhere('referance_no2', $referenceNo2);
+                    })
+                    ->exists();
+
+                if ($existsRef2) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'UTR No 2 / Reference No already exists. Please use a unique value.'
+                    ], 422);
+                }
+            }
 
             // add payment paid in to existing paid amount
             if (isset($validated['payment_paid'])) {

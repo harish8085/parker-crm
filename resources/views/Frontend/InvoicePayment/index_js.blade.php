@@ -278,7 +278,12 @@
                 },
                 error: function(xhr, status, error) {
                     console.log('Error:', xhr.responseText);
-                    alert('An error occurred while updating the payment. Please try again.');
+                    var msg = xhr.responseJSON?.message;
+                    if (!msg && xhr.responseJSON?.errors) {
+                        var firstKey = Object.keys(xhr.responseJSON.errors)[0];
+                        msg = xhr.responseJSON.errors[firstKey][0];
+                    }
+                    alert(msg || 'An error occurred while updating the payment. Please try again.');
                 }
             });
         });

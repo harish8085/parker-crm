@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\StaffAssign;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use App\Models\InvoicePaymentView;
@@ -242,29 +243,38 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'invoice_no' => 'required|string',
-            'invoice_date' => 'required|date',
-            'bank_gst_no' => 'required|string',
-            'bank_hsn_code' => 'required|string',
-            'bank_address' => 'nullable|string',
-            'in_state' => 'required|in:yes,no',
-            'taxable_value' => 'required|numeric|min:0',
-            'invoice_value' => 'required|numeric|min:0',
-            'payment_received_bank' => 'required|string',
-            'mis_month' => 'nullable|string',
-            'company_name' => 'nullable|string',
-            'group_name' => 'nullable|string',
-            'dsa_gst_no' => 'nullable|string',
-            'cgst' => 'required|numeric|min:0',
-            'sgst' => 'required|numeric|min:0',
-            'igst' => 'required|numeric|min:0',
-            'tds' => 'nullable|numeric|min:0',
-            'payment_amount' => 'required|numeric|min:0',
-            'remaining_amount' => 'nullable|numeric|min:0',
-            'mis_ids' => 'required|array',
-            'mis_ids.*' => 'integer',
-        ]);
+        $validated = $request->validate(
+            [
+                'invoice_no' => [
+                    'required',
+                    'string',
+                    Rule::unique('invoice_payment_view', 'invoice_no'),
+                ],
+                'invoice_date' => 'required|date',
+                'bank_gst_no' => 'required|string',
+                'bank_hsn_code' => 'required|string',
+                'bank_address' => 'nullable|string',
+                'in_state' => 'required|in:yes,no',
+                'taxable_value' => 'required|numeric|min:0',
+                'invoice_value' => 'required|numeric|min:0',
+                'payment_received_bank' => 'required|string',
+                'mis_month' => 'nullable|string',
+                'company_name' => 'nullable|string',
+                'group_name' => 'nullable|string',
+                'dsa_gst_no' => 'nullable|string',
+                'cgst' => 'required|numeric|min:0',
+                'sgst' => 'required|numeric|min:0',
+                'igst' => 'required|numeric|min:0',
+                'tds' => 'nullable|numeric|min:0',
+                'payment_amount' => 'required|numeric|min:0',
+                'remaining_amount' => 'nullable|numeric|min:0',
+                'mis_ids' => 'required|array',
+                'mis_ids.*' => 'integer',
+            ],
+            [
+                'invoice_no.unique' => 'Invoice has already been created with this invoice number. Please add a new invoice number.',
+            ]
+        );
 
         try {
             $bankMisRecords = BankMIS::with(['bank', 'product'])
