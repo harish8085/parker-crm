@@ -170,11 +170,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
     Route::get('/advance/update/{id}', [AdvanceController::class, 'edit'])->name('advance.edit');
     Route::post('/advance/update/{id}', [AdvanceController::class, 'update'])->name('advance.update');
+    Route::delete('/advance/delete/{id}', [AdvanceController::class, 'destroy'])->name('advance.destroy');
     Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
     Route::get('/advance/applications/by-user', [AdvanceController::class, 'applicationsByUser'])->name('advance.applications.by-user');
     Route::get('/advance/applications/list-by-user', [AdvanceController::class, 'applicationsListByUser'])->name('advance.applications.list-by-user');
     Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
     Route::get('/advance/log/{logId}/application-ids', [AdvanceController::class, 'getLogApplicationIds'])->name('advance.log.application-ids');
+    Route::delete('/advance/log/delete/{logId}', [AdvanceController::class, 'destroyLog'])->name('advance.log.destroy');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');

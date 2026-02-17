@@ -153,6 +153,36 @@
                 }
             });
         });
+
+        // Admin: delete add-log (releases linked cases if any)
+        $(document).on('click', '.delete-log-btn', function() {
+            var logId = $(this).data('log-id');
+            var logAmount = parseFloat($(this).data('log-amount') || 0).toFixed(2);
+
+            if (!confirm('Delete this advance log of ₹' + logAmount + '? If this is case-based, linked cases will become available again.')) {
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('advance.log.destroy', ':logId') }}".replace(':logId', logId),
+                type: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    alert(response.message || 'Advance log deleted successfully.');
+                    $('.data-table-logs').DataTable().ajax.reload();
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    var msg = 'Failed to delete advance log.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    alert(msg);
+                }
+            });
+        });
     });
 </script>
 

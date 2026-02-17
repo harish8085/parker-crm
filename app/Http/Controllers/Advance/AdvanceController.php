@@ -9,8 +9,11 @@ use App\Models\AdvancePaymentCase;
 use App\Models\Application;
 use App\Models\BankProduct;
 use App\Models\ChannelUser;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class AdvanceController extends Controller
@@ -72,6 +75,11 @@ class AdvanceController extends Controller
                     $btn .= "<svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='color: #007bff;'>";
                     $btn .= "<path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle>";
                     $btn .= "</svg></a>";
+
+                    if ($this->isAdminUser()) {
+                        $btn .= " <img class='advance-delete-btn' data-advance-id='" . e($row->id) . "' data-remaining-amount='" . e((float) $row->advance_amount) . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete' title='Delete Advance Balance' style='cursor:pointer;'>";
+                    }
+
                     return $btn;
                 })
                 ->rawColumns(['advance_status', 'action'])
@@ -298,6 +306,10 @@ class AdvanceController extends Controller
             ->where('status', 'pending')
             ->whereNotNull('app_id')
             ->where('app_id', '!=', '')
+            ->where(function ($query) {
+                $query->whereNull('app_id_is_matched')
+                    ->orWhere('app_id_is_matched', '!=', 1);
+            })
             ->whereDoesntHave('advancePaymentCase')
             ->when($term, function ($query) use ($term) {
                 $query->where(function ($inner) use ($term) {
@@ -343,6 +355,10 @@ class AdvanceController extends Controller
             ->where('status', 'pending')
             ->whereNotNull('app_id')
             ->where('app_id', '!=', '')
+            ->where(function ($query) {
+                $query->whereNull('app_id_is_matched')
+                    ->orWhere('app_id_is_matched', '!=', 1);
+            })
             ->whereDoesntHave('advancePaymentCase')
             ->orderBy('id', 'desc')
             ->get([
@@ -503,14 +519,24 @@ class AdvanceController extends Controller
                     return $row->remark ? $row->remark : '-';
                 })
                 ->addColumn('actions', function ($row) {
+                    $buttons = '';
+
                     // Check if this log has associated payment cases
                     $hasCases = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $row->id)->exists();
                     if ($hasCases) {
-                        return '<button type="button" class="btn btn-sm btn-info view-app-ids" data-log-id="' . $row->id . '" title="View Application IDs">
-                                    <i class="fas fa-eye"></i>
-                                </button>';
+                        $buttons .= '<button type="button" class="btn btn-sm btn-info view-app-ids" data-log-id="' . $row->id . '" title="View Application IDs">
+                                <i class="fas fa-eye"></i>
+                            </button> ';
                     }
-                    return '-';
+
+                    // Only admin can delete add logs.
+                    if ($this->isAdminUser() && $row->type === 'add') {
+                        $buttons .= '<button type="button" class="btn btn-sm btn-danger delete-log-btn" data-log-id="' . $row->id . '" data-log-amount="' . (float) $row->advance_amount . '" title="Delete Advance Log">
+                                <i class="fas fa-trash"></i>
+                            </button>';
+                    }
+
+                    return trim($buttons) !== '' ? $buttons : '-';
                 })
                 ->rawColumns(['type', 'actions'])
                 ->make(true);
@@ -764,5 +790,124 @@ class AdvanceController extends Controller
                 'message' => 'Failed to fetch application IDs: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Delete advance balance from listing (admin only).
+     * This is an amount-based delete to avoid touching already settled deductions.
+     */
+    public function destroy(Request $request, $id)
+    {
+        if (!$this->isAdminUser()) {
+            return response()->json(['message' => 'Only admin can delete advance.'], 403);
+        }
+
+        $request->validate([
+            'delete_amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $advance = Advance::with('advanceAmountLogs')->findOrFail($id);
+        $deleteAmount = round((float) $request->input('delete_amount'), 2);
+        $remainingAdvance = round((float) ($advance->advance_amount ?? 0), 2);
+
+        $totalSettledInTransactions = round((float) Transaction::where('user_id', $advance->user_id)
+            ->where('status', 'completed')
+            ->sum('advance_amount'), 2);
+
+        if ($remainingAdvance <= 0) {
+            return response()->json([
+                'message' => 'Whole advance amount is already settled in previous settlements. Nothing left to delete.',
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        if ($deleteAmount > $remainingAdvance) {
+            return response()->json([
+                'message' => 'Delete amount cannot be greater than remaining advance. Some amount is already settled in previous settlements.',
+                'remaining_advance' => $remainingAdvance,
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        DB::transaction(function () use ($advance, $deleteAmount) {
+            Advance::createAdvance([
+                'user_id' => $advance->user_id,
+                'advance_amount' => $deleteAmount,
+                'advance_type' => 'deduct',
+                'advance_date' => now()->toDateString(),
+                'advance_status' => 1,
+                'advance_remark' => 'Deleted from advance listing by admin',
+                'created_by' => auth()->id(),
+            ]);
+        });
+
+        $advance->refresh();
+        return response()->json([
+            'message' => 'Advance deleted successfully from remaining balance.',
+            'remaining_advance' => round((float) ($advance->advance_amount ?? 0), 2),
+        ]);
+    }
+
+    /**
+     * Delete an add-log entry (admin only).
+     * For case-based logs, linked cases are released and become selectable again.
+     */
+    public function destroyLog($logId)
+    {
+        if (!$this->isAdminUser()) {
+            return response()->json(['message' => 'Only admin can delete advance logs.'], 403);
+        }
+
+        $log = AdvanceAmountLog::with(['advance', 'paymentCases'])->findOrFail($logId);
+        if (!$log->advance) {
+            return response()->json(['message' => 'Advance not found for this log.'], 404);
+        }
+
+        if ($log->type !== 'add') {
+            return response()->json(['message' => 'Only add-type logs can be deleted.'], 422);
+        }
+
+        $logAmount = round((float) ($log->advance_amount ?? 0), 2);
+        $remainingAdvance = round((float) ($log->advance->advance_amount ?? 0), 2);
+        $totalSettledInTransactions = round((float) Transaction::where('user_id', $log->advance->user_id)
+            ->where('status', 'completed')
+            ->sum('advance_amount'), 2);
+
+        if ($logAmount <= 0) {
+            return response()->json(['message' => 'Invalid advance log amount.'], 422);
+        }
+
+        if ($remainingAdvance <= 0 || $logAmount > $remainingAdvance) {
+            return response()->json([
+                'message' => 'This advance log cannot be deleted because some or all amount is already settled in previous settlements.',
+                'remaining_advance' => $remainingAdvance,
+                'log_amount' => $logAmount,
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        DB::transaction(function () use ($log, $logAmount) {
+            $advance = $log->advance;
+            $advance->advance_amount = round(max(0, (float) $advance->advance_amount - $logAmount), 2);
+            $advance->save();
+
+            // Release case mappings first so these cases appear again in Add Advance (case type).
+            AdvancePaymentCase::where('advance_amount_log_id', $log->id)->delete();
+            $log->delete();
+        });
+
+        return response()->json([
+            'message' => 'Advance log deleted successfully. Linked cases are now available for new advance.',
+        ]);
+    }
+
+    private function isAdminUser(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->roles()->where('roles.id', 1)->exists();
     }
 }
