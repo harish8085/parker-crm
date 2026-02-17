@@ -10,13 +10,20 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 @endsection
 @section('body')
-<div class="breadcrumb-container" style="margin-bottom: 24px;">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
-            <li class="breadcrumb-item"><a href="{{ url('/application') }}">Applications</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Edit Application</li>
-        </ol>
-    </nav>
+<div class="breadcrumb-container d-flex justify-content-between align-items-center mb-3 mt-5" style="margin-bottom: 24px;">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-white px-0 py-2 " style="margin-bottom:0;">
+                <li class="breadcrumb-item"><a href="{{ url('/application') }}">Applications</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Application</li>
+            </ol>
+
+        </nav>
+    </div>
+    <div>
+        <a href="{{ url('/application') }}" class="btn btn-secondary">Back</a>
+    </div>
+
 </div>
 
 @if(in_array($roleId, [2, 3, 37]) && $application->status !== 'pending')
@@ -62,7 +69,7 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
                     @endforeach
                 </select>
             </div>
-         
+
             <div class="bank-detail-inputs associate">
                 <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" name="associate_id" id="associate_id">
@@ -563,176 +570,176 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
     }
 
     $(document).ready(function() {
-                $.ajaxSetup({
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    }
-                });
-                var group = `{{$application->group}}`
-                var roleId = Number(`{{$roleId}}`);
-                var authUserId = Number(`{{Auth::id()}}`);
-                var applicationUserId = Number(`{{$application->user_id}}`);
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        var group = `{{$application->group}}`
+        var roleId = Number(`{{$roleId}}`);
+        var authUserId = Number(`{{Auth::id()}}`);
+        var applicationUserId = Number(`{{$application->user_id}}`);
 
-                $('.channel').hide()
-                $('.associate-channel').hide()
-                $('.associate').hide()
+        $('.channel').hide()
+        $('.associate-channel').hide()
+        $('.associate').hide()
 
-                function loadAssociates(channelId, selectedAssociateId = null) {
-                    $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
-                    if (!channelId) {
-                        return;
-                    }
-                    $.ajax({
-                        url: '/application/channel/' + channelId + '/associates',
-                        type: 'GET',
-                        success: function(response) {
-                            $.each(response, function(_, associate) {
-                                var emp = associate.emp_id ? associate.emp_id : associate.id;
-                                var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
-                                $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
-                            });
-                        }
+        function loadAssociates(channelId, selectedAssociateId = null) {
+            $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
+            if (!channelId) {
+                return;
+            }
+            $.ajax({
+                url: '/application/channel/' + channelId + '/associates',
+                type: 'GET',
+                success: function(response) {
+                    $.each(response, function(_, associate) {
+                        var emp = associate.emp_id ? associate.emp_id : associate.id;
+                        var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
+                        $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
                     });
                 }
+            });
+        }
 
-                function handleUserTypeVisibility() {
-                    $('.channel, .associate-channel, .associate').hide();
-                    if ($('#user_type').val() == 'channel') {
-                        $('.channel').show();
-                    } else if ($('#user_type').val() == 'associate') {
-                        $('.associate-channel').show();
-                        $('.associate').show();
-                        if (roleId === 2) {
-                            $('#associate_channel_id').val(authUserId);
-                        }
-                        loadAssociates($('#associate_channel_id').val(), applicationUserId);
-                    }
+        function handleUserTypeVisibility() {
+            $('.channel, .associate-channel, .associate').hide();
+            if ($('#user_type').val() == 'channel') {
+                $('.channel').show();
+            } else if ($('#user_type').val() == 'associate') {
+                $('.associate-channel').show();
+                $('.associate').show();
+                if (roleId === 2) {
+                    $('#associate_channel_id').val(authUserId);
                 }
+                loadAssociates($('#associate_channel_id').val(), applicationUserId);
+            }
+        }
 
-                $('#associate_channel_id').change(function() {
-                    loadAssociates($(this).val(), null);
-                });
+        $('#associate_channel_id').change(function() {
+            loadAssociates($(this).val(), null);
+        });
 
-                handleUserTypeVisibility()
-                if ($('#user_type').val() == 'associate') {
-                    if (roleId === 2 && !$('#associate_channel_id').val()) {
-                        $('#associate_channel_id').val(authUserId);
-                    }
-                    loadAssociates($('#associate_channel_id').val(), applicationUserId);
+        handleUserTypeVisibility()
+        if ($('#user_type').val() == 'associate') {
+            if (roleId === 2 && !$('#associate_channel_id').val()) {
+                $('#associate_channel_id').val(authUserId);
+            }
+            loadAssociates($('#associate_channel_id').val(), applicationUserId);
+        }
+        if (group.toLowerCase() == 'secured') {
+            $('.secured').show()
+            $('.unsecured').hide()
+
+        } else {
+            $('.secured').hide()
+            $('.unsecured').show()
+        }
+        $('#group').change(function() {
+
+            if ($(this).val() == 'Secured') {
+                $('.unsecured').hide()
+                $('.secured').show()
+
+            } else {
+                $('.unsecured').show()
+                $('.secured').hide()
+
+            }
+        })
+
+        $('#disbursement_date').datepicker({
+            format: 'dd-mm-yyyy', // Specify the date format
+            autoclose: true, // Close the datepicker automatically after selection
+            todayHighlight: true, // Highlight today's date
+            endDate: new Date() // Set the end date to today, preventing future dates
+
+        })
+        $('#case_state').change(function() {
+            var stateId = $(this).val();
+            $.ajax({
+                url: '/getDistrict/' + stateId,
+                type: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+
+                    $('#case_location').html('')
+                    $('#case_location').append('<option value="" selected disabled>Select District</option>')
+                    $('#case_location').val('')
+                    $('#case_location').append(response)
+                },
+                error: function(xhr) {
+                    console.log(xhr.responseText);
                 }
-                if (group.toLowerCase() == 'secured') {
-                    $('.secured').show()
-                    $('.unsecured').hide()
+            });
 
-                } else {
-                    $('.secured').hide()
-                    $('.unsecured').show()
-                }
-                $('#group').change(function() {
+        });
+        // });
+        $('#user_type').change(handleUserTypeVisibility)
 
-                    if ($(this).val() == 'Secured') {
-                        $('.unsecured').hide()
-                        $('.secured').show()
 
-                    } else {
-                        $('.unsecured').show()
-                        $('.secured').hide()
+        $('#bank_id,#group').change(function() {
+            if ($('#bank_id').val() && $('#group').val()) {
+                performAjaxRequest('/getProduct', 'POST', {
+                    bank_id: $('#bank_id').val(),
+                    group: $('#group').val(),
+                }, function(response) {
+                    var select = $('#product_id')
+                    select.empty().append($('<option>', {
+                        value: '',
+                        text: 'Select Product',
+                        disabled: true,
+                        selected: true
+                    }));
 
-                    }
-                })
-
-                $('#disbursement_date').datepicker({
-                    format: 'dd-mm-yyyy', // Specify the date format
-                    autoclose: true, // Close the datepicker automatically after selection
-                    todayHighlight: true, // Highlight today's date
-                    endDate: new Date() // Set the end date to today, preventing future dates
-
-                })
-                $('#case_state').change(function() {
-                    var stateId = $(this).val();
-                    $.ajax({
-                        url: '/getDistrict/' + stateId,
-                        type: 'GET',
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                        },
-                        success: function(response) {
-
-                            $('#case_location').html('')
-                            $('#case_location').append('<option value="" selected disabled>Select District</option>')
-                            $('#case_location').val('')
-                            $('#case_location').append(response)
-                        },
-                        error: function(xhr) {
-                            console.log(xhr.responseText);
-                        }
+                    $.each(response, function(key, value) {
+                        select.append($('<option>', {
+                            value: value.id,
+                            text: value.name
+                        }));
                     });
-
-                });
-                // });
-                $('#user_type').change(handleUserTypeVisibility)
-
-
-                $('#bank_id,#group').change(function() {
-                    if ($('#bank_id').val() && $('#group').val()) {
-                        performAjaxRequest('/getProduct', 'POST', {
-                            bank_id: $('#bank_id').val(),
-                            group: $('#group').val(),
-                        }, function(response) {
-                            var select = $('#product_id')
-                            select.empty().append($('<option>', {
-                                value: '',
-                                text: 'Select Product',
-                                disabled: true,
-                                selected: true
-                            }));
-
-                            $.each(response, function(key, value) {
-                                select.append($('<option>', {
-                                    value: value.id,
-                                    text: value.name
-                                }));
-                            });
-                        });
-                    }
-
-                });
-
-
-
-                $('#submitBtn').click(function(event) {
-                    event.preventDefault();
-                    var statusVal = $('#statusInput').val();
-                    if (!validateApplicationForm(statusVal)) {
-                        return false;
-                    }
-                    if ($('#user_type').val() === 'associate') {
-                        $('#channel_id').val($('#associate_channel_id').val());
-                    }
-                    $('.needs-validation').submit();
-                });
-
-                    function performAjaxRequest(url, type, data, successCallback) {
-                        $.ajax({
-                            url: url,
-                            type: type,
-                            data: data,
-                            success: successCallback,
-                            error: function(xhr) {
-                                console.log(xhr.responseText);
-                            }
-                        });
-                    }
-
-                });
-
-            function copyValue(selectedValue) {
-                // Copy the selected value to the clipboard
-                navigator.clipboard.writeText(selectedValue).then(() => {
-                    alert(`Copied`);
-                }).catch(err => {
-                    console.error('Error copying text: ', err);
                 });
             }
+
+        });
+
+
+
+        $('#submitBtn').click(function(event) {
+            event.preventDefault();
+            var statusVal = $('#statusInput').val();
+            if (!validateApplicationForm(statusVal)) {
+                return false;
+            }
+            if ($('#user_type').val() === 'associate') {
+                $('#channel_id').val($('#associate_channel_id').val());
+            }
+            $('.needs-validation').submit();
+        });
+
+        function performAjaxRequest(url, type, data, successCallback) {
+            $.ajax({
+                url: url,
+                type: type,
+                data: data,
+                success: successCallback,
+                error: function(xhr) {
+                    console.log(xhr.responseText);
+                }
+            });
+        }
+
+    });
+
+    function copyValue(selectedValue) {
+        // Copy the selected value to the clipboard
+        navigator.clipboard.writeText(selectedValue).then(() => {
+            alert(`Copied`);
+        }).catch(err => {
+            console.error('Error copying text: ', err);
+        });
+    }
 </script>
 @endsection
