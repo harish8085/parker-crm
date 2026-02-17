@@ -1,17 +1,18 @@
 
 .card.card-container {
-    padding: 25px 22px;
+    padding: 14px 18px;
     border: 1px solid #d3d3d359;
     border-radius: 10px;
-    /* max-height: 450px; */
 }
 p.cards-pg {
     color: #AFAFAF;
-    font-size: 16px;
+    font-size: 13px;
+    margin-bottom: 4px;
 }
 h3.card-total {
-    font-size: 32px;
+    font-size: 22px;
     font-weight: 600;
+    margin-bottom: 0;
 }
 
 #myChart {
@@ -71,7 +72,7 @@ h3.percent {
 
 
 .rows-container{
-    padding-top: 20px;
+    padding-top: 12px;
 }
 
 
@@ -164,7 +165,7 @@ ul.dropdown-menu.pie-menu.show {
         font-size: 12px;
     }
     .card.card-container {
-        padding: 25px 15px;
+        padding: 12px 14px;
         border: 1px solid #d3d3d359;
         border-radius: 10px;
     }
@@ -210,10 +211,10 @@ ul.dropdown-menu.pie-menu.show {
         font-size: 14px;
     }
     .card.card-container {
-        padding: 25px 20px;
+        padding: 14px 18px;
         border: 1px solid #d3d3d359;
         border-radius: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
     }
     button.btn.bar-btn.dropdown-toggle {
         border: 1px solid lightgray;
@@ -244,11 +245,11 @@ ul.dropdown-menu.pie-menu.show {
         font-weight: 700;
     }
     h3.card-total {
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 600;
     }
     p.cards-pg {
-        font-size: 16px;
+        font-size: 13px;
     }
     .char-card-header {
         padding-bottom: 25px;
