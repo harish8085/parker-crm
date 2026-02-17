@@ -195,10 +195,13 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/transactions/reject/{id}', [TransactionController::class, 'reject'])->name('transactions.reject');
     Route::post('/transactions/reprocess/{id}', [TransactionController::class, 'reprocess'])->name('transactions.reprocess');
     Route::post('/transactions/quick-add-bank', [TransactionController::class, 'storeQuickBank'])->name('transactions.quick-add-bank');
+    Route::get('/transactions/{id}/export-allocations', [TransactionController::class, 'exportBankAllocations'])->name('transactions.export-allocations');
+    Route::post('/transactions/{id}/import-utr', [TransactionController::class, 'importUTR'])->name('transactions.import-utr');
 
-    // Settlement distribution edit (under CheckLogin so they bypass CheckPermission)
+    // Settlement routes (under CheckLogin so they bypass CheckPermission)
     Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
     Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
+    Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {
@@ -221,6 +224,7 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::post('/application/update/{id}', [ApplicationController::class, 'update']);
 
     Route::get('/application/view/{id}', [ApplicationController::class, 'show']);
+    Route::get('/application/{id}/logs', [ApplicationController::class, 'getActivityLogs'])->name('application.logs');
     Route::delete('/application/delete/{application}', [ApplicationController::class, 'destroy']);
 
 
@@ -235,7 +239,6 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::get('/settlement/view/export-settlement', [SettlementController::class, 'exportSettlement']);
     Route::get('/settlement/view/{id}', [SettlementController::class, 'show']);
 
-    Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
     Route::get('/settlement/create/upload', [SettlementController::class, 'uploadView']);
     Route::post('/settlement/create/upload', [SettlementController::class, 'storeExcel']);
 

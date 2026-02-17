@@ -57,6 +57,9 @@ class TransactionController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('transaction_id', function ($row) {
+                    return $row->transaction_id ?? '-';
+                })
                 ->addColumn('channel_name', function ($row) {
                     $user = User::find($row->user_id);
                     return $user ? $user->first_name . ' ' . $user->last_name : 'N/A';
@@ -222,6 +225,7 @@ class TransactionController extends Controller
 
             // Create transaction
             $transaction = Transaction::create([
+                'transaction_id' => Transaction::generateTransactionId(),
                 'settlement_id' => $settlement->id,
                 'user_id' => $userId,
                 'gross_amount' => round($totalGross, 2),
@@ -500,6 +504,8 @@ class TransactionController extends Controller
             'ifsc_code'              => 'required|string|max:32',
             'bank_name'              => 'required|string|max:255',
             'branch_name'            => 'required|string|max:255',
+            'pan_number'             => 'required|string|size:10|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
+            'aadhar_number'          => 'required|string|size:12|regex:/^[0-9]{12}$/',
             'pan_photo'              => 'required|image|mimes:jpeg,jpg,png|max:4096',
             'aadhar_photo'           => 'required|image|mimes:jpeg,jpg,png|max:4096',
             'passbook_photo'         => 'required|image|mimes:jpeg,jpg,png|max:4096',
@@ -507,6 +513,8 @@ class TransactionController extends Controller
             'account_number.regex'          => 'The account number must contain only digits.',
             'confirm_account_number.regex'  => 'The confirm account number must contain only digits.',
             'confirm_account_number.same'   => 'The account number and confirm account number must match.',
+            'pan_number.regex'              => 'PAN must be in format: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).',
+            'aadhar_number.regex'           => 'Aadhar number must be exactly 12 digits.',
             'pan_photo.mimes'               => 'PAN photo must be a JPEG, JPG, or PNG image.',
             'aadhar_photo.mimes'            => 'Aadhar photo must be a JPEG, JPG, or PNG image.',
             'passbook_photo.mimes'          => 'Passbook photo must be a JPEG, JPG, or PNG image.',
@@ -520,6 +528,8 @@ class TransactionController extends Controller
             $bankData->ifsc_code      = $request->ifsc_code;
             $bankData->bank_name      = $request->bank_name;
             $bankData->branch_name    = $request->branch_name;
+            $bankData->pan_number     = strtoupper($request->pan_number);
+            $bankData->aadhar_number  = $request->aadhar_number;
 
             if ($request->hasFile('pan_photo')) {
                 $bankData->pan_photo = $request->file('pan_photo')->store('uploads/bankdata/pan', 'public');
@@ -589,6 +599,54 @@ class TransactionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect('/transactions')->with('error', 'Error reprocessing transaction: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export bank allocations for a transaction as Excel.
+     * Checker can download the file, fill in UTR numbers, and re-upload.
+     */
+    public function exportBankAllocations($id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        $fileName = ($transaction->transaction_id ?? 'TXN_' . $transaction->id) . '_bank_allocations.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\TransactionBankAllocationsExport($transaction->id),
+            $fileName
+        );
+    }
+
+    /**
+     * Import UTR numbers from uploaded Excel for a transaction's bank allocations.
+     */
+    public function importUTR(Request $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id);
+
+        $request->validate([
+            'utr_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ], [
+            'utr_file.required' => 'Please select an Excel file to upload.',
+            'utr_file.mimes' => 'The file must be an Excel file (.xlsx, .xls) or CSV.',
+            'utr_file.max' => 'The file must not exceed 5MB.',
+        ]);
+
+        try {
+            $import = new \App\Imports\TransactionUTRImport($transaction->id);
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('utr_file'));
+
+            $updatedCount = $import->getUpdatedCount();
+            $errors = $import->getErrors();
+
+            $message = $updatedCount . ' UTR number(s) updated successfully.';
+            if (!empty($errors)) {
+                $message .= ' Warnings: ' . implode('; ', $errors);
+            }
+
+            return redirect()->back()->with('success', $message);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error importing UTR numbers: ' . $e->getMessage());
         }
     }
 }

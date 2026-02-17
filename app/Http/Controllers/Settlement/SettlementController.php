@@ -151,6 +151,16 @@ class SettlementController extends Controller
                     ->addColumn('received_rate', function ($row) {
                         return $row->received_rate ? $row->received_rate . '%' : '-';
                     })
+                    ->addColumn('received_commission', function ($row) {
+                        $application = DB::table('applications')->where('id', $row->application_id)->first();
+                        $commissionRate = $application && $application->commission_rate ? floatval($application->commission_rate) : 0;
+                        $receivedRate = $row->received_rate ? floatval($row->received_rate) : 0;
+                        if ($commissionRate > 0 && $receivedRate > 0) {
+                            $receivedCommission = round($commissionRate * ($receivedRate / 100), 2);
+                            return $receivedCommission . '%';
+                        }
+                        return '-';
+                    })
                     ->addColumn('gross_amount', function ($row) {
                         return '₹ ' . indianNumberFormat($row->gross_amount ?? 0);
                     })

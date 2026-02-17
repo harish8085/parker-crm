@@ -116,11 +116,24 @@
     </div>
 
     <div class="p-4">
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+        @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
         <!-- Invoice Header -->
         <div class="invoice-card">
             <div class="invoice-header">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h4>Transaction Invoice #{{ $transaction->id }}</h4>
+                    <h4>Transaction Invoice {{ $transaction->transaction_id ?? '#'.$transaction->id }}</h4>
                     <span class="status-badge {{ $transaction->status }}">{{ ucwords($transaction->status) }}</span>
                 </div>
             </div>
@@ -178,6 +191,7 @@
                             <th>Submitted By</th>
                             <th>Company Receiving</th>
                             <th>Sharing Commission</th>
+                            <th>Channel Commission</th>
                             <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Advance</th>
@@ -206,6 +220,14 @@
                             </td>
                             <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
                             <td>{{ $item->settlementDistribution && $item->settlementDistribution->received_rate ? $item->settlementDistribution->received_rate . '%' : '-' }}</td>
+                            <td>
+                                @php
+                                    $rcComm = ($app && $app->commission_rate && $item->settlementDistribution && $item->settlementDistribution->received_rate)
+                                        ? round(floatval($app->commission_rate) * (floatval($item->settlementDistribution->received_rate) / 100), 2)
+                                        : null;
+                                @endphp
+                                {{ $rcComm !== null ? $rcComm . '%' : '-' }}
+                            </td>
                             <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
                             <td>₹ {{ indianNumberFormat($item->tds) }}</td>
                             <td>
@@ -248,15 +270,33 @@
         <!-- Bank Allocation Details (if approved/completed) -->
         @if($transaction->bankAllocations->count() > 0)
         <div class="invoice-card">
-            <h6 class="mb-3"><strong>Bank Account Allocations</strong></h6>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><strong>Bank Account Allocations</strong></h6>
+                @php $roleId = auth()->user()->roles[0]->id; @endphp
+                @if($roleId == 36 && in_array($transaction->status, ['approved', 'completed']))
+                <div class="d-flex gap-2">
+                    <a href="{{ url('/transactions/' . $transaction->id . '/export-allocations') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-file-excel"></i> Export Allocations
+                    </a>
+                    @if($transaction->status === 'approved')
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadUTRModal">
+                        <i class="fas fa-upload"></i> Upload UTR
+                    </button>
+                    @endif
+                </div>
+                @endif
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered dist-table">
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>Account Holder</th>
                             <th>Bank Name</th>
                             <th>Account Number</th>
                             <th>IFSC Code</th>
+                            <th>PAN Number</th>
+                            <th>Aadhar Number</th>
                             <th>Amount</th>
                             <th>UTR Number</th>
                         </tr>
@@ -265,9 +305,12 @@
                         @foreach($transaction->bankAllocations as $index => $allocation)
                         <tr>
                             <td>{{ $index + 1 }}</td>
+                            <td>{{ $allocation->bankAccount->holder_name ?? 'N/A' }}</td>
                             <td>{{ $allocation->bankAccount->bank_name ?? 'N/A' }}</td>
                             <td>{{ $allocation->bankAccount->account_number ?? 'N/A' }}</td>
                             <td>{{ $allocation->bankAccount->ifsc_code ?? 'N/A' }}</td>
+                            <td>{{ $allocation->bankAccount->pan_number ?? '-' }}</td>
+                            <td>{{ $allocation->bankAccount->aadhar_number ?? '-' }}</td>
                             <td>₹ {{ indianNumberFormat($allocation->amount) }}</td>
                             <td>{{ $allocation->utr_number ?? '-' }}</td>
                         </tr>
@@ -278,9 +321,42 @@
         </div>
         @endif
 
+        <!-- Upload UTR Modal -->
+        @if(isset($roleId) && $roleId == 36 && $transaction->status === 'approved')
+        <div class="modal fade" id="uploadUTRModal" tabindex="-1" aria-labelledby="uploadUTRModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadUTRModalLabel">Upload UTR Numbers</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form action="{{ url('/transactions/' . $transaction->id . '/import-utr') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <div class="modal-body">
+                            <p class="text-muted mb-3">
+                                Download the allocations Excel first using <strong>"Export Allocations"</strong>, fill in the <strong>UTR Number</strong> column, then upload the file here.
+                            </p>
+                            <div class="mb-3">
+                                <label for="utr_file" class="form-label">Select Excel File <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" id="utr_file" name="utr_file" accept=".xlsx,.xls,.csv" required>
+                                <small class="text-muted">Accepted formats: .xlsx, .xls, .csv (max 5MB)</small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload"></i> Upload & Update UTR
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Action buttons based on role -->
         <div class="d-flex justify-content-end gap-2 mt-3">
-            @php $roleId = auth()->user()->roles[0]->id; @endphp
+            @php if(!isset($roleId)) $roleId = auth()->user()->roles[0]->id; @endphp
 
             @if(in_array($roleId, [2, 3]) && $transaction->status === 'pending')
                 <a href="{{ url('/transactions/approve/' . $transaction->id) }}" class="btn btn-primary">

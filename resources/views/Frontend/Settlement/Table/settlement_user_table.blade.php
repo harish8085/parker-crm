@@ -11,6 +11,7 @@
             <th class="table-header">Submitted By</th>
             <th class="table-header">Company Receiving</th>
             <th class="table-header">Sharing Commission</th>
+            <th class="table-header">Channel Commission</th>
             <th class="table-header">Commission Amount</th>
             <th class="table-header">TDS Amount({{ $tdsPercentage }}%)</th>
             <th class="table-header">Net Payable</th>

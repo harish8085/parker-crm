@@ -18,6 +18,8 @@ class BankData extends Model
         'account_number',        
         'holder_name',
         'ifsc_code',
+        'pan_number',
+        'aadhar_number',
         'pan_photo',
         'aadhar_photo',
         'passbook_photo',
