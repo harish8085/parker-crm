@@ -103,6 +103,14 @@
                 <label class="bank-input-label">Branch Name<span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="text" name="branch_name" id="branch_name" placeholder="Enter Branch Name" maxlength="32" required>
             </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">PAN Card Number<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" name="pan_number" id="pan_number" placeholder="Enter PAN Number (e.g. ABCDE1234F)" maxlength="10" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" title="PAN format: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F)" style="text-transform: uppercase;" required>
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Aadhar Number<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" name="aadhar_number" id="aadhar_number" placeholder="Enter 12-digit Aadhar Number" maxlength="12" pattern="[0-9]{12}" title="Aadhar must be exactly 12 digits" required>
+            </div>
 
         </div>
     </div>

@@ -104,8 +104,10 @@ class ProfileController extends Controller
                     'bank_name'      => $bankName,
                     'branch_name'    => $request->branch_name[$index],
                     'account_number' => $request->account_number[$index],
-                    'holder_name'    => $request->holder_name[$index], // Assuming you have holder_name field
+                    'holder_name'    => $request->holder_name[$index],
                     'ifsc_code'      => $request->ifsc_code[$index],
+                    'pan_number'     => isset($request->pan_number[$index]) ? strtoupper($request->pan_number[$index]) : null,
+                    'aadhar_number'  => $request->aadhar_number[$index] ?? null,
                 ]);
             }
         }
@@ -120,9 +122,13 @@ class ProfileController extends Controller
             'bank_name'       => 'required|string|max:255',
             'branch_name'     => 'required|string|max:255',
             'account_number'  => 'required|string|max:255',
-            'account_number'  => 'required|string|max:255',
+            'holder_name'     => 'required|string|max:255',
             'ifsc_code'       => 'required|string|max:255',
-
+            'pan_number'      => 'required|string|size:10|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
+            'aadhar_number'   => 'required|string|size:12|regex:/^[0-9]{12}$/',
+        ], [
+            'pan_number.regex' => 'PAN must be in format: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).',
+            'aadhar_number.regex' => 'Aadhar number must be exactly 12 digits.',
         ]);
         $account_check = BankData::where('account_number', $request->account_number)->get();
         if ($account_check->isEmpty()) {
@@ -131,8 +137,10 @@ class ProfileController extends Controller
                 'bank_name'      => $request->bank_name,
                 'branch_name'    => $request->branch_name,
                 'account_number' => $request->account_number,
-                'holder_name'    => $request->holder_name, // Assuming you have holder_name field
+                'holder_name'    => $request->holder_name,
                 'ifsc_code'      => $request->ifsc_code,
+                'pan_number'     => strtoupper($request->pan_number),
+                'aadhar_number'  => $request->aadhar_number,
             ]);
         }else{
             return response()->json(['error' => 'Account already exist', 'code' => 201]);

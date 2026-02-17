@@ -18,10 +18,13 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
         </ol>
     </nav>
 </div>
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="application-heading mb-0">Edit Application</h3>
-    <a href="{{ url('/application') }}" class="btn btn-secondary">Back</a>
+
+@if(in_array($roleId, [2, 3, 37]) && $application->status !== 'pending')
+<div class="alert alert-warning">
+    <i class="fas fa-lock"></i> This application is no longer in Pending status and cannot be edited.
+    <a href="{{ url('/application') }}" class="btn btn-sm btn-secondary ms-3">Back to List</a>
 </div>
+@else
 <form class="needs-validation" action="{{url('/application/update/'.$application->id)}}" method="POST" novalidate>
     @csrf
     @if ($errors->any())
@@ -55,28 +58,11 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
                 <select class="bank-detail-input form-select" name="channel_id" id="channel_id">
                     <option value="" selected disabled>Select Channel Partner</option>
                     @foreach($channels as $channel)
-                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}}</option>
+                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}} {{$channel->last_name}} ({{ $channel->Emp_Id ?: $channel->id }})</option>
                     @endforeach
                 </select>
             </div>
-            <div class="bank-detail-inputs sales">
-                <label class="bank-input-label" for="validationCustom01">Sales Person<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" name="sales_id" id="sales_id">
-                    <option value="" selected disabled>Select Sales Person</option>
-                    @foreach($sales as $sale)
-                    <option value="{{$sale->id}}" @if($sale->id == $application->user_id) selected @endif>{{$sale->first_name}} {{$sale->last_name}}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="bank-detail-inputs associate-channel">
-                <label class="bank-input-label">Channel Partner<span class="required">*</span></label>
-                <select class="bank-detail-input form-select" name="associate_channel_id" id="associate_channel_id">
-                    <option value="" selected disabled>Select Channel Partner</option>
-                    @foreach($channels as $channel)
-                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}}</option>
-                    @endforeach
-                </select>
-            </div>
+         
             <div class="bank-detail-inputs associate">
                 <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" name="associate_id" id="associate_id">
@@ -84,7 +70,7 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
                 </select>
             </div>
             @endif
-            @if(Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
+            @if($roleId == 35 || $roleId == 36)
             @if($application->parentChannel)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Parent Channel </label>
@@ -286,65 +272,129 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Name
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" type="text" name="banker_name" id="banker_name" placeholder="Enter Banker Name" value=" {{$application->banker_name}}">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Number
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" maxlength="10" type="number" name="banker_number" id="banker_number" placeholder="Enter Banker Number" value="{{$application->banker_number}}">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Email
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" type="email" name="banker_email" id="banker_email" placeholder="Enter Banker Email" value="{{$application->banker_email}}">
             </div>
 
 
 
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id!=37)
+            {{-- Current Status display (read-only, visible to all users) --}}
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Select Status<span class="required">*</span></label>
-                <select class="bank-detail-input form-select" required name="status" id="status">
-                    @if($application->status != 'approved' || Auth::user()->roles[0]->pivot->role_id != 36)
-                    <option value="pending" @if($application->status =='pending') selected @endif>Pending</option>
-                    @endif
-                    @if(Auth::user()->roles[0]->pivot->role_id == 1 || Auth::user()->roles[0]->pivot->role_id == 35)
-                    <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
-                    @endif
-                    @if(Auth::user()->roles[0]->pivot->role_id == 36)
-                    <option value="approved" @if($application->status =='approved') selected @endif>Approved</option>
-                    <option value="completed" @if($application->status =='completed') selected @endif>Completed</option>
-                    @endif
-                    <option value="rejected" @if($application->status =='rejected') selected @endif>Rejected</option>
-                </select>
+                <label class="bank-input-label">Current Status</label>
+                <div style="padding: 8px 0;">
+                    @php
+                    $statusColorMap = [
+                    'pending' => 'warning',
+                    'approved' => 'primary',
+                    'completed' => 'success',
+                    'rejected' => 'danger',
+                    ];
+                    $badgeColor = $statusColorMap[$application->status] ?? 'secondary';
+                    @endphp
+                    <span class="badge bg-{{ $badgeColor }}" style="font-size: 14px; padding: 6px 14px;">{{ ucfirst($application->status) }}</span>
+                </div>
             </div>
-            @endif
 
+            {{-- Hidden status field - set by action buttons via JS --}}
+            <input type="hidden" name="status" id="statusInput" value="{{ $application->status }}">
+            <input type="hidden" name="rejection_reason" id="rejectionReasonInput" value="">
 
         </div>
     </div>
     <br>
 
-
+    {{-- Action buttons based on role --}}
     <div class="save-btn-container">
+        @php $currentRole = $roleId; @endphp
+
+        @if($currentRole == 35)
+        {{-- Maker: Save, Approve, Reject --}}
+        <button type="button" class="btn btn-success" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-primary" id="approveBtn" onclick="setStatusAndSubmit('approved')">
+            <i class="fas fa-check-circle"></i> Approve
+        </button>
+        <button type="button" class="btn btn-danger" id="rejectBtn" onclick="setStatusAndSubmit('rejected')">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
+        @elseif($currentRole == 36)
+        {{-- Checker: Save, Complete, Reject (with reason modal) --}}
+        <button type="button" class="btn btn-secondary" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-success" id="completeBtn" onclick="setStatusAndSubmit('completed')">
+            <i class="fas fa-check"></i> Mark as Completed
+        </button>
+        <button type="button" class="btn btn-danger" id="checkerRejectBtn" data-bs-toggle="modal" data-bs-target="#checkerRejectModal">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
+        @elseif($currentRole == 1)
+        {{-- Admin: Save, Approve, Reject --}}
+        <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-primary" onclick="setStatusAndSubmit('approved')">
+            <i class="fas fa-check-circle"></i> Approve
+        </button>
+        <button type="button" class="btn btn-danger" onclick="setStatusAndSubmit('rejected')">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
+        @else
+        {{-- Channel/Sales/Associate: Save only --}}
         <button class="btn btn-primary" id="submitBtn">Save</button>
+        @endif
         <button class="btn btn-secondary" onclick="window.location.href='{{ url('/application') }}'; return false;">Cancel</button>
     </div>
 
+    {{-- Checker Reject Reason Modal --}}
+    @if($roleId == 36)
+    <div class="modal fade" id="checkerRejectModal" tabindex="-1" aria-labelledby="checkerRejectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="checkerRejectModalLabel">Reject Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">This application will be sent back to the Maker for review.</p>
+                    <div class="mb-3">
+                        <label for="checkerRejectReason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="checkerRejectReason" rows="3" placeholder="Enter reason for rejection..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="submitCheckerReject()">
+                        <i class="fas fa-times-circle"></i> Confirm Reject
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </form>
+@endif
 
 @endsection
 
@@ -352,356 +402,337 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 
 <script>
-    $(document).ready(function() {
-        $.ajaxSetup({
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            }
-        });
-        var user_type = `{{$selectedUserType ?? $isChannel}}`
-        var group = `{{$application->group}}`
+    function validateApplicationForm(status) {
+        var isValid = true;
         var roleId = Number(`{{$roleId}}`);
-        var authUserId = Number(`{{Auth::id()}}`);
-        var applicationUserId = Number(`{{$application->user_id}}`);
 
-        $('.associate-channel').hide()
-        $('.associate').hide()
-
-        function loadAssociates(channelId, selectedAssociateId = null) {
-            $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
-            if (!channelId) {
-                return;
-            }
-            $.ajax({
-                url: '/application/channel/' + channelId + '/associates',
-                type: 'GET',
-                success: function(response) {
-                    $.each(response, function(_, associate) {
-                        var emp = associate.emp_id ? associate.emp_id : associate.id;
-                        var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
-                        $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
-                    });
-                }
-            });
-        }
-
-        function handleUserTypeVisibility() {
-            $('.channel, .sales, .associate-channel, .associate').hide();
-            if ($('#user_type').val() == 'channel') {
-                $('.channel').show();
-            } else if ($('#user_type').val() == 'sales') {
-                $('.sales').show();
-            } else if ($('#user_type').val() == 'associate') {
-                $('.associate-channel').show();
-                $('.associate').show();
-                if (roleId === 2) {
-                    $('#associate_channel_id').val(authUserId);
-                }
-                loadAssociates($('#associate_channel_id').val(), applicationUserId);
-            }
-        }
-
-        $('#associate_channel_id').change(function() {
-            loadAssociates($(this).val(), null);
-        });
-
-        handleUserTypeVisibility()
-        if (group.toLowerCase() == 'secured') {
-            $('.secured').show()
-            $('.unsecured').hide()
-
-        } else {
-            $('.secured').hide()
-            $('.unsecured').show()
-        }
-        $('#group').change(function() {
-
-            if ($(this).val() == 'Secured') {
-                $('.unsecured').hide()
-                $('.secured').show()
-
+        // Roles that can choose the target user
+        if (roleId != 3 && roleId != 37) {
+            if (!$('#user_type').val()) {
+                $('#user_type').removeClass('is-valid').addClass('is-invalid');
+                $('#user_type').focus();
+                return false;
             } else {
-                $('.unsecured').show()
-                $('.secured').hide()
-
+                $('#user_type').addClass('is-valid').removeClass('is-invalid');
             }
-        })
-
-        $('#disbursement_date').datepicker({
-            format: 'dd-mm-yyyy', // Specify the date format
-            autoclose: true, // Close the datepicker automatically after selection
-            todayHighlight: true, // Highlight today's date
-            endDate: new Date() // Set the end date to today, preventing future dates
-
-        })
-        $('#case_state').change(function() {
-            var stateId = $(this).val();
-            $.ajax({
-                url: '/getDistrict/' + stateId,
-                type: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-
-                    $('#case_location').html('')
-                    $('#case_location').append('<option value="" selected disabled>Select District</option>')
-                    $('#case_location').val('')
-                    $('#case_location').append(response)
-                },
-                error: function(xhr) {
-                    console.log(xhr.responseText);
+            if ($('#user_type').val() == 'channel') {
+                if (!$('#channel_id').val()) {
+                    $('#channel_id').removeClass('is-valid').addClass('is-invalid');
+                    $('#channel_id').focus();
+                    return false;
+                } else {
+                    $('#channel_id').addClass('is-valid').removeClass('is-invalid');
                 }
-            });
+            } else if ($('#user_type').val() == 'associate') {
+                if (!$('#associate_channel_id').val()) {
+                    $('#associate_channel_id').removeClass('is-valid').addClass('is-invalid');
+                    $('#associate_channel_id').focus();
+                    return false;
+                } else {
+                    $('#associate_channel_id').addClass('is-valid').removeClass('is-invalid');
+                }
+                if (!$('#associate_id').val()) {
+                    $('#associate_id').removeClass('is-valid').addClass('is-invalid');
+                    $('#associate_id').focus();
+                    return false;
+                } else {
+                    $('#associate_id').addClass('is-valid').removeClass('is-invalid');
+                }
+            }
+        }
 
-        });
-        // });
-        $('#user_type').change(handleUserTypeVisibility)
+        // Common validations
+        if (!$('#app_id').val()) {
+            $('#app_id').removeClass('is-valid').addClass('is-invalid');
+            $('#app_id').focus();
+            return false;
+        } else {
+            $('#app_id').addClass('is-valid').removeClass('is-invalid');
+        }
 
+        if (!$('#disbursement_date').val()) {
+            $('#disbursement_date').removeClass('is-valid').addClass('is-invalid');
+            $('#disbursement_date').focus();
+            return false;
+        } else {
+            $('#disbursement_date').addClass('is-valid').removeClass('is-invalid');
+        }
 
-        $('#bank_id,#group').change(function() {
-            if ($('#bank_id').val() && $('#group').val()) {
-                performAjaxRequest('/getProduct', 'POST', {
-                    bank_id: $('#bank_id').val(),
-                    group: $('#group').val(),
-                }, function(response) {
-                    var select = $('#product_id')
-                    select.empty().append($('<option>', {
-                        value: '',
-                        text: 'Select Product',
-                        disabled: true,
-                        selected: true
-                    }));
+        if (!$('#customer_name').val()) {
+            $('#customer_name').removeClass('is-valid').addClass('is-invalid');
+            $('#customer_name').focus();
+            return false;
+        } else {
+            $('#customer_name').addClass('is-valid').removeClass('is-invalid');
+        }
 
-                    $.each(response, function(key, value) {
-                        select.append($('<option>', {
-                            value: value.id,
-                            text: value.name
-                        }));
+        if (!$('#bank_id').val()) {
+            $('#bank_id').removeClass('is-valid').addClass('is-invalid');
+            $('#bank_id').focus();
+            return false;
+        } else {
+            $('#bank_id').addClass('is-valid').removeClass('is-invalid');
+        }
+
+        if (!$('#product_id').val()) {
+            $('#product_id').removeClass('is-valid').addClass('is-invalid');
+            $('#product_id').focus();
+            return false;
+        } else {
+            $('#product_id').addClass('is-valid').removeClass('is-invalid');
+        }
+
+        if (!$('#group').val()) {
+            $('#group').removeClass('is-valid').addClass('is-invalid');
+            $('#group').focus();
+            return false;
+        } else {
+            $('#group').addClass('is-valid').removeClass('is-invalid');
+        }
+
+        if (!$('#disburse_amount').val()) {
+            $('#disburse_amount').removeClass('is-valid').addClass('is-invalid');
+            $('#disburse_amount').focus();
+            return false;
+        } else {
+            $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
+        }
+
+        // Commission rate required when completing (if field is visible for role)
+        if (status === 'completed' && $('#commission_rate').length) {
+            if (!$('#commission_rate').val() || $('#commission_rate').val().trim() === '') {
+                alert('Commission Rate field cannot be empty when completing an application!');
+                $('#commission_rate').removeClass('is-valid').addClass('is-invalid');
+                $('#commission_rate').focus();
+                return false;
+            } else {
+                $('#commission_rate').addClass('is-valid').removeClass('is-invalid');
+            }
+        }
+
+        // Channel/Sales: validate banker fields
+        if (roleId == 2 || roleId == 3) {
+            if (!$('#banker_name').val()) {
+                $('#banker_name').removeClass('is-valid').addClass('is-invalid');
+                $('#banker_name').focus();
+                return false;
+            } else {
+                $('#banker_name').addClass('is-valid').removeClass('is-invalid');
+            }
+            if (!$('#banker_number').val()) {
+                $('#banker_number').removeClass('is-valid').addClass('is-invalid');
+                $('#banker_number').focus();
+                return false;
+            } else {
+                $('#banker_number').addClass('is-valid').removeClass('is-invalid');
+            }
+            if (!$('#banker_email').val()) {
+                $('#banker_email').removeClass('is-valid').addClass('is-invalid');
+                $('#banker_email').focus();
+                return false;
+            } else {
+                $('#banker_email').addClass('is-valid').removeClass('is-invalid');
+            }
+        }
+
+        return true;
+    }
+
+    function setStatusAndSubmit(status) {
+        if (!validateApplicationForm(status)) {
+            return;
+        }
+        document.getElementById('statusInput').value = status;
+        document.querySelector('form.needs-validation').submit();
+    }
+
+    function submitCheckerReject() {
+        var reason = document.getElementById('checkerRejectReason').value.trim();
+        if (!reason) {
+            alert('Please enter a rejection reason.');
+            return;
+        }
+        if (!validateApplicationForm('rejected')) {
+            return;
+        }
+        document.getElementById('statusInput').value = 'rejected';
+        document.getElementById('rejectionReasonInput').value = reason;
+        var modal = bootstrap.Modal.getInstance(document.getElementById('checkerRejectModal'));
+        if (modal) modal.hide();
+        document.querySelector('form.needs-validation').submit();
+    }
+
+    $(document).ready(function() {
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
+                var group = `{{$application->group}}`
+                var roleId = Number(`{{$roleId}}`);
+                var authUserId = Number(`{{Auth::id()}}`);
+                var applicationUserId = Number(`{{$application->user_id}}`);
+
+                $('.channel').hide()
+                $('.associate-channel').hide()
+                $('.associate').hide()
+
+                function loadAssociates(channelId, selectedAssociateId = null) {
+                    $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
+                    if (!channelId) {
+                        return;
+                    }
+                    $.ajax({
+                        url: '/application/channel/' + channelId + '/associates',
+                        type: 'GET',
+                        success: function(response) {
+                            $.each(response, function(_, associate) {
+                                var emp = associate.emp_id ? associate.emp_id : associate.id;
+                                var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
+                                $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
+                            });
+                        }
                     });
+                }
+
+                function handleUserTypeVisibility() {
+                    $('.channel, .associate-channel, .associate').hide();
+                    if ($('#user_type').val() == 'channel') {
+                        $('.channel').show();
+                    } else if ($('#user_type').val() == 'associate') {
+                        $('.associate-channel').show();
+                        $('.associate').show();
+                        if (roleId === 2) {
+                            $('#associate_channel_id').val(authUserId);
+                        }
+                        loadAssociates($('#associate_channel_id').val(), applicationUserId);
+                    }
+                }
+
+                $('#associate_channel_id').change(function() {
+                    loadAssociates($(this).val(), null);
+                });
+
+                handleUserTypeVisibility()
+                if ($('#user_type').val() == 'associate') {
+                    if (roleId === 2 && !$('#associate_channel_id').val()) {
+                        $('#associate_channel_id').val(authUserId);
+                    }
+                    loadAssociates($('#associate_channel_id').val(), applicationUserId);
+                }
+                if (group.toLowerCase() == 'secured') {
+                    $('.secured').show()
+                    $('.unsecured').hide()
+
+                } else {
+                    $('.secured').hide()
+                    $('.unsecured').show()
+                }
+                $('#group').change(function() {
+
+                    if ($(this).val() == 'Secured') {
+                        $('.unsecured').hide()
+                        $('.secured').show()
+
+                    } else {
+                        $('.unsecured').show()
+                        $('.secured').hide()
+
+                    }
+                })
+
+                $('#disbursement_date').datepicker({
+                    format: 'dd-mm-yyyy', // Specify the date format
+                    autoclose: true, // Close the datepicker automatically after selection
+                    todayHighlight: true, // Highlight today's date
+                    endDate: new Date() // Set the end date to today, preventing future dates
+
+                })
+                $('#case_state').change(function() {
+                    var stateId = $(this).val();
+                    $.ajax({
+                        url: '/getDistrict/' + stateId,
+                        type: 'GET',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+
+                            $('#case_location').html('')
+                            $('#case_location').append('<option value="" selected disabled>Select District</option>')
+                            $('#case_location').val('')
+                            $('#case_location').append(response)
+                        },
+                        error: function(xhr) {
+                            console.log(xhr.responseText);
+                        }
+                    });
+
+                });
+                // });
+                $('#user_type').change(handleUserTypeVisibility)
+
+
+                $('#bank_id,#group').change(function() {
+                    if ($('#bank_id').val() && $('#group').val()) {
+                        performAjaxRequest('/getProduct', 'POST', {
+                            bank_id: $('#bank_id').val(),
+                            group: $('#group').val(),
+                        }, function(response) {
+                            var select = $('#product_id')
+                            select.empty().append($('<option>', {
+                                value: '',
+                                text: 'Select Product',
+                                disabled: true,
+                                selected: true
+                            }));
+
+                            $.each(response, function(key, value) {
+                                select.append($('<option>', {
+                                    value: value.id,
+                                    text: value.name
+                                }));
+                            });
+                        });
+                    }
+
+                });
+
+
+
+                $('#submitBtn').click(function(event) {
+                    event.preventDefault();
+                    var statusVal = $('#statusInput').val();
+                    if (!validateApplicationForm(statusVal)) {
+                        return false;
+                    }
+                    if ($('#user_type').val() === 'associate') {
+                        $('#channel_id').val($('#associate_channel_id').val());
+                    }
+                    $('.needs-validation').submit();
+                });
+
+                    function performAjaxRequest(url, type, data, successCallback) {
+                        $.ajax({
+                            url: url,
+                            type: type,
+                            data: data,
+                            success: successCallback,
+                            error: function(xhr) {
+                                console.log(xhr.responseText);
+                            }
+                        });
+                    }
+
+                });
+
+            function copyValue(selectedValue) {
+                // Copy the selected value to the clipboard
+                navigator.clipboard.writeText(selectedValue).then(() => {
+                    alert(`Copied`);
+                }).catch(err => {
+                    console.error('Error copying text: ', err);
                 });
             }
-
-        });
-
-
-
-        $('#submitBtn').click(function(event) {
-            // Prevent default form submission
-            event.preventDefault();
-
-            // Perform form validation
-            var isValid = true;
-            var roleId = Number(`{{$roleId}}`);
-            if (roleId != 3 && roleId != 37) {
-                if (!$('#user_type').val()) {
-                    $('#user_type').removeClass('is-valid').addClass('is-invalid');
-                    $('#user_type').focus();
-                    isValid = false;
-                    return false;
-                } else {
-                    $('#user_type').addClass('is-valid').removeClass('is-invalid');
-                }
-
-                if ($('#user_type').val() == 'channel') {
-                    if (!$('#channel_id').val()) {
-                        $('#channel_id').removeClass('is-valid').addClass('is-invalid');
-                        $('#channel_id').focus();
-                        isValid = false;
-                        return false;
-                    } else {
-                        $('#channel_id').addClass('is-valid').removeClass('is-invalid');
-                    }
-                } else if ($('#user_type').val() == 'sales') {
-                    if (!$('#sales_id').val()) {
-                        $('#sales_id').removeClass('is-valid').addClass('is-invalid');
-                        $('#sales_id').focus();
-                        isValid = false;
-                        return false;
-                    } else {
-                        $('#sales_id').addClass('is-valid').removeClass('is-invalid');
-                    }
-                } else if ($('#user_type').val() == 'associate') {
-                    if (!$('#associate_channel_id').val()) {
-                        $('#associate_channel_id').removeClass('is-valid').addClass('is-invalid');
-                        $('#associate_channel_id').focus();
-                        isValid = false;
-                        return false;
-                    } else {
-                        $('#associate_channel_id').addClass('is-valid').removeClass('is-invalid');
-                    }
-
-                    if (!$('#associate_id').val()) {
-                        $('#associate_id').removeClass('is-valid').addClass('is-invalid');
-                        $('#associate_id').focus();
-                        isValid = false;
-                        return false;
-                    } else {
-                        $('#associate_id').addClass('is-valid').removeClass('is-invalid');
-                    }
-                }
-            }
-
-            if (!$('#app_id').val()) {
-                $('#app_id').removeClass('is-valid').addClass('is-invalid');
-                $('#app_id').focus();
-                isValid = false;
-                return false;
-            } else {
-                $('#app_id').addClass('is-valid').removeClass('is-invalid');
-            }
-
-
-            if (!$('#disbursement_date').val()) {
-                $('#disbursement_date').removeClass('is-valid').addClass('is-invalid');
-                $('#disbursement_date').focus();
-                isValid = false;
-                return false;
-
-            } else {
-                $('#disbursement_date').addClass('is-valid').removeClass('is-invalid');
-            }
-
-            if (!$('#customer_name').val()) {
-                $('#customer_name').removeClass('is-valid').addClass('is-invalid');
-                $('#customer_name').focus();
-                isValid = false;
-                return false;
-            } else {
-                $('#customer_name').addClass('is-valid').removeClass('is-invalid');
-            }
-
-
-
-            if (!$('#bank_id').val()) {
-                $('#bank_id').removeClass('is-valid').addClass('is-invalid');
-                $('#bank_id').focus();
-                $('.invalid-feedback').show()
-                isValid = false;
-                return false;
-            } else {
-                $('#bank_id').addClass('is-valid').removeClass('is-invalid');
-                $('.invalid-feedback').hide()
-
-            }
-
-
-            if (!$('#product_id').val()) {
-                $('#product_id').removeClass('is-valid').addClass('is-invalid');
-                $('#product_id').focus();
-                isValid = false;
-                return false;
-
-            } else {
-                $('#product_id').addClass('is-valid').removeClass('is-invalid');
-            }
-
-            if (!$('#group').val()) {
-                $('#group').removeClass('is-valid').addClass('is-invalid');
-                $('#group').focus();
-                isValid = false;
-                return false;
-
-            } else {
-                $('#group').addClass('is-valid').removeClass('is-invalid');
-            }
-
-
-
-            if (!$('#disburse_amount').val()) {
-                $('#disburse_amount').removeClass('is-valid').addClass('is-invalid');
-                $('#disburse_amount').focus();
-                isValid = false;
-                return false;
-
-            } else {
-                $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
-            }
-
-            // Sharing Commission is role-based in UI and auto-populated when not submitted
-            // No validation needed as it's automatically set
-
-            // Validate Commission Rate when completing an application
-            if (status === 'completed') {
-                if (!$('#commission_rate').val() || $('#commission_rate').val().trim() === '') {
-                    alert('Commission Rate field cannot be empty when completing an application!');
-                    $('#commission_rate').removeClass('is-valid').addClass('is-invalid');
-                    $('#commission_rate').focus();
-                    isValid = false;
-                    return false;
-                } else {
-                    $('#commission_rate').addClass('is-valid').removeClass('is-invalid');
-                }
-            }
-
-            var roleId = `{{Auth::user()->roles[0]->pivot->role_id}}`;
-            if (roleId == 2 || roleId == 3) {
-                if (!$('#banker_name').val()) {
-                    $('#banker_name').removeClass('is-valid').addClass('is-invalid');
-                    $('#banker_name').focus();
-                    isValid = false;
-                    return false;
-
-                } else {
-                    $('#banker_name').addClass('is-valid').removeClass('is-invalid');
-                }
-
-                if (!$('#banker_number').val()) {
-                    $('#banker_number').removeClass('is-valid').addClass('is-invalid');
-                    $('#banker_number').focus();
-                    isValid = false;
-                    return false;
-
-                } else {
-                    $('#banker_number').addClass('is-valid').removeClass('is-invalid');
-                }
-
-                if (!$('#banker_email').val()) {
-                    $('#banker_email').removeClass('is-valid').addClass('is-invalid');
-                    $('#banker_email').focus();
-                    isValid = false;
-                    return false;
-
-                } else {
-                    $('#banker_email').addClass('is-valid').removeClass('is-invalid');
-                }
-
-            }
-
-
-            if ($('#user_type').val() === 'associate') {
-                $('#channel_id').val($('#associate_channel_id').val());
-            }
-
-
-
-            // If form is valid, submit the form
-            if (isValid) {
-                $('.needs-validation').submit();
-            }
-        });
-
-        function performAjaxRequest(url, type, data, successCallback) {
-            $.ajax({
-                url: url,
-                type: type,
-                data: data,
-                success: successCallback,
-                error: function(xhr) {
-                    console.log(xhr.responseText);
-                }
-            });
-        }
-
-    });
-
-    function copyValue(selectedValue) {
-        // Copy the selected value to the clipboard
-        navigator.clipboard.writeText(selectedValue).then(() => {
-            alert(`Copied`);
-        }).catch(err => {
-            console.error('Error copying text: ', err);
-        });
-    }
 </script>
 @endsection

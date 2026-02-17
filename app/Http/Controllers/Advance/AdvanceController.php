@@ -8,6 +8,7 @@ use App\Models\AdvanceAmountLog;
 use App\Models\AdvancePaymentCase;
 use App\Models\Application;
 use App\Models\BankProduct;
+use App\Models\ChannelUser;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -290,10 +291,14 @@ class AdvanceController extends Controller
 
         $term = $request->get('q');
         $userId = $request->get('user_id');
+        $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $userId);
 
         $applications = Application::select('id', 'app_id', 'customer_name', 'disburse_amount')
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $eligibleUserIds)
             ->where('status', 'pending')
+            ->whereNotNull('app_id')
+            ->where('app_id', '!=', '')
+            ->whereDoesntHave('advancePaymentCase')
             ->when($term, function ($query) use ($term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('app_id', 'like', '%' . $term . '%')
@@ -331,9 +336,10 @@ class AdvanceController extends Controller
         ]);
 
         $userId = $request->get('user_id');
+        $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $userId);
 
         $applications = Application::with(['bank', 'product'])
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $eligibleUserIds)
             ->where('status', 'pending')
             ->whereNotNull('app_id')
             ->where('app_id', '!=', '')
@@ -363,6 +369,22 @@ class AdvanceController extends Controller
         });
 
         return response()->json($results);
+    }
+
+    /**
+     * Return selected channel user id plus all linked associate user ids.
+     *
+     * @param int $channelUserId
+     * @return array<int>
+     */
+    private function getChannelWithAssociateUserIds(int $channelUserId): array
+    {
+        $associateIds = ChannelUser::where('channel_id', $channelUserId)
+            ->pluck('associate_channel_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return array_values(array_unique(array_merge([$channelUserId], $associateIds)));
     }
 
     /**

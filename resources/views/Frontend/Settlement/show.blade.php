@@ -56,6 +56,7 @@
                     <th class="table-header">Submitted By</th>
                     <th class="table-header">Company Receiving</th>
                     <th class="table-header">Sharing Commission</th>
+                    <th class="table-header">Channel Commission</th>
                     <th class="table-header">Commission Amount</th>
                     <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
                     <th class="table-header">Net Payable</th>
@@ -88,6 +89,14 @@
                     </td>
                     <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
                     <td>{{ $dist->received_rate ?? '-' }}%</td>
+                    <td>
+                        @php
+                            $rcCommission = ($app && $app->commission_rate && $dist->received_rate)
+                                ? round(floatval($app->commission_rate) * (floatval($dist->received_rate) / 100), 2)
+                                : null;
+                        @endphp
+                        {{ $rcCommission !== null ? $rcCommission . '%' : '-' }}
+                    </td>
                     <td>₹ {{ number_format($dist->gross_amount ?? 0, 2) }}</td>
                     <td>₹ {{ number_format($dist->tds ?? 0, 2) }}</td>
                     <td>₹ {{ number_format($dist->amount ?? 0, 2) }}</td>
@@ -97,7 +106,7 @@
             </tbody>
             <tfoot>
                 <tr style="font-weight: bold; background-color: #f5f5f5;">
-                    <td colspan="7" class="text-end">Totals:</td>
+                    <td colspan="8" class="text-end">Totals:</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('gross_amount'), 2) }}</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('tds'), 2) }}</td>
                     <td>₹ {{ number_format($settlement_distributions->sum('amount'), 2) }}</td>
@@ -124,6 +133,14 @@
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Bank Account</label>
                 <input class="bank-detail-input form-control" type="text" value="{{ $bankAccount->holder_name }} ({{ $bankAccount->account_number }})" disabled />
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">PAN Card Number</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $bankAccount->pan_number ?? '-' }}" disabled />
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Aadhar Number</label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $bankAccount->aadhar_number ?? '-' }}" disabled />
             </div>
             @if($dist->utr_number)
             <div class="bank-detail-inputs">

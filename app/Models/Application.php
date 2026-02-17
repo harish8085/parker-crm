@@ -84,4 +84,9 @@ class Application extends Model
     {
         return $this->belongsTo(User::class, 'parent_channel_id');
     }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(ApplicationActivityLog::class)->orderBy('created_at', 'desc');
+    }
 }

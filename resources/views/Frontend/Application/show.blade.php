@@ -180,6 +180,47 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 </div>
 <br>
 
+{{-- Activity Logs Section - Visible to Admin, Maker, Checker --}}
+@if(in_array(auth()->user()->roles[0]->id, [1, 35, 36]))
+<div class="bank-card">
+    <div class="card-top-border">Activity Logs</div>
+    <div class="card-form" style="padding: 20px;">
+        <div id="showLogsLoading" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="text-muted ms-2">Loading activity logs...</span>
+        </div>
+        <div id="showLogsContent"></div>
+        <div id="showLogsEmpty" class="text-center text-muted py-3" style="display:none;">
+            No activity logs found for this application.
+        </div>
+    </div>
+</div>
+<style>
+    .log-timeline { position: relative; padding-left: 30px; }
+    .log-timeline::before { content: ''; position: absolute; left: 10px; top: 0; bottom: 0; width: 2px; background: #dee2e6; }
+    .log-entry { position: relative; margin-bottom: 20px; padding: 12px 16px; background: #f8f9fa; border-radius: 8px; border-left: 3px solid #007bff; }
+    .log-entry.created { border-left-color: #28a745; }
+    .log-entry.approved { border-left-color: #007bff; }
+    .log-entry.completed { border-left-color: #28a745; }
+    .log-entry.rejected, .log-entry.checker_rejected { border-left-color: #dc3545; }
+    .log-entry.deleted { border-left-color: #6c757d; }
+    .log-entry.updated { border-left-color: #ffc107; }
+    .log-entry.status_changed { border-left-color: #17a2b8; }
+    .log-entry::before { content: ''; position: absolute; left: -25px; top: 16px; width: 10px; height: 10px; background: #007bff; border-radius: 50%; border: 2px solid #fff; }
+    .log-entry .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .log-entry .log-user { font-weight: 600; font-size: 14px; }
+    .log-entry .log-time { font-size: 12px; color: #6c757d; }
+    .log-entry .log-desc { font-size: 13px; color: #333; }
+    .log-entry .log-changes { font-size: 12px; color: #666; margin-top: 6px; padding-top: 6px; border-top: 1px solid #e9ecef; }
+    .log-entry .log-changes .change-item { margin-bottom: 2px; }
+    .log-entry .log-changes .old-val { text-decoration: line-through; color: #dc3545; }
+    .log-entry .log-changes .new-val { color: #28a745; font-weight: 500; }
+</style>
+@endif
+<br>
+
 
 @endsection
 
@@ -417,5 +458,53 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             }
         });
     });
+
+    @if(in_array(auth()->user()->roles[0]->id, [1, 35, 36]))
+    // Auto-load activity logs on show page
+    $.ajax({
+        url: '/application/{{ $application->id }}/logs',
+        method: 'GET',
+        success: function(response) {
+            $('#showLogsLoading').hide();
+            if (!response.logs || response.logs.length === 0) {
+                $('#showLogsEmpty').show();
+                return;
+            }
+
+            var html = '<div class="log-timeline">';
+            response.logs.forEach(function(log) {
+                html += '<div class="log-entry ' + log.action + '">';
+                html += '<div class="log-header">';
+                html += '<span class="log-user"><i class="fas fa-user"></i> ' + log.user_name + '</span>';
+                html += '<span class="log-time"><i class="fas fa-clock"></i> ' + log.created_at + '</span>';
+                html += '</div>';
+                html += '<div class="log-desc">' + log.description + '</div>';
+
+                if (log.changes && Object.keys(log.changes).length > 0) {
+                    html += '<div class="log-changes">';
+                    for (var field in log.changes) {
+                        var change = log.changes[field];
+                        var fieldLabel = field.replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
+                        html += '<div class="change-item">';
+                        html += '<strong>' + fieldLabel + ':</strong> ';
+                        html += '<span class="old-val">' + (change.old || '-') + '</span>';
+                        html += ' &rarr; ';
+                        html += '<span class="new-val">' + (change['new'] || '-') + '</span>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            });
+            html += '</div>';
+            $('#showLogsContent').html(html);
+        },
+        error: function(xhr) {
+            $('#showLogsLoading').hide();
+            $('#showLogsContent').html('<div class="alert alert-danger">Failed to load activity logs.</div>');
+        }
+    });
+    @endif
 </script>
 @endsection

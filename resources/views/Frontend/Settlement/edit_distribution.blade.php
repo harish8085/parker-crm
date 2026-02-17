@@ -121,6 +121,17 @@
             <label>Company Receiving</label>
             <div class="detail-value">{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</div>
         </div>
+        <div class="detail-item">
+            <label>Channel Commission</label>
+            <div class="detail-value">
+                @php
+                    $rcCommission = ($app && $app->commission_rate && $distribution->received_rate)
+                        ? round(floatval($app->commission_rate) * (floatval($distribution->received_rate) / 100), 2)
+                        : null;
+                @endphp
+                {{ $rcCommission !== null ? $rcCommission . '%' : '-' }}
+            </div>
+        </div>
     </div>
 </div>
 <br>

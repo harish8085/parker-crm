@@ -29,6 +29,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Spatie\SimpleExcel\SimpleExcelReader;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\BankMisTracker;
+use App\Models\ApplicationActivityLog;
 
 
 class ApplicationController extends Controller
@@ -129,7 +130,7 @@ class ApplicationController extends Controller
             }
 
 
-            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36) {
+            if ($user->roles[0]->id == 2 || $user->roles[0]->id == 3 || $user->roles[0]->id == 35 || $user->roles[0]->id == 36 || $user->roles[0]->id == 37) {
                 if($user->roles[0]->id == 36) {
                     $query->where('status', 'approved');
                 }
@@ -338,13 +339,39 @@ class ApplicationController extends Controller
                                      </a>";
                         }
 
-                        if (auth()->user()->hasPermission('application', 'update') && in_array($row->status, ['pending', 'in-progress','approved'])) {
-                            $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
-                                        <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
-                                     </a>";
+                        // View Logs button - only for Admin, Maker, Checker
+                        $currentRoleId = auth()->user()->roles[0]->id;
+                        if (in_array($currentRoleId, [1, 35, 36])) {
+                            $btn .= " <a href='javascript:void(0)' onclick='viewLogs(" . $row->id . ")' title='View Logs'><i class='fas fa-history' style='color:#6c757d;font-size:16px;'></i></a>";
+                        }
+                        if (auth()->user()->hasPermission('application', 'update')) {
+                            // Channel/Sales/Associate: only edit when pending
+                            if (in_array($currentRoleId, [2, 3, 37]) && $row->status === 'pending') {
+                                $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
+                                            <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
+                                         </a>";
+                            }
+                            // Maker: edit when pending
+                            if ($currentRoleId == 35 && $row->status === 'pending') {
+                                $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
+                                            <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
+                                         </a>";
+                            }
+                            // Checker: edit when approved
+                            if ($currentRoleId == 36 && $row->status === 'approved') {
+                                $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
+                                            <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
+                                         </a>";
+                            }
+                            // Admin: edit when pending, in-progress, approved
+                            if ($currentRoleId == 1 && in_array($row->status, ['pending', 'in-progress', 'approved'])) {
+                                $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
+                                            <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
+                                         </a>";
+                            }
                         }
 
-                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress','approved'])) {
+                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress'])) {
                             $btn .= "<img class='delete-btn' data-application-id='" . e($row->id) . "' 
                                       src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete'>";
                         }
@@ -500,13 +527,19 @@ class ApplicationController extends Controller
                                      </a>";
                         }
 
+                        // View Logs button - only for Admin, Maker, Checker
+                        $logRoleId = auth()->user()->roles[0]->id;
+                        if (in_array($logRoleId, [1, 35, 36])) {
+                            $btn .= " <a href='javascript:void(0)' onclick='viewLogs(" . $row->id . ")' title='View Logs'><i class='fas fa-history' style='color:#6c757d;font-size:16px;'></i></a>";
+                        }
+
                         if (auth()->user()->hasPermission('application', 'update') && in_array($row->status, ['pending', 'in-progress', 'rejected'])) {
                             $btn .= "<a href='" . e(url('/application/update/' . $row->id)) . "'>
                                         <img src='" . asset('assets/images/Edit.svg') . "' alt='Edit'>
                                      </a>";
                         }
 
-                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress', 'rejected'])) {
+                        if (auth()->user()->hasPermission('application', 'delete') && in_array($row->status, ['pending', 'in-progress'])) {
                             $btn .= "<img class='delete-btn' data-application-id='" . e($row->id) . "' 
                                       src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete'>";
                         }
@@ -721,6 +754,14 @@ class ApplicationController extends Controller
             // Save the application to the database
             $application->save();
 
+            // Log application creation
+            ApplicationActivityLog::create([
+                'application_id' => $application->id,
+                'user_id' => Auth::id(),
+                'action' => 'created',
+                'description' => 'Application created with App ID: ' . $application->app_id,
+            ]);
+
             // Send notification to admin users
             $adminUsers = User::whereHas('roles', function ($query) {
                 $query->whereIn('id', [1, 35]); // Admin and maker role ID
@@ -801,6 +842,37 @@ class ApplicationController extends Controller
             'districts',
             'products'
         ));
+    }
+
+    /**
+     * Get activity logs for an application (AJAX endpoint).
+     * Visible only to Admin (1), Maker (35), and Checker (36).
+     */
+    public function getActivityLogs($id)
+    {
+        $user = Auth::user();
+        $roleId = $user->roles[0]->id;
+
+        if (!in_array($roleId, [1, 35, 36])) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $logs = ApplicationActivityLog::where('application_id', $id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($log) {
+                return [
+                    'id' => $log->id,
+                    'action' => $log->action,
+                    'description' => $log->description,
+                    'changes' => $log->changes,
+                    'user_name' => $log->user ? $log->user->first_name . ' ' . $log->user->last_name : 'System',
+                    'created_at' => $log->created_at->format('d M Y, h:i A'),
+                ];
+            });
+
+        return response()->json(['logs' => $logs]);
     }
 
     public function edit($id)
@@ -897,13 +969,21 @@ class ApplicationController extends Controller
 
         // Find the application by ID
         $application = Application::findOrFail($id);
+        $originalStatus = $application->status;
+        $originalValues = $application->getAttributes();
         
-        // Associates can only update their own applications without changing status
-        if ($user->roles[0]->pivot->role_id == 37) {
+        // Channel/Sales/Associate can only edit applications in 'pending' status
+        if (in_array($user->roles[0]->pivot->role_id, [2, 3, 37])) {
+            if ($application->status !== 'pending') {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['status' => 'You can only edit applications in Pending status.']);
+            }
+            // These roles cannot change application status
             if ($request->status && $request->status !== $application->status) {
                 return redirect()->back()
                     ->withInput()
-                    ->withErrors(['status' => 'Associates cannot change application status.']);
+                    ->withErrors(['status' => 'You do not have permission to change the application status.']);
             }
         }
         
@@ -1003,9 +1083,14 @@ class ApplicationController extends Controller
             $application->commission_rate = $request->commission_rate;
         }
         
-        // Only allow status update if user is not an associate
-        if ($request->status && $user->roles[0]->pivot->role_id != 37) {
-            $application->status = $request->status;
+        // Only allow status update if user is not Channel/Sales/Associate
+        if ($request->status && !in_array($user->roles[0]->pivot->role_id, [2, 3, 37])) {
+            // Checker reject: revert status to 'pending' so Maker can re-review
+            if ($user->roles[0]->pivot->role_id == 36 && $request->status === 'rejected') {
+                $application->status = 'pending';
+            } else {
+                $application->status = $request->status;
+            }
         }
         
         if ($request->group == 'Secured') {
@@ -1047,23 +1132,81 @@ class ApplicationController extends Controller
         
         // Save the updated application to the database
         $application->save();
+
+        // Log activity: track changes
+        $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
+        $changes = [];
+        foreach ($trackedFields as $field) {
+            $oldVal = $originalValues[$field] ?? null;
+            $newVal = $application->$field;
+            if ($oldVal != $newVal) {
+                $changes[$field] = ['old' => $oldVal, 'new' => $newVal];
+            }
+        }
+
+        $newStatus = $application->status;
+        if ($originalStatus !== $newStatus) {
+            // Determine action type based on who changed and what the new status is
+            if ($user->roles[0]->pivot->role_id == 35 && $newStatus === 'approved') {
+                $action = 'approved';
+                $description = 'Application approved by Maker.';
+            } elseif ($user->roles[0]->pivot->role_id == 35 && $request->status === 'rejected') {
+                $action = 'rejected';
+                $description = 'Application rejected by Maker.';
+            } elseif ($user->roles[0]->pivot->role_id == 36 && $newStatus === 'completed') {
+                $action = 'completed';
+                $description = 'Application marked as completed by Checker.';
+            } elseif ($user->roles[0]->pivot->role_id == 36 && $request->status === 'rejected') {
+                $action = 'checker_rejected';
+                $rejectionReason = $request->rejection_reason ?? 'No reason provided';
+                $description = 'Application rejected by Checker. Reason: ' . $rejectionReason . '. Status reverted to Pending.';
+            } else {
+                $action = 'status_changed';
+                $description = 'Status changed from ' . ucfirst($originalStatus) . ' to ' . ucfirst($newStatus) . '.';
+            }
+
+            ApplicationActivityLog::create([
+                'application_id' => $application->id,
+                'user_id' => Auth::id(),
+                'action' => $action,
+                'description' => $description,
+                'changes' => !empty($changes) ? $changes : null,
+            ]);
+        } elseif (!empty($changes)) {
+            ApplicationActivityLog::create([
+                'application_id' => $application->id,
+                'user_id' => Auth::id(),
+                'action' => 'updated',
+                'description' => 'Application details updated.',
+                'changes' => $changes,
+            ]);
+        }
+
+        // Handle post-save actions based on status
         if ($request->status == 'completed') {
             ProcessSettlement::dispatch($application);
+        } elseif ($user->roles[0]->pivot->role_id == 36 && $request->status === 'rejected') {
+            // Checker rejected: notify all Makers
+            $makerRoleId = 35;
+            $makers = \App\Models\User::whereHas('roles', function ($q) use ($makerRoleId) {
+                $q->where('id', $makerRoleId);
+            })->get();
+
+            $rejectionReason = $request->rejection_reason ?? 'No reason provided';
+            foreach ($makers as $maker) {
+                $maker->notify(new \App\Notifications\CheckerRejectedApplicationNotification($application, $rejectionReason));
+            }
         } elseif ($request->status != 'rejected') {
             // Send notification to all checkers when application is approved by the maker
             if ($request->status == 'approved') {
-                // Fetch all users with 'Checker' role (assuming role_id == 36 for Checker, update if different)
                 $checkerRoleId = 36;
                 $checkers = \App\Models\User::whereHas('roles', function ($q) use ($checkerRoleId) {
                     $q->where('id', $checkerRoleId);
                 })->get();
 
-                // Prepare notification message
                 $message = 'Application ' . $application->app_id . ' has been approved by the maker.';
 
-                // Send notification to each checker
                 foreach ($checkers as $checker) {
-                    // NOTE: Fix notification class name typo if necessary
                     $checker->notify(new \App\Notifications\UpdateApplicationNotificaion($application, $message));
                 }
             }
@@ -1076,6 +1219,14 @@ class ApplicationController extends Controller
 
     public function destroy(Application $application)
     {
+        // Log deletion before deleting
+        ApplicationActivityLog::create([
+            'application_id' => $application->id,
+            'user_id' => Auth::id(),
+            'action' => 'deleted',
+            'description' => 'Application deleted. App ID: ' . $application->app_id,
+        ]);
+
         $application->delete();
         sleep(2);
         $this->updateBankMisTrackerFromApplications();
@@ -1367,6 +1518,14 @@ class ApplicationController extends Controller
 
                     // Save the loan application record to the database
                     $application->save();
+
+                    // Log application creation from Excel upload
+                    ApplicationActivityLog::create([
+                        'application_id' => $application->id,
+                        'user_id' => Auth::id(),
+                        'action' => 'created',
+                        'description' => 'Application created via Excel upload. App ID: ' . $application->app_id,
+                    ]);
 
                     // Send notification to admin users
                     $adminUsers = User::whereHas('roles', function ($query) {
