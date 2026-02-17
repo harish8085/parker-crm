@@ -101,14 +101,18 @@ class BankDataController extends Controller
             'confirm_account_number' => 'required|string|max:64|regex:/^[0-9]+$/|same:account_number',
             'ifsc_code'           => 'required|string|max:32',
             'bank_name'           => 'required|string|max:255',
+            'branch_name'         => 'required|string|max:255',
+            'pan_number'          => 'required|string|size:10|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
+            'aadhar_number'       => 'required|string|size:12|regex:/^[0-9]{12}$/',
             'pan_photo'           => 'required|image|mimes:jpeg,jpg,png|max:4096',
             'aadhar_photo'        => 'required|image|mimes:jpeg,jpg,png|max:4096',
             'passbook_photo'      => 'required|image|mimes:jpeg,jpg,png|max:4096',
-            'branch_name'         => 'required|string|max:255',
         ], [
             'account_number.regex' => 'The account number must contain only digits.',
             'confirm_account_number.regex' => 'The confirm account number must contain only digits.',
             'confirm_account_number.same' => 'The account number and confirm account number must match.',
+            'pan_number.regex' => 'PAN must be in format: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).',
+            'aadhar_number.regex' => 'Aadhar number must be exactly 12 digits.',
             'pan_photo.mimes' => 'PAN photo must be a JPEG, JPG, or PNG image.',
             'aadhar_photo.mimes' => 'Aadhar photo must be a JPEG, JPG, or PNG image.',
             'passbook_photo.mimes' => 'Passbook photo must be a JPEG, JPG, or PNG image.',
@@ -121,6 +125,8 @@ class BankDataController extends Controller
         $bankData->ifsc_code = $request->ifsc_code;
         $bankData->bank_name = $request->bank_name;
         $bankData->branch_name = $request->branch_name;
+        $bankData->pan_number = strtoupper($request->pan_number);
+        $bankData->aadhar_number = $request->aadhar_number;
         
         // Handle file uploads
         if ($request->hasFile('pan_photo')) {
@@ -183,15 +189,26 @@ class BankDataController extends Controller
             'account_number'      => 'required|string|max:64',
             'ifsc_code'           => 'required|string|max:32',
             'bank_name'           => 'required|string|max:255',
+            'pan_number'          => 'nullable|string|size:10|regex:/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/',
+            'aadhar_number'       => 'nullable|string|size:12|regex:/^[0-9]{12}$/',
             'pan_photo'           => 'nullable|image|mimes:jpeg,png,jpg,pdf|max:4096',
             'aadhar_photo'        => 'nullable|image|mimes:jpeg,png,jpg,pdf|max:4096',
             'passbook_photo'      => 'nullable|image|mimes:jpeg,png,jpg,pdf|max:4096',
+        ], [
+            'pan_number.regex' => 'PAN must be in format: 5 letters, 4 digits, 1 letter (e.g. ABCDE1234F).',
+            'aadhar_number.regex' => 'Aadhar number must be exactly 12 digits.',
         ]);
 
         $bankData->account_holder_name = $request->account_holder_name;
         $bankData->account_number = $request->account_number;
         $bankData->ifsc_code = $request->ifsc_code;
         $bankData->bank_name = $request->bank_name;
+        if ($request->filled('pan_number')) {
+            $bankData->pan_number = strtoupper($request->pan_number);
+        }
+        if ($request->filled('aadhar_number')) {
+            $bankData->aadhar_number = $request->aadhar_number;
+        }
         
         // Handle file uploads
         if ($request->hasFile('pan_photo')) {

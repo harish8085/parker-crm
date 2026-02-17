@@ -411,6 +411,8 @@ class AuthController extends Controller
                 $bankData->account_number = $request->account_number;
                 $bankData->holder_name = $request->holder_name;
                 $bankData->ifsc_code = $request->ifsc_code;
+                $bankData->pan_number = $request->pan_number;
+                $bankData->aadhar_number = $request->aadhar_number;
                 $bankData->aadhar_photo = $aadharPhotoPath;
                 $bankData->pan_photo = $panPhotoPath;
                 $bankData->passbook_photo = $passbookPhotoPath;

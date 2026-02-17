@@ -52,6 +52,10 @@
                     searchable: false
                 },
                 {
+                    data: 'transaction_id',
+                    name: 'transaction_id'
+                },
+                {
                     data: 'channel_name',
                     name: 'channel_name'
                 },

@@ -2,6 +2,7 @@
     <thead>
         <tr>
             <th class="table-header">Sr. No.</th>
+            <th class="table-header">Transaction ID</th>
             <th class="table-header">Channel Name</th>
             <th class="table-header">Commission Amount</th>
             <th class="table-header">TDS</th>

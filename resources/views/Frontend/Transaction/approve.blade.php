@@ -116,6 +116,7 @@
                             <th>Submitted By</th>
                             <th>Company Receiving</th>
                             <th>Sharing Commission</th>
+                            <th>Channel Commission</th>
                             <th>Commission Amount</th>
                             <th>TDS</th>
                             <th>Net Amount</th>
@@ -143,6 +144,14 @@
                             </td>
                             <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
                             <td>{{ $item->settlementDistribution && $item->settlementDistribution->received_rate ? $item->settlementDistribution->received_rate . '%' : '-' }}</td>
+                            <td>
+                                @php
+                                    $rcComm = ($app && $app->commission_rate && $item->settlementDistribution && $item->settlementDistribution->received_rate)
+                                        ? round(floatval($app->commission_rate) * (floatval($item->settlementDistribution->received_rate) / 100), 2)
+                                        : null;
+                                @endphp
+                                {{ $rcComm !== null ? $rcComm . '%' : '-' }}
+                            </td>
                             <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
                             <td>₹ {{ indianNumberFormat($item->tds) }}</td>
                             <td>₹ {{ indianNumberFormat($item->net_amount) }}</td>
@@ -310,6 +319,16 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Branch Name <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" name="branch_name" required placeholder="Enter branch name">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">PAN Card Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="pan_number" required placeholder="e.g. ABCDE1234F" maxlength="10" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" title="PAN format: 5 letters, 4 digits, 1 letter" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Aadhar Number <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="aadhar_number" required placeholder="Enter 12-digit Aadhar" maxlength="12" pattern="[0-9]{12}" title="Aadhar must be exactly 12 digits">
                         </div>
                     </div>
                     <hr>

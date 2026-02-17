@@ -73,6 +73,7 @@
                         <th class="table-header">Submitted By</th>
                         <th class="table-header">Company Receiving</th>
                         <th class="table-header">Sharing Commission</th>
+                        <th class="table-header">Channel Commission</th>
                         <th class="table-header">Commission Amount</th>
                         <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
                         <th class="table-header">Net Payable</th>
@@ -104,6 +105,14 @@
                         </td>
                         <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
                         <td>{{ $dist->received_rate ?? '-' }}%</td>
+                        <td>
+                            @php
+                                $rcCommission = ($app && $app->commission_rate && $dist->received_rate)
+                                    ? round(floatval($app->commission_rate) * (floatval($dist->received_rate) / 100), 2)
+                                    : null;
+                            @endphp
+                            {{ $rcCommission !== null ? $rcCommission . '%' : '-' }}
+                        </td>
                         <td>₹ {{ number_format($dist->gross_amount ?? 0, 2) }}</td>
                         <td>₹ {{ number_format($dist->tds ?? 0, 2) }}</td>
                         <td>₹ {{ number_format($dist->amount ?? 0, 2) }}</td>
@@ -112,7 +121,7 @@
                 </tbody>
                 <tfoot>
                     <tr style="font-weight: bold; background-color: #f5f5f5;">
-                        <td colspan="7" class="text-end">Totals:</td>
+                        <td colspan="8" class="text-end">Totals:</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('gross_amount'), 2) }}</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('tds'), 2) }}</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('amount'), 2) }}</td>
@@ -233,6 +242,18 @@
                         <div class="col-12 p-2">
                             <label class="input-label">IFSC<span class="required">*</span></label>
                             <input type="text" class="form-control" placeholder="Enter IFSC Code" name="ifsc_code" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">PAN Card Number<span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter PAN Number (e.g. ABCDE1234F)" name="pan_number" maxlength="10" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" title="PAN format: 5 letters, 4 digits, 1 letter" style="text-transform: uppercase;" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 p-2">
+                            <label class="input-label">Aadhar Number<span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Enter 12-digit Aadhar Number" name="aadhar_number" maxlength="12" pattern="[0-9]{12}" title="Aadhar must be exactly 12 digits" required>
                         </div>
                     </div>
                     <input type="hidden" class="form-control" name="user_id" value="{{$settlement->user_id}}" required>

@@ -112,6 +112,14 @@ use Illuminate\Support\Facades\Storage;
             <input class="bank-detail-input form-control" type="text" value="{{ $bank->branch_name ?? '-' }}" disabled>
         </div>
         <div class="bank-detail-inputs">
+            <label class="bank-input-label">PAN Card Number</label>
+            <input class="bank-detail-input form-control" type="text" value="{{ $bank->pan_number ?? '-' }}" disabled>
+        </div>
+        <div class="bank-detail-inputs">
+            <label class="bank-input-label">Aadhar Number</label>
+            <input class="bank-detail-input form-control" type="text" value="{{ $bank->aadhar_number ?? '-' }}" disabled>
+        </div>
+        <div class="bank-detail-inputs">
             <label class="bank-input-label">Status</label>
             <div>
                 @if($bank->status == 1)

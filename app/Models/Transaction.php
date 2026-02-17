@@ -10,6 +10,7 @@ class Transaction extends Model
     use HasFactory;
 
     protected $fillable = [
+        'transaction_id',
         'settlement_id',
         'user_id',
         'gross_amount',
@@ -24,6 +25,28 @@ class Transaction extends Model
         'completed_at',
         'completed_by',
     ];
+
+    /**
+     * Generate a unique transaction ID in format TXN{YYYYMMDD}{3-digit-seq}
+     */
+    public static function generateTransactionId()
+    {
+        $today = now()->format('Ymd');
+        $prefix = 'TXN' . $today;
+
+        $lastTransaction = self::where('transaction_id', 'like', $prefix . '%')
+            ->orderBy('transaction_id', 'desc')
+            ->first();
+
+        if ($lastTransaction) {
+            $lastSeq = (int) substr($lastTransaction->transaction_id, -3);
+            $nextSeq = $lastSeq + 1;
+        } else {
+            $nextSeq = 1;
+        }
+
+        return $prefix . str_pad($nextSeq, 3, '0', STR_PAD_LEFT);
+    }
 
     protected $casts = [
         'approved_at' => 'datetime',

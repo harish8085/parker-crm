@@ -328,6 +328,10 @@
                                 name: 'received_rate'
                         },
                         {
+                                data: 'received_commission',
+                                name: 'received_commission'
+                        },
+                        {
                                 data: 'gross_amount',
                                 name: 'gross_amount'
                         },
