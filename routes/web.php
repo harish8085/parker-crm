@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MasterCodeController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementCategoryController;
 use App\Http\Controllers\Advance\AdvanceController;
+use App\Http\Controllers\Advance\AdvanceRequestController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Bank\BankController;
@@ -177,6 +178,11 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
     Route::get('/advance/log/{logId}/application-ids', [AdvanceController::class, 'getLogApplicationIds'])->name('advance.log.application-ids');
     Route::delete('/advance/log/delete/{logId}', [AdvanceController::class, 'destroyLog'])->name('advance.log.destroy');
+    Route::get('/advance-requests', [AdvanceRequestController::class, 'index'])->name('advance-requests.index');
+    Route::post('/advance-requests/{id}/approve', [AdvanceRequestController::class, 'approve'])->name('advance-requests.approve');
+    Route::post('/advance-requests/{id}/reject', [AdvanceRequestController::class, 'reject'])->name('advance-requests.reject');
+    Route::get('/advance-requests/{id}/cases', [AdvanceRequestController::class, 'cases'])->name('advance-requests.cases');
+    Route::get('/advance-requests/checkers/search', [AdvanceRequestController::class, 'searchCheckers'])->name('advance-requests.checkers.search');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');

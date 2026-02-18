@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Advance;
 use App\Models\AdvanceAmountLog;
 use App\Models\AdvancePaymentCase;
+use App\Models\AdvanceRequest;
+use App\Models\AdvanceRequestCase;
 use App\Models\Application;
 use App\Models\BankProduct;
 use App\Models\ChannelUser;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Notifications\AdvanceRequestNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -96,6 +99,7 @@ class AdvanceController extends Controller
     public function create()
     {
         $Route = 'Add Advance';
+        $isCheckerUser = $this->isCheckerUser();
         $users = User::select('id', 'first_name', 'last_name', 'email')
             ->whereHas('roles', function ($query) {
                 $query->where('roles.id', 2);
@@ -105,7 +109,7 @@ class AdvanceController extends Controller
             ->limit(10)
             ->get();
 
-        return view('Frontend.Advance.create', compact('Route', 'users'));
+        return view('Frontend.Advance.create', compact('Route', 'users', 'isCheckerUser'));
     }
 
     /**
@@ -145,6 +149,32 @@ class AdvanceController extends Controller
 
             // If case_type is "case", calculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
+                $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
+                $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
+                    ->whereIn('user_id', $eligibleUserIds)
+                    ->where('status', 'pending')
+                    ->whereNotNull('app_id')
+                    ->where('app_id', '!=', '')
+                    ->where(function ($query) {
+                        $query->whereNull('app_id_is_matched')
+                            ->orWhere('app_id_is_matched', '!=', 1);
+                    })
+                    ->whereDoesntHave('advancePaymentCase')
+                    ->whereNotIn('id', function ($subQuery) {
+                        $subQuery->select('arc.application_id')
+                            ->from('advance_request_cases as arc')
+                            ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                            ->where('ar.status', 'pending');
+                    })
+                    ->count();
+
+                if ($availableSelectedCount !== count($selectedAppIds)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Some selected cases are no longer available for advance request. Please reload and select again.');
+                }
+
                 $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
                     ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
 
@@ -192,17 +222,72 @@ class AdvanceController extends Controller
                 $validated['advance_amount'] = $totalAdvanceAmount;
             }
     
+            if ($this->isCheckerUser()) {
+                $advanceRequest = DB::transaction(function () use ($validated, $perCaseAmounts) {
+                    $requestModel = AdvanceRequest::create([
+                        'user_id' => $validated['user_id'],
+                        'requested_by' => auth()->id(),
+                        'case_type' => $validated['case_type'],
+                        'requested_amount' => $validated['advance_amount'],
+                        'advance_remark' => $validated['advance_remark'] ?? null,
+                        'status' => 'pending',
+                    ]);
+
+                    if ($validated['case_type'] === 'case' && !empty($validated['application_ids'])) {
+                        $applicationsWithDetails = Application::with('product')
+                            ->whereIn('id', $validated['application_ids'])
+                            ->get()
+                            ->keyBy('id');
+
+                        foreach ($validated['application_ids'] as $applicationId) {
+                            $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                            if ($caseAmount === null) {
+                                continue;
+                            }
+
+                            $application = $applicationsWithDetails->get($applicationId);
+                            $productName = $application && $application->product ? $application->product->name : null;
+
+                            $productPercent = null;
+                            if ($application) {
+                                $bankProduct = BankProduct::where('bank_id', $application->bank_id)
+                                    ->where('product_id', $application->product_id)
+                                    ->first();
+                                $productPercent = $bankProduct ? $bankProduct->percent : null;
+                            }
+
+                            AdvanceRequestCase::create([
+                                'advance_request_id' => $requestModel->id,
+                                'application_id' => $applicationId,
+                                'product' => $productName,
+                                'product_percent' => $productPercent,
+                                'advance_payment_amount' => $caseAmount,
+                            ]);
+                        }
+                    }
+
+                    return $requestModel;
+                });
+
+                foreach ($this->getAdminUsers() as $admin) {
+                    $admin->notify(new AdvanceRequestNotification(
+                        'New advance request #' . $advanceRequest->id . ' submitted by checker.',
+                        url('/advance-requests?tab=pending')
+                    ));
+                }
+
+                return redirect()->route('advance.index')->with('success', 'Advance request submitted successfully and sent for admin approval.');
+            }
+
             $advanceAmountLog = Advance::createAdvance([
                 'user_id' => $validated['user_id'],
                 'advance_amount' => $validated['advance_amount'],
                 'advance_remark' => $validated['advance_remark'] ?? null,
-                'advance_type' => 'add', // default type now
+                'advance_type' => 'add',
                 'created_by' => auth()->user()->id,
             ]);
 
-            // If there are specific cases selected, create records in advance_payment_cases
             if ($validated['case_type'] === 'case' && !empty($validated['application_ids']) && $advanceAmountLog) {
-                // Load applications with product relationship to get product names
                 $applicationsWithDetails = Application::with('product')
                     ->whereIn('id', $validated['application_ids'])
                     ->get()
@@ -211,14 +296,12 @@ class AdvanceController extends Controller
                 foreach ($validated['application_ids'] as $applicationId) {
                     $caseAmount = $perCaseAmounts[$applicationId] ?? null;
                     if ($caseAmount === null) {
-                        // Should not happen, but guard anyway
                         continue;
                     }
 
                     $application = $applicationsWithDetails->get($applicationId);
                     $productName = $application && $application->product ? $application->product->name : null;
-                    
-                    // Get product percent from BankProduct
+
                     $productPercent = null;
                     if ($application) {
                         $bankProduct = BankProduct::where('bank_id', $application->bank_id)
@@ -237,7 +320,7 @@ class AdvanceController extends Controller
                     ]);
                 }
             }
-    
+
             return redirect()->route('advance.index')->with('success', 'Advance created successfully.');
         } catch (\Throwable $e) {
             // You might further log the exception here
@@ -311,6 +394,12 @@ class AdvanceController extends Controller
                     ->orWhere('app_id_is_matched', '!=', 1);
             })
             ->whereDoesntHave('advancePaymentCase')
+            ->whereNotIn('id', function ($subQuery) {
+                $subQuery->select('arc.application_id')
+                    ->from('advance_request_cases as arc')
+                    ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                    ->where('ar.status', 'pending');
+            })
             ->when($term, function ($query) use ($term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('app_id', 'like', '%' . $term . '%')
@@ -360,6 +449,12 @@ class AdvanceController extends Controller
                     ->orWhere('app_id_is_matched', '!=', 1);
             })
             ->whereDoesntHave('advancePaymentCase')
+            ->whereNotIn('id', function ($subQuery) {
+                $subQuery->select('arc.application_id')
+                    ->from('advance_request_cases as arc')
+                    ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                    ->where('ar.status', 'pending');
+            })
             ->orderBy('id', 'desc')
             ->get([
                 'id', 'app_id', 'customer_name', 'customer_firm_name', 
@@ -550,6 +645,10 @@ class AdvanceController extends Controller
      */
     public function edit($id)
     {
+        if ($this->isCheckerUser()) {
+            abort(403, 'Checker cannot edit approved advances.');
+        }
+
         $Route = 'Edit Advance';
         $advance = Advance::with('user', 'advanceAmountLogs')->findOrFail($id);
 
@@ -598,6 +697,10 @@ class AdvanceController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($this->isCheckerUser()) {
+            return redirect()->route('advance.index')->with('error', 'Checker cannot update approved advances.');
+        }
+
         try {
             $messages = [
                 'user_id.required' => 'Please select a channel partner.',
@@ -628,6 +731,32 @@ class AdvanceController extends Controller
 
             // If case_type is "case", recalculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
+                $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
+                $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
+                    ->whereIn('user_id', $eligibleUserIds)
+                    ->where('status', 'pending')
+                    ->whereNotNull('app_id')
+                    ->where('app_id', '!=', '')
+                    ->where(function ($query) {
+                        $query->whereNull('app_id_is_matched')
+                            ->orWhere('app_id_is_matched', '!=', 1);
+                    })
+                    ->whereDoesntHave('advancePaymentCase')
+                    ->whereNotIn('id', function ($subQuery) {
+                        $subQuery->select('arc.application_id')
+                            ->from('advance_request_cases as arc')
+                            ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                            ->where('ar.status', 'pending');
+                    })
+                    ->count();
+
+                if ($availableSelectedCount !== count($selectedAppIds)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Some selected cases are no longer available. Please reload and select again.');
+                }
+
                 $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
                     ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
 
@@ -908,6 +1037,26 @@ class AdvanceController extends Controller
             return false;
         }
 
-        return $user->roles()->where('roles.id', 1)->exists();
+        return $user->user_type === 'admin' || $user->roles()->where('roles.id', 1)->exists();
+    }
+
+    private function isCheckerUser(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->user_type === 'checker';
+    }
+
+    private function getAdminUsers()
+    {
+        return User::query()
+            ->where('user_type', 'admin')
+            ->orWhereHas('roles', function ($query) {
+                $query->where('roles.id', 1);
+            })
+            ->get();
     }
 }

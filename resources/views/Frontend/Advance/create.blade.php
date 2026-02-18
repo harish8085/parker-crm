@@ -11,15 +11,21 @@
         <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
             <li class="breadcrumb-item"><a href="{{ url('/dashboard') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ route('advance.index') }}">Advances</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Add Advance</li>
+            <li class="breadcrumb-item active" aria-current="page">{{ ($isCheckerUser ?? false) ? 'Create Advance Request' : 'Add Advance' }}</li>
         </ol>
     </nav>
 </div>
 
 <div class="card p-4">
     <div class="application-header mb-4">
-        <h3 class="application-heading mb-0">Add Advance</h3>
+        <h3 class="application-heading mb-0">{{ ($isCheckerUser ?? false) ? 'Create Advance Request' : 'Add Advance' }}</h3>
     </div>
+
+    @if($isCheckerUser ?? false)
+    <div class="alert alert-info">
+        Your submission will go to admin for approval. It will be added to actual advance balance only after approval.
+    </div>
+    @endif
 
     <form method="POST" action="{{ route('advance.store') }}">
         @csrf
@@ -142,7 +148,7 @@
 
         <div class="d-flex justify-content-end">
             <a href="{{ route('advance.index') }}" class="btn btn-secondary me-2">Cancel</a>
-            <button type="submit" class="btn btn-primary">Save Advance</button>
+            <button type="submit" class="btn btn-primary">{{ ($isCheckerUser ?? false) ? 'Submit Request' : 'Save Advance' }}</button>
         </div>
     </form>
 </div>

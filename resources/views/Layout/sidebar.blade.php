@@ -42,10 +42,17 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->roles[0]->id ==1)
+                @if(auth()->user()->roles[0]->id ==1 || auth()->user()->user_type == 'checker')
                 <li class="list-item {{(Request::path() == 'advance')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'advance')?'active-li':''}}" href="{{url('advance')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'advance')?'assets/images/sheet-active.svg':'assets/images/sheet.svg')}}" alt="error">Advance
+                    </a>
+                </li>
+                @endif
+                @if(auth()->user()->roles[0]->id ==1 || auth()->user()->user_type == 'admin' || auth()->user()->user_type == 'checker')
+                <li class="list-item {{(Request::path() == 'advance-requests')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'advance-requests')?'active-li':''}}" href="{{ route('advance-requests.index', ['tab' => 'pending']) }}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'advance-requests')?'assets/images/sheet-active.svg':'assets/images/sheet.svg')}}" alt="error">Advance Request
                     </a>
                 </li>
                 @endif
