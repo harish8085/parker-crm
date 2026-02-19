@@ -200,6 +200,15 @@
 
             @if(in_array($roleId, [1, 2, 35, 36]))
             <div class="bank-detail-inputs">
+                <label class="bank-input-label">Fixed Commission Rate (%)</label>
+                <input class="bank-detail-input form-control" type="text" name="fixed_commission_rate" id="fixed_commission_rate" placeholder="Auto fetched from Bank Product" readonly>
+            </div>
+            @else
+            <input type="hidden" name="fixed_commission_rate" id="fixed_commission_rate" value="">
+            @endif
+
+            @if(in_array($roleId, [1, 2, 35, 36]))
+            <div class="bank-detail-inputs">
                 <label class="bank-input-label">Sharing Commission</label>
                 <input class="bank-detail-input form-control" type="number" step="0.01" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission">
             </div>
@@ -371,6 +380,20 @@
         // });
 
 
+        function loadFixedCommissionRate() {
+            if (!$('#bank_id').val() || !$('#product_id').val()) {
+                $('#fixed_commission_rate').val('');
+                return;
+            }
+
+            performAjaxRequest('/getFixedCommissionRate', 'POST', {
+                bank_id: $('#bank_id').val(),
+                product_id: $('#product_id').val(),
+            }, function(response) {
+                $('#fixed_commission_rate').val(response.fixed_commission_rate || '');
+            });
+        }
+
         $('#bank_id,#group').change(function() {
             if ($('#bank_id').val() && $('#group').val()) {
                 performAjaxRequest('/getProduct', 'POST', {
@@ -391,10 +414,19 @@
                             text: value.name
                         }));
                     });
+                    $('#fixed_commission_rate').val('');
                 });
             }
 
         });
+
+        $('#product_id').change(function() {
+            loadFixedCommissionRate();
+        });
+
+        if ($('#bank_id').val() && $('#group').val() && $('#product_id').val()) {
+            loadFixedCommissionRate();
+        }
 
 
 

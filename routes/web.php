@@ -128,6 +128,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/profile/addBank', [ProfileController::class, 'addBank']);
     Route::post('/getProduct', [BankProductController::class, 'getProduct']);
     Route::post('/getAllProduct', [BankProductController::class, 'getAllProduct']);
+    Route::post('/getFixedCommissionRate', [BankProductController::class, 'getFixedCommissionRate'])->name('bank-product.fixed-commission-rate');
     Route::post('/getServiceProduct', [ServiceController::class, 'getServiceProduct']);
     Route::post('/getUserCommission', [ApplicationController::class, 'getUserCommission']);
     Route::get('/application/channel/{channelId}/associates', [ApplicationController::class, 'getAssociatedPartnersByChannel'])->name('application.channel.associates');

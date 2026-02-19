@@ -187,6 +187,28 @@ class BankProductController extends Controller
         $products = Product::whereIn('id', $productIdsArray)->get();
         return $products;
     }
+
+    public function getFixedCommissionRate(Request $request)
+    {
+        $request->validate([
+            'bank_id' => 'required|exists:banks,id',
+            'product_id' => 'required|exists:products,id',
+        ]);
+
+        $percent = BankProduct::where('bank_id', $request->bank_id)
+            ->where('product_id', $request->product_id)
+            ->value('percent');
+
+        $formattedPercent = null;
+        if ($percent !== null && $percent !== '') {
+            $formattedPercent = rtrim(rtrim((string) $percent, '0'), '.');
+        }
+
+        return response()->json([
+            'fixed_commission_rate' => $formattedPercent,
+        ]);
+    }
+
     public function update(Request $request, BankProduct $bankProduct)
     {
         $request->validate([

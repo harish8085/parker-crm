@@ -689,6 +689,7 @@ class ApplicationController extends Controller
                 'bank_id' => 'required|string|max:255',
                 'product_id' => 'required|string|max:255',
                 'group' => 'required|string|max:255',
+                'fixed_commission_rate' => 'nullable|numeric|min:0|max:100',
             ]);
 
             if (!$parsedDisbursementDate) {
@@ -711,7 +712,8 @@ class ApplicationController extends Controller
             $application->bank_id = $request->bank_id;
             $application->product_id = $request->product_id;
             $application->group = $request->group;
-            $application->commission_rate = $request->commission_rate;
+            $application->fixed_commission_rate = $this->resolveFixedCommissionRate($request->bank_id, $request->product_id, $request->fixed_commission_rate);
+            $application->commission_rate = $this->resolveApplicableCommissionRate($request->commission_rate, $application->fixed_commission_rate);
             if ($request->group == 'Secured') {
                 $application->fresh_or_bt = $request->fresh_bt;
                 $application->any_subvention = $request->any_subvention;
@@ -1024,7 +1026,6 @@ class ApplicationController extends Controller
 
             $requestAppId = trim((string) ($request->app_id ?? $application->app_id));
             $requestDisburseAmount = $normalizeNumber($request->disburse_amount ?? $application->disburse_amount);
-            $requestCommissionRate = $normalizeNumber($request->commission_rate ?? $application->commission_rate);
 
             $isAppIdMatched = !empty($application->app_id_is_value)
                 ? strcasecmp($requestAppId, trim((string) $application->app_id_is_value)) === 0
@@ -1034,16 +1035,31 @@ class ApplicationController extends Controller
                 ? $requestDisburseAmount !== null && $requestDisburseAmount == $normalizeNumber($application->disburse_amount_is_value)
                 : (bool) $application->disburse_amount_is_matched;
 
-            $isCommissionMatched = $application->commission_rate_is_value !== null && $application->commission_rate_is_value !== ''
-                ? $requestCommissionRate !== null && $requestCommissionRate == $normalizeNumber($application->commission_rate_is_value)
-                : (bool) $application->commission_rate_is_matched;
-
-            if (!$isAppIdMatched || !$isDisburseMatched || !$isCommissionMatched) {
+            if (!$isAppIdMatched || !$isDisburseMatched) {
                 return redirect()->back()
                     ->withInput()
                     ->withErrors([
-                        'status' => 'Approval blocked. Application No, Disburse Amount, and Commission Rate must match bank fields before approving.'
+                        'status' => 'Approval blocked. Application No and Disburse Amount must match bank fields before approving.'
                     ]);
+            }
+        }
+
+        // Disbursement amount must remain exactly same as bank value when bank value is present.
+        if ($application->disburse_amount_is_value !== null && $application->disburse_amount_is_value !== '' && $request->has('disburse_amount')) {
+            $normalizeNumber = function ($value) {
+                if ($value === null || $value === '') {
+                    return null;
+                }
+                $cleanValue = preg_replace('/[^\d.\-]/', '', (string) $value);
+                return $cleanValue === '' ? null : (float) $cleanValue;
+            };
+
+            $requestDisburseAmount = $normalizeNumber($request->disburse_amount);
+            $bankDisburseAmount = $normalizeNumber($application->disburse_amount_is_value);
+            if ($requestDisburseAmount !== null && $bankDisburseAmount !== null && $requestDisburseAmount != $bankDisburseAmount) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['disburse_amount' => 'Disburse Amount must exactly match bank disbursement amount.']);
             }
         }
         
@@ -1079,9 +1095,9 @@ class ApplicationController extends Controller
         $application->product_id = $request->product_id;
         $application->group = $request->group;
         $application->remark = '';
-        if ($request->has('commission_rate')) {
-            $application->commission_rate = $request->commission_rate;
-        }
+        $bankInputCommissionRate = $request->has('commission_rate') ? $request->commission_rate : $application->commission_rate;
+        $application->fixed_commission_rate = $this->resolveFixedCommissionRate($request->bank_id, $request->product_id, $request->fixed_commission_rate);
+        $application->commission_rate = $this->resolveApplicableCommissionRate($bankInputCommissionRate, $application->fixed_commission_rate);
         
         // Only allow status update if user is not Channel/Sales/Associate
         if ($request->status && !in_array($user->roles[0]->pivot->role_id, [2, 3, 37])) {
@@ -1134,7 +1150,7 @@ class ApplicationController extends Controller
         $application->save();
 
         // Log activity: track changes
-        $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
+        $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'fixed_commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
         $changes = [];
         foreach ($trackedFields as $field) {
             $oldVal = $originalValues[$field] ?? null;
@@ -1786,6 +1802,41 @@ class ApplicationController extends Controller
         $application->save();
        
         return response()->json(['success' => true, 'message' => 'Remark updated successfully']);
+    }
+
+    private function resolveFixedCommissionRate($bankId, $productId, $fallback = null)
+    {
+        if (empty($bankId) || empty($productId)) {
+            return $fallback;
+        }
+
+        $percent = BankProduct::where('bank_id', $bankId)
+            ->where('product_id', $productId)
+            ->value('percent');
+
+        if ($percent === null || $percent === '') {
+            return $fallback;
+        }
+
+        return (string) $percent;
+    }
+
+    private function resolveApplicableCommissionRate($bankCommissionRate, $fixedCommissionRate)
+    {
+        $bank = is_numeric($bankCommissionRate) ? (float) $bankCommissionRate : null;
+        $fixed = is_numeric($fixedCommissionRate) ? (float) $fixedCommissionRate : null;
+
+        if ($bank === null && $fixed === null) {
+            return null;
+        }
+        if ($bank === null) {
+            return (string) $fixed;
+        }
+        if ($fixed === null) {
+            return (string) $bank;
+        }
+
+        return (string) max($bank, $fixed);
     }
 
     private function resolveSelectedApplicationUserId(Request $request, $authUser)
