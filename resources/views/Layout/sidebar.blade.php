@@ -35,12 +35,43 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasPermission('bank_mis','view'))
+                <!-- @if(auth()->user()->hasPermission('bank_mis','view'))
                 <li class="list-item {{(Request::path() == 'bank_mis')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'bank_mis')?'active-li':''}}" href="{{url('bank_mis')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'bank_mis')?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Bank MIS</a>
                 </li>
+                @endif -->
+
+
+                @if(auth()->user()->hasPermission('bank_mis','view') )
+                <li class="nav-item dropdown list-item {{(Request::path() == 'bank_mis' ||Request::path() == 'contest' ||Request::path() == 'insurance')?'active':''}}">
+                    <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
+                        <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">MIS 
+                        <span class="custom-dropdown-arrow">
+                            <img class="dropdown-icon" src="{{asset((Request::path() == 'bank_mis' ||Request::path() == 'contest' ||Request::path() == 'insurance')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
+                        </span>
+                    </a>
+                    <ul class="dropdown-menu sidebar-menu {{(Request::path() == 'bank_mis' ||Request::path() == '')?'show':''}}">
+
+                        <li class="list-item {{(Request::path() == 'bank_mis')?'active-li':''}}">
+                            <a class="nav-links {{(Request::path() == 'bank_mis')?'active-li':''}}" href="{{url('bank_mis')}}">
+                                <img class="dashboard-icons" src="{{ asset((Request::path() == 'bank_mis')?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Bank MIS</a>
+                        </li>
+                        <li class="list-item {{(Request::path() == 'contest')?'active-li':''}}">
+                            <a class="nav-links {{(Request::path() == 'contest')?'active-li':''}}" href="{{url('contest')}}">
+                                <img class="dashboard-icons" src="{{asset((Request::path() == 'contest')?'assets/images/contest-active.svg':'assets/images/contest.svg')}}" alt="error">Contest MIS
+                            </a>
+                        </li>
+                        <li class="list-item {{(Request::path() == 'insurance')?'active-li':''}}">
+                            <a class="nav-links {{(Request::path() == 'insurance')?'active-li':''}}" href="{{url('insurance')}}">
+                                <img class="dashboard-icons" src="{{ asset((Request::path() == 'insurance')?'assets/images/insurance-active.svg':'assets/images/insurance.svg')}}" alt="error">Insurance MIS</a>
+                        </li>
+
+                    </ul>
+                </li>
                 @endif
+                <!-- // group bank mis , contest , insurance.. under bank mis and show based on permissions -->
+
 
                 @if(auth()->user()->roles[0]->id ==1)
                 <li class="list-item {{(Request::path() == 'advance')?'active-li':''}}">
@@ -58,7 +89,6 @@
                 </li>
                 @endif
 
-
                 @if(auth()->user()->hasPermission('settlement','view') || in_array(auth()->user()->roles[0]->id, [2, 3]))
                 <li class="list-item {{(Request::path() == 'transactions')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'transactions')?'active-li':''}}" href="{{url('transactions')}}">
@@ -66,27 +96,7 @@
                     </a>
                 </li>
                 @endif
-                <!-- @if(auth()->user()->hasPermission('invoice','view'))
-                <li class="list-item {{(Request::path() == 'invoice')?'active-li':''}}">
-                    <a class="nav-links {{(Request::path() == 'invoice')?'active-li':''}}" href="{{url('invoice')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice')?'assets/images/invoice_blue.svg':'assets/images/invoice_white.svg')}}" alt="error">Invoices
-                    </a>
-                </li>
-                @endif
-                @if(auth()->user()->hasPermission('mis_tracker','view'))
-                <li class="list-item {{(Request::path() == 'mis_tracker')?'active-li':''}}">
-                    <a class="nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
-                    </a>
-                </li>
-                @endif
-                @if(auth()->user()->hasPermission('invoice_payment','view'))
-                <li class="list-item {{(Request::path() == 'invoice_payment')?'active-li':''}}">
-                    <a class="nav-links {{(Request::path() == 'invoice_payment')?'active-li':''}}" href="{{url('invoice_payment')}}">
-                        <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice_payment')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
-                    </a>
-                </li>
-                @endif -->
+
                 @if(auth()->user()->hasPermission('dsa-code','view'))
                 <li class="list-item {{(Request::path() == 'dsa-code')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'dsa-code')?'active-li':''}}" href="{{url('dsa-code')}}">
@@ -147,7 +157,7 @@
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
                         <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">Invoice
                         <span class="custom-dropdown-arrow">
-                            <img class="dropdown-icon" src="{{asset((Request::path() == 'invoice' ||Request::path() == 'invoice')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
+                            <img class="dropdown-icon" src="{{asset((Request::path() == 'invoice' ||Request::path() == 'invoice_payment' || Request::path() == 'mis_tracker')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
                         </span>
                     </a>
                     <ul class="dropdown-menu sidebar-menu {{(Request::path() == 'invoice' ||Request::path() == '')?'show':''}}">
@@ -228,7 +238,7 @@
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
                         <img class="dashboard-icons" src="{{asset('assets/images/staff.svg')}}" alt="error">Staff
                         <span class="custom-dropdown-arrow">
-                            <img class="dropdown-icon" src="{{asset((Request::path() == 'staff' ||Request::path() == 'staff/view/role'||Request::path() =='permissions')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
+                            <img class="dropdown-icon" src="{{asset((Request::path() == 'staff' ||Request::path() == 'staff/view/role'||Request::path() =='staff/view/permissions')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
                         </span>
                     </a>
                     <ul class="dropdown-menu sidebar-menu {{(Request::path() == 'staff' ||Request::path() == 'staff/view/role'||Request::path() =='staff/view/permissions')?'show':''}}">
@@ -241,7 +251,6 @@
                         <li class="dropdown-list-li {{(Request::path() == 'staff/view/permissions')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'staff/view/permissions')?'active-li':''}}" href="{{url('staff/view/permissions')}}">Permissions</a>
                         </li>
-
                     </ul>
                 </li>
                 @endif

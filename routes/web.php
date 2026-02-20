@@ -33,12 +33,14 @@ use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
 use App\Http\Controllers\User\MasterDataController;
 use App\Http\Controllers\MISTracker\MISTrackerController;
-use App\Http\Controllers\Bank_MIS\InvoiceController as Bank_MISInvoiceController;
+use App\Http\Controllers\Contest\ContestController;
+use App\Http\Controllers\Insurance\InsuranceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
 use Illuminate\Support\Facades\Route;
+
 
 
 /*
@@ -114,8 +116,9 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/invoice_payment/edit/{id}', [InvoicePaymentController::class, 'edit'])->name('invoice_payment.edit');
     Route::put('/invoice_payment/{id}', [InvoicePaymentController::class, 'update'])->name('invoice_payment.update');
     Route::delete('/invoice_payment/{id}', [InvoicePaymentController::class, 'destroy'])->name('invoice_payment.destroy');
-
     Route::post('/invoice_payment/getInvoiceCases', [InvoicePaymentController::class, 'getInvoiceCases'])->name('invoice_payment.getInvoiceCases');
+
+
 });
 
 
@@ -202,6 +205,12 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
     Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
     Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
+
+    // contest routes
+    Route::get('/contest', [ContestController::class, 'index'])->name('contest.index');
+
+    //insurance routes
+    Route::get('/insurance', [InsuranceController::class, 'index'])->name('insurance.index');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {

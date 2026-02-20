@@ -1,0 +1,13 @@
+<svg width="26" height="26" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield -->
+  <path d="M32 4L52 12V28C52 42 42 52 32 60C22 52 12 42 12 28V12L32 4Z" fill="#012670"></path>
+
+  <!-- Trophy Cup -->
+  <path d="M24 22H40V28C40 34 36 38 32 38C28 38 24 34 24 28V22Z" fill="#012670"></path>
+  <rect x="29" y="38" width="6" height="6" fill="#012670"></rect>
+  <rect x="26" y="44" width="12" height="4" fill="#012670"></rect>
+
+  <!-- Handles -->
+  <path d="M24 24H20C20 30 24 32 24 32" stroke="#012670" stroke-width="2"></path>
+  <path d="M40 24H44C44 30 40 32 40 32" stroke="#012670" stroke-width="2"></path>
+</svg>
