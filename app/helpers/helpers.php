@@ -18,6 +18,9 @@ if (!function_exists('getPermissionName')) {
             case 'bank_mis':
                 return 'Bank MIS';
                 break;
+            case 'contest':
+                return 'Contest MIS';
+                break;
             case 'settlement':
                 return 'Settlement';
                 break;

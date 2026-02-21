@@ -110,6 +110,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     //mis tracker
     Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
 
+    // Invoice Payment Route
     Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
     Route::post('/invoice_payment/filter', [InvoicePaymentController::class, 'filter'])->name('invoice_payment.filter');
     Route::get('/invoice_payment/view/{id}', [InvoicePaymentController::class, 'show'])->name('invoice_payment.show');
@@ -117,7 +118,6 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::put('/invoice_payment/{id}', [InvoicePaymentController::class, 'update'])->name('invoice_payment.update');
     Route::delete('/invoice_payment/{id}', [InvoicePaymentController::class, 'destroy'])->name('invoice_payment.destroy');
     Route::post('/invoice_payment/getInvoiceCases', [InvoicePaymentController::class, 'getInvoiceCases'])->name('invoice_payment.getInvoiceCases');
-
 
 });
 
@@ -208,6 +208,11 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     // contest routes
     Route::get('/contest', [ContestController::class, 'index'])->name('contest.index');
+    Route::get('/contest/upload', [ContestController::class, 'uploadView'])->name('contest.upload.view');
+    Route::post('/contest/upload', [ContestController::class, 'upload'])->name('contest.upload');
+    Route::get('/contest/view/{id}', [ContestController::class, 'show'])->name('contest.show');
+    Route::get('/contest/edit/{id}', [ContestController::class, 'edit'])->name('contest.edit');
+    Route::put('/contest/{id}', [ContestController::class, 'update'])->name('contest.update');
 
     //insurance routes
     Route::get('/insurance', [InsuranceController::class, 'index'])->name('insurance.index');
