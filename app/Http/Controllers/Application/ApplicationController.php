@@ -689,7 +689,6 @@ class ApplicationController extends Controller
                 'bank_id' => 'required|string|max:255',
                 'product_id' => 'required|string|max:255',
                 'group' => 'required|string|max:255',
-                'fixed_commission_rate' => 'nullable|numeric|min:0|max:100',
             ]);
 
             if (!$parsedDisbursementDate) {
@@ -712,8 +711,7 @@ class ApplicationController extends Controller
             $application->bank_id = $request->bank_id;
             $application->product_id = $request->product_id;
             $application->group = $request->group;
-            $application->fixed_commission_rate = $this->resolveFixedCommissionRate($request->bank_id, $request->product_id, $request->fixed_commission_rate);
-            $application->commission_rate = $this->resolveApplicableCommissionRate($request->commission_rate, $application->fixed_commission_rate);
+            $application->commission_rate = $request->commission_rate;
             if ($request->group == 'Secured') {
                 $application->fresh_or_bt = $request->fresh_bt;
                 $application->any_subvention = $request->any_subvention;
@@ -1096,8 +1094,7 @@ class ApplicationController extends Controller
         $application->group = $request->group;
         $application->remark = '';
         $bankInputCommissionRate = $request->has('commission_rate') ? $request->commission_rate : $application->commission_rate;
-        $application->fixed_commission_rate = $this->resolveFixedCommissionRate($request->bank_id, $request->product_id, $request->fixed_commission_rate);
-        $application->commission_rate = $this->resolveApplicableCommissionRate($bankInputCommissionRate, $application->fixed_commission_rate);
+        $application->commission_rate = $bankInputCommissionRate;
         
         // Only allow status update if user is not Channel/Sales/Associate
         if ($request->status && !in_array($user->roles[0]->pivot->role_id, [2, 3, 37])) {
@@ -1150,7 +1147,7 @@ class ApplicationController extends Controller
         $application->save();
 
         // Log activity: track changes
-        $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'fixed_commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
+        $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
         $changes = [];
         foreach ($trackedFields as $field) {
             $oldVal = $originalValues[$field] ?? null;
@@ -1802,41 +1799,6 @@ class ApplicationController extends Controller
         $application->save();
        
         return response()->json(['success' => true, 'message' => 'Remark updated successfully']);
-    }
-
-    private function resolveFixedCommissionRate($bankId, $productId, $fallback = null)
-    {
-        if (empty($bankId) || empty($productId)) {
-            return $fallback;
-        }
-
-        $percent = BankProduct::where('bank_id', $bankId)
-            ->where('product_id', $productId)
-            ->value('percent');
-
-        if ($percent === null || $percent === '') {
-            return $fallback;
-        }
-
-        return (string) $percent;
-    }
-
-    private function resolveApplicableCommissionRate($bankCommissionRate, $fixedCommissionRate)
-    {
-        $bank = is_numeric($bankCommissionRate) ? (float) $bankCommissionRate : null;
-        $fixed = is_numeric($fixedCommissionRate) ? (float) $fixedCommissionRate : null;
-
-        if ($bank === null && $fixed === null) {
-            return null;
-        }
-        if ($bank === null) {
-            return (string) $fixed;
-        }
-        if ($fixed === null) {
-            return (string) $bank;
-        }
-
-        return (string) max($bank, $fixed);
     }
 
     private function resolveSelectedApplicationUserId(Request $request, $authUser)

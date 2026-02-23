@@ -38,7 +38,6 @@ class Application extends Model
         'disburse_amount_is_matched',
         'disburse_amount_is_value',
         'commission_rate',
-        'fixed_commission_rate',
         'commission_rate_is_matched',
         'commission_rate_is_value',
         'otc_or_pdd_status',
