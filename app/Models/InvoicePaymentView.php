@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\InvoiceApplicationNo;
 
 class InvoicePaymentView extends Model
 {
@@ -22,7 +23,6 @@ class InvoicePaymentView extends Model
         'bank_hsn_code',
         'dsa_pan',
         'dsa_gst_no',
-        'application_no',
         'payment_amount',
         'CGST',
         'SGST',
@@ -47,17 +47,17 @@ class InvoicePaymentView extends Model
         'updated_at' => 'datetime',
     ];
 
+    public function applicationNos()
+    {
+        return $this->hasMany(InvoiceApplicationNo::class, 'invoice_payment_view_id');
+    }
+
     /**
      * Check if an application ID has an invoice
      */
     public static function hasInvoice($appId)
     {
-        return self::get()
-            ->filter(function($invoice) use ($appId) {
-                $appIds = explode(',', $invoice->application_no);
-                return in_array(trim($appId), array_map('trim', $appIds));
-            })
-            ->isNotEmpty();
+        return InvoiceApplicationNo::where('application_no', trim($appId))->exists();
     }
 
     /**
@@ -65,12 +65,9 @@ class InvoicePaymentView extends Model
      */
     public static function getInvoicedAppIds()
     {
-        return self::get()
-            ->map(function($invoice) {
-                return explode(',', $invoice->application_no);
-            })
-            ->flatten()
-            ->map(function($appId) {
+        return InvoiceApplicationNo::query()
+            ->pluck('application_no')
+            ->map(function ($appId) {
                 return trim($appId);
             })
             ->unique()

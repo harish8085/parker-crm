@@ -97,7 +97,7 @@
         // view button click - open modal with data 
         $(document).on('click', '.view-btn', function() {
             const row = $(this).data('row');
-            const applicationNos = row.application_no ? row.application_no.split(',') : [];
+            const applicationNos = row.application_nos ? row.application_nos.map(item => item.application_no) : [];
 
             // 1. Show a loader or clear old content immediately so user knows something is happening
             $('#invoiceCasesModal .modal-content').html('<div class="p-5 text-center">Loading...</div>');

@@ -15,6 +15,7 @@ use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use App\Models\InvoicePaymentView;
+use App\Models\InvoiceApplicationNo;
 
 class InvoiceController extends Controller
 {
@@ -27,12 +28,8 @@ class InvoiceController extends Controller
         $bank = Bank::all();
         $product = Product::all();
 
-        $invoicedAppIds = InvoicePaymentView::get()
-            ->map(function ($invoice) {
-                // Split the comma-separated application numbers
-                return explode(',', $invoice->application_no);
-            })
-            ->flatten()
+        $invoicedAppIds = InvoiceApplicationNo::query()
+            ->pluck('application_no')
             ->map(function ($appId) {
                 return trim($appId);
             })
@@ -289,7 +286,9 @@ class InvoiceController extends Controller
             }
 
             $bankName = $bankMisRecords->first()->bank->name ?? '-';
-            $applicationNumbers = $bankMisRecords->pluck('app_id')->implode(',');
+            $applicationNumbers = $bankMisRecords->pluck('app_id')->map(function ($appId) {
+                return trim((string) $appId);
+            })->filter()->values();
 
             $invoicePayment = InvoicePaymentView::create([
                 'bank_name' => $bankName,
@@ -299,7 +298,6 @@ class InvoiceController extends Controller
                 'bank_gst_no' => $validated['bank_gst_no'],
                 'bank_hsn_code' => $validated['bank_hsn_code'],
                 'dsa_gst_no' => $validated['dsa_gst_no'] ?? '',
-                'application_no' => $applicationNumbers,
                 'taxable_value' => $validated['taxable_value'],
                 'invoice_value' => $validated['invoice_value'],
                 'payment_received_bank' => $validated['payment_received_bank'],
@@ -314,6 +312,11 @@ class InvoiceController extends Controller
                 'group_name' => $validated['group_name'] ?? '',
                 'company_name' => $validated['company_name'] ?? '',
             ]);
+            $invoicePayment->applicationNos()->createMany(
+                $applicationNumbers->map(function ($appNo) {
+                    return ['application_no' => $appNo];
+                })->toArray()
+            );
 
             return response()->json([
                 'success' => true,
