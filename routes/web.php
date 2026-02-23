@@ -35,6 +35,7 @@ use App\Http\Controllers\User\MasterDataController;
 use App\Http\Controllers\MISTracker\MISTrackerController;
 use App\Http\Controllers\Bank_MIS\InvoiceController as Bank_MISInvoiceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
+use App\Http\Controllers\Report\ReportController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
@@ -202,6 +203,23 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
     Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
     Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
+
+    // Report routes
+    Route::prefix('reports')->group(function () {
+        Route::get('/users/search', [ReportController::class, 'searchUsers'])->name('reports.users.search');
+        Route::get('/', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/tds', [ReportController::class, 'tdsReport'])->name('reports.tds');
+        Route::get('/commission', [ReportController::class, 'commissionReport'])->name('reports.commission');
+        Route::get('/advance', [ReportController::class, 'advanceReport'])->name('reports.advance');
+        Route::get('/application', [ReportController::class, 'applicationReport'])->name('reports.application');
+        Route::get('/channel-performance', [ReportController::class, 'channelPerformanceReport'])->name('reports.channel-performance');
+        Route::get('/bank-disbursement', [ReportController::class, 'bankDisbursementReport'])->name('reports.bank-disbursement');
+        Route::get('/product-wise', [ReportController::class, 'productWiseReport'])->name('reports.product-wise');
+        Route::get('/settlement', [ReportController::class, 'settlementReport'])->name('reports.settlement');
+        Route::get('/transaction', [ReportController::class, 'transactionReport'])->name('reports.transaction');
+        Route::get('/monthly-summary', [ReportController::class, 'monthlySummaryReport'])->name('reports.monthly-summary');
+        Route::get('/export/{type}', [ReportController::class, 'export'])->name('reports.export');
+    });
 });
 
 Route::middleware([CheckPermission::class])->group(function () {

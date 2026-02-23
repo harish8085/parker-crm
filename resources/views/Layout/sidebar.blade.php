@@ -66,6 +66,14 @@
                     </a>
                 </li>
                 @endif
+
+                @if(in_array(auth()->user()->roles[0]->id, [1, 2, 36]))
+                <li class="list-item {{(str_starts_with(Request::path(), 'reports'))?'active-li':''}}">
+                    <a class="nav-links {{(str_starts_with(Request::path(), 'reports'))?'active-li':''}}" href="{{url('reports')}}">
+                        <img class="dashboard-icons" src="{{asset((str_starts_with(Request::path(), 'reports'))?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Reports
+                    </a>
+                </li>
+                @endif
                 <!-- @if(auth()->user()->hasPermission('invoice','view'))
                 <li class="list-item {{(Request::path() == 'invoice')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'invoice')?'active-li':''}}" href="{{url('invoice')}}">
