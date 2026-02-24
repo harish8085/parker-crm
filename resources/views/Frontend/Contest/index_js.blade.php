@@ -20,6 +20,12 @@
                 }
             },
             columns: [{
+                    data: 'checkbox',
+                    name: 'checkbox',
+                    orderable: false,
+                    searchable: false
+                },
+                {
                     data: null,
                     name: 'srno',
                     render: function(data, type, row, meta) {
@@ -35,6 +41,11 @@
                 {
                     data: 'bank_name',
                     name: 'bank_name',
+                    orderable: false
+                },
+                {
+                    data: 'product_name',
+                    name: 'product_name',
                     orderable: false
                 },
                 {
@@ -77,12 +88,31 @@
                     orderable: false
                 },
                 {
+                    data: 'contest_payout_status',
+                    name: 'contest_payout_status',
+                    orderable: false,
+                    searchable: false
+                },
+                {
                     data: 'action',
                     name: 'action',
                     orderable: false,
                     searchable: false
                 },
-            ]
+            ],
+            drawCallback: function() {
+                $('#selectAllContestRows').prop('checked', false);
+            }
+        });
+
+        $('#selectAllContestRows').on('change', function() {
+            $('.contest-row-checkbox').prop('checked', $(this).is(':checked'));
+        });
+
+        $(document).on('change', '.contest-row-checkbox', function() {
+            var allRows = $('.contest-row-checkbox').length;
+            var checkedRows = $('.contest-row-checkbox:checked').length;
+            $('#selectAllContestRows').prop('checked', allRows > 0 && allRows === checkedRows);
         });
 
         $('#filter').on('click', function() {
@@ -94,7 +124,9 @@
             $('#channel_id').val('').trigger('change');
             $('#from_date').val('');
             $('#to_date').val('');
+            $('#selectAllContestRows').prop('checked', false);
             table.ajax.reload();
         });
+
     });
 </script>

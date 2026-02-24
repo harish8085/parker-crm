@@ -79,6 +79,7 @@ class ProcessSettlement implements ShouldQueue
             $settlement = new Settlement();
             $settlement->user_id = $parentChannelId;
             $settlement->application_id = $application->id;
+            $settlement->settlement_type = 'commission';
             $settlement->status = 'checker';
             $settlement->received_rate = $percentage;
             $settlement->amount = $amount;
@@ -97,6 +98,7 @@ class ProcessSettlement implements ShouldQueue
         $settlement_distribution->settlement_id = $settlement->id;
         $settlement_distribution->user_id = $application->user_id;
         $settlement_distribution->application_id = $application->id;
+        $settlement_distribution->settlement_type = 'commission';
         $settlement_distribution->received_rate = $percentage;
         $settlement_distribution->gross_amount = $amount; // commission amount (not bank payout)
         $settlement_distribution->amount = $netAmount;

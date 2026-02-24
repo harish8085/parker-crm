@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Contest;
 use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Bank;
+use App\Models\BankData;
 use App\Models\ChannelUser;
 use App\Models\ContestMis;
+use App\Models\Settlement;
+use App\Models\SettlementDistribution;
+use App\Models\Settings;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,6 +22,7 @@ use Yajra\DataTables\Facades\DataTables;
 class ContestController extends Controller
 {
     private array $applicationCache = [];
+    private array $contestPayoutCache = [];
 
     public function index(Request $request)
     {
@@ -25,6 +30,17 @@ class ContestController extends Controller
 
         if ($request->ajax()) {
             $query = ContestMis::with('bank');
+            $user = auth()->user();
+            $roleId = (int) ($user->roles[0]->id ?? 0);
+
+            if ($roleId === 35) {
+                $query->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', 'pending');
+                });
+            } elseif ($roleId === 36) {
+                $query->where('status', 'approved');
+            }
+
             $bankId = $request->bank_id;
             $channelId = $request->channel_id;
             $fromDate = $request->from_date;
@@ -60,9 +76,16 @@ class ContestController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('checkbox', function ($row) {
+                    return '<input type="checkbox" class="contest-row-checkbox" value="' . e((string) $row->id) . '">';
+                })
                 ->editColumn('application_no', fn($row) => $row->application_no ?? '-')
                 ->editColumn('bank_name', function ($row) {
                     return $row->bank->name ?? '-';
+                })
+                ->editColumn('product_name', function ($row) {
+                    $related = $this->getRelatedApplication($row->application_no, $row);
+                    return $related['product_name'];
                 })
                 ->editColumn('channel_name', function ($row) {
                     $related = $this->getRelatedApplication($row->application_no, $row);
@@ -84,24 +107,34 @@ class ContestController extends Controller
                 ->editColumn('contest_amt', fn($row) => is_null($row->contest_amt) ? '-' : rtrim(rtrim(number_format((float) $row->contest_amt, 2, '.', ''), '0'), '.'))
                 ->addColumn('status', function ($row) {
                     $related = $this->getRelatedApplication($row->application_no, $row);
-                    $class = strtolower($related['status_text']) === 'payout completed'
+                    $class = strtolower((string) $related['status_text']) === 'commission paid'
                         ? 'status-buttons completed'
                         : 'status-buttons pending';
                     return '<button class="' . $class . '">' . e($related['status_text']) . '</button>';
                 })
+                ->addColumn('contest_payout_status', function ($row) {
+                    return $this->getContestPayoutStatusBadge((int) $row->id);
+                })
                 ->addColumn('action', function ($row) {
                     $btn = '';
-                    if (auth()->user()->hasPermission('contest', 'view')) {
+                    $currentRoleId = (int) (auth()->user()->roles[0]->id ?? 0);
+
+                    if (auth()->user()->hasPermission('contest', 'view') || in_array($currentRoleId, [1, 35, 36], true)) {
                         $btn .= "<img onclick=\"window.location.href='" . url('/contest/view/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "'>";
                     }
 
-                    if (auth()->user()->hasPermission('contest', 'update')) {
+                    $status = strtolower(trim((string) ($row->status ?? 'pending')));
+                    $canEdit = $currentRoleId === 1
+                        || ($currentRoleId === 35 && $status === 'pending')
+                        || ($currentRoleId === 36 && $status === 'approved');
+
+                    if ((auth()->user()->hasPermission('contest', 'update') || in_array($currentRoleId, [1, 35, 36], true)) && $canEdit) {
                         $btn .= "<img onclick=\"window.location.href='" . url('/contest/edit/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
                     }
 
                     return $btn;
                 })
-                ->rawColumns(['status', 'action'])
+                ->rawColumns(['checkbox', 'status', 'contest_payout_status', 'action'])
                 ->make(true);
         }
 
@@ -186,6 +219,8 @@ class ContestController extends Controller
                 $contestMis->contest_rate = $this->parseDecimal($row[$headerLookup['CONTEST RATE']] ?? null);
                 $contestMis->contest_amt = $this->parseDecimal($row[$headerLookup['CONTEST AMT']] ?? null);
                 $contestMis->payment_status = 'pending';
+                $contestMis->status = 'pending';
+                $contestMis->sharing_contest_commission = 50.00;
                 $contestMis->uploaded_by = $uploadedBy;
                 $contestMis->save();
                 $successCount++;
@@ -232,10 +267,24 @@ class ContestController extends Controller
             'loan_amt' => 'nullable|numeric',
             'contest_rate' => 'nullable|numeric',
             'contest_amt' => 'nullable|numeric',
+            'sharing_contest_commission' => 'nullable|numeric|min:0|max:100',
             'payment_status' => 'nullable|in:pending,completed',
+            'status' => 'nullable|in:pending,approved,completed,rejected',
         ]);
 
         $contestMis = ContestMis::findOrFail($id);
+        $oldWorkflowStatus = strtolower(trim((string) ($contestMis->status ?? 'pending')));
+        $related = $this->getRelatedApplication($contestMis->application_no, $contestMis);
+        $isCommissionCompleted = $this->isCommissionPayoutCompleted($related['status_text'] ?? null);
+
+        $nextStatus = strtolower(trim((string) ($request->status ?? ($contestMis->status ?: 'pending'))));
+        $currentRoleId = (int) (auth()->user()->roles[0]->id ?? 0);
+        if ($nextStatus === 'approved' && in_array($currentRoleId, [1, 35], true) && !$isCommissionCompleted) {
+            return redirect()->back()->withErrors([
+                'status' => 'Approve is allowed only when Commission Payout Status is completed.'
+            ])->withInput();
+        }
+
         $contestMis->application_no = trim($request->application_no);
         $contestMis->location = $request->location;
         $contestMis->disbursement_date = $request->disbursement_date;
@@ -244,21 +293,34 @@ class ContestController extends Controller
         $contestMis->contest_rate = $request->contest_rate;
         $contestMis->contest_amt = $request->contest_amt;
         $contestMis->payment_status = $request->payment_status ?? 'pending';
+        $contestMis->sharing_contest_commission = $request->sharing_contest_commission ?? 50.00;
+        if ($nextStatus === 'rejected') {
+            $nextStatus = 'pending';
+        }
+        $contestMis->status = $nextStatus;
         $contestMis->save();
+
+        if ($oldWorkflowStatus !== 'completed' && $nextStatus === 'completed') {
+            $this->syncContestToSettlement($contestMis);
+        }
 
         return redirect()->to('/contest')->with('success', 'Contest MIS updated successfully.');
     }
 
     private function ensureViewPermission(): void
     {
-        if (!auth()->user()->hasPermission('contest', 'view')) {
+        $user = auth()->user();
+        $roleId = (int) ($user->roles[0]->id ?? 0);
+        if (!$user->hasPermission('contest', 'view') && !in_array($roleId, [1, 35, 36], true)) {
             abort(403);
         }
     }
 
     private function ensureUpdatePermission(): void
     {
-        if (!auth()->user()->hasPermission('contest', 'update')) {
+        $user = auth()->user();
+        $roleId = (int) ($user->roles[0]->id ?? 0);
+        if (!$user->hasPermission('contest', 'update') && !in_array($roleId, [1, 35, 36], true)) {
             abort(403);
         }
     }
@@ -292,11 +354,12 @@ class ContestController extends Controller
             return $this->applicationCache[$cacheKey] = [
                 'channel_name' => '-',
                 'parent_name' => '-',
-                'status_text' => $manualCompleted ? 'Payout Completed' : 'Payout Pending',
+                'product_name' => '-',
+                'status_text' => $manualCompleted ? 'Commission Paid' : 'Commission Pending',
             ];
         }
 
-        $application = Application::with(['user', 'parentChannel', 'bank'])
+        $application = Application::with(['user', 'parentChannel', 'bank', 'product'])
             ->where('app_id', $applicationNo)
             ->first();
 
@@ -304,7 +367,8 @@ class ContestController extends Controller
             return $this->applicationCache[$cacheKey] = [
                 'channel_name' => '-',
                 'parent_name' => '-',
-                'status_text' => $manualCompleted ? 'Payout Completed' : 'Payout Pending',
+                'product_name' => '-',
+                'status_text' => $manualCompleted ? 'Commission Paid' : 'Commission Pending',
             ];
         }
 
@@ -322,14 +386,19 @@ class ContestController extends Controller
             $parentName = $parentName !== '' ? $parentName : '-';
         }
 
+        $productName = !empty($application->product?->name)
+            ? (string) $application->product->name
+            : '-';
+
         $isApplicationCompleted = strtolower((string) $application->status) === 'completed';
         $statusText = ($manualCompleted || $isApplicationCompleted)
-            ? 'Payout Completed'
-            : 'Payout Pending';
+            ? 'Commission Paid'
+            : 'Commission Pending';
 
         return $this->applicationCache[$cacheKey] = [
             'channel_name' => $channelName,
             'parent_name' => $parentName,
+            'product_name' => $productName,
             'status_text' => $statusText,
         ];
     }
@@ -398,5 +467,121 @@ class ContestController extends Controller
 
         $value = trim((string) $value);
         return $value === '' ? null : $value;
+    }
+
+    private function isCommissionPayoutCompleted(?string $statusText): bool
+    {
+        $normalized = strtolower(trim((string) $statusText));
+        return in_array($normalized, ['commission paid', 'completed'], true);
+    }
+
+    private function syncContestToSettlement(ContestMis $contestMis): void
+    {
+        $application = Application::where('app_id', $contestMis->application_no)->first();
+        if (!$application) {
+            return;
+        }
+
+        $exists = SettlementDistribution::where('contest_mis_id', $contestMis->id)
+            ->where('settlement_type', 'contest')
+            ->exists();
+        if ($exists) {
+            return;
+        }
+
+        $parentChannelId = $application->parent_channel_id ?? $application->user_id;
+        if (!$parentChannelId) {
+            return;
+        }
+
+        $companyReceivingRate = (float) ($contestMis->contest_rate ?? 0); // e.g. 0.10 (%)
+        $sharingRate = (float) ($contestMis->sharing_contest_commission ?? 50); // e.g. 50 (%)
+        $disbursementAmount = (float) ($contestMis->loan_amt ?? 0);
+
+        // Contest Amount = Disbursement Amount * Company Receiving (%)
+        $contestAmount = round($disbursementAmount * ($companyReceivingRate / 100), 2);
+        if ($contestAmount <= 0 && !empty($contestMis->contest_amt)) {
+            $contestAmount = round((float) $contestMis->contest_amt, 2);
+        }
+
+        // Channel Contest Amount = Contest Amount * Sharing (%)
+        $channelContestAmount = round($contestAmount * ($sharingRate / 100), 2);
+
+        // Channel Contest Rate = Company Receiving * Sharing
+        $channelContestRate = round($companyReceivingRate * ($sharingRate / 100), 4);
+
+        $receivedRate = $sharingRate;
+        $grossAmount = $channelContestAmount;
+        $tdsPercentage = (float) (Settings::where('name', 'TDS')->value('value') ?? 2);
+        $tdsAmount = round($grossAmount * $tdsPercentage / 100, 2);
+        $netAmount = round($grossAmount - $tdsAmount, 2);
+        $bankDataId = BankData::where('user_id', $parentChannelId)->value('id');
+
+        $settlement = Settlement::where('user_id', $parentChannelId)
+            ->where('settlement_type', 'contest')
+            ->where('status', '!=', 'completed')
+            ->first();
+
+        if (!$settlement) {
+            $settlement = Settlement::create([
+                'user_id' => $parentChannelId,
+                'application_id' => (string) ($application->id ?? ''),
+                'settlement_type' => 'contest',
+                'received_rate' => $channelContestRate,
+                'amount' => $grossAmount,
+                'gross_amount' => $grossAmount,
+                'status' => 'checker',
+            ]);
+        } else {
+            $settlement->amount = round((float) $settlement->amount + $grossAmount, 2);
+            $settlement->gross_amount = round((float) $settlement->gross_amount + $grossAmount, 2);
+            $settlement->save();
+        }
+
+        SettlementDistribution::create([
+            'settlement_id' => $settlement->id,
+            'user_id' => $application->user_id,
+            'application_id' => $application->id,
+            'contest_mis_id' => $contestMis->id,
+            'settlement_type' => 'contest',
+            'rc_commission' => $contestAmount,
+            'received_rate' => $receivedRate,
+            'gross_amount' => $grossAmount,
+            'tds' => $tdsAmount,
+            'tds_percentage' => $tdsPercentage,
+            'bank_account_id' => $bankDataId,
+            'amount' => $netAmount,
+        ]);
+    }
+
+    private function getContestPayoutStatusBadge(int $contestMisId): string
+    {
+        if (isset($this->contestPayoutCache[$contestMisId])) {
+            return $this->contestPayoutCache[$contestMisId];
+        }
+
+        $distribution = SettlementDistribution::query()
+            ->leftJoin('settlements', 'settlements.id', '=', 'settlement_distributions.settlement_id')
+            ->where('settlement_distributions.settlement_type', 'contest')
+            ->where('settlement_distributions.contest_mis_id', $contestMisId)
+            ->orderByDesc('settlement_distributions.id')
+            ->select([
+                'settlement_distributions.payment_status',
+                'settlements.status as settlement_status',
+            ])
+            ->first();
+
+        if (!$distribution) {
+            return $this->contestPayoutCache[$contestMisId] = '<button class="status-buttons pending">Contest Payout Pending</button>';
+        }
+
+        $settlementStatus = strtolower(trim((string) ($distribution->settlement_status ?? '')));
+        $paymentStatus = strtolower(trim((string) ($distribution->payment_status ?? '')));
+
+        if ($settlementStatus === 'completed' || $paymentStatus === 'success') {
+            return $this->contestPayoutCache[$contestMisId] = '<button class="status-buttons completed">Payout Completed</button>';
+        }
+
+        return $this->contestPayoutCache[$contestMisId] = '<button class="status-buttons pending">Payment Pending</button>';
     }
 }

@@ -46,12 +46,20 @@
             <input class="bank-detail-input form-control" value="{{ $contestMis->contest_amt }}" disabled />
         </div>
         <div class="bank-detail-inputs">
+            <label class="bank-input-label">Sharing Contest Commission (%)</label>
+            <input class="bank-detail-input form-control" value="{{ $contestMis->sharing_contest_commission ?? 50 }}" disabled />
+        </div>
+        <div class="bank-detail-inputs">
+            <label class="bank-input-label">Contest Workflow Status</label>
+            <input class="bank-detail-input form-control" value="{{ ucwords(str_replace('-', ' ', $contestMis->status ?? 'pending')) }}" disabled />
+        </div>
+        <div class="bank-detail-inputs">
             <label class="bank-input-label">Manual Payment Status</label>
             <input class="bank-detail-input form-control" value="{{ strtolower((string)($contestMis->payment_status ?? 'pending')) === 'completed' ? 'Payout Completed' : 'Payout Pending' }}" disabled />
         </div>
         <div class="bank-detail-inputs">
-            <label class="bank-input-label">Status</label>
-            <input class="bank-detail-input form-control" value="{{ $related['status_text'] ?? 'Payout Pending' }}" disabled />
+            <label class="bank-input-label">Commission Payout Status</label>
+            <input class="bank-detail-input form-control" value="{{ $related['status_text'] ?? 'Commission Pending' }}" disabled />
         </div>
     </div>
 </div>

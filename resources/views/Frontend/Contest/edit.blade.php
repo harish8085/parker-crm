@@ -16,7 +16,7 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('contest.update', $contestMis->id) }}">
+<form method="POST" action="{{ route('contest.update', $contestMis->id) }}" class="needs-validation">
     @csrf
     @method('PUT')
     <div class="bank-card">
@@ -59,6 +59,11 @@
                 <input type="number" step="0.01" class="bank-detail-input form-control" name="contest_amt" value="{{ old('contest_amt', $contestMis->contest_amt) }}" />
             </div>
             <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sharing Contest Commission (%)</label>
+                <input type="number" step="0.01" min="0" max="100" class="bank-detail-input form-control" name="sharing_contest_commission" value="{{ old('sharing_contest_commission', $contestMis->sharing_contest_commission ?? 50) }}" />
+            </div>
+            <input type="hidden" name="status" id="statusInput" value="{{ old('status', $contestMis->status ?? 'pending') }}">
+            <div class="bank-detail-inputs">
                 <label class="bank-input-label">Payment Status</label>
                 <select class="bank-detail-input form-select" name="payment_status">
                     <option value="pending" @if(old('payment_status', $contestMis->payment_status ?? 'pending') === 'pending') selected @endif>Payout Pending</option>
@@ -66,14 +71,46 @@
                 </select>
             </div>
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Status</label>
-                <input class="bank-detail-input form-control" value="{{ $related['status_text'] ?? 'Payout Pending' }}" disabled />
+                <label class="bank-input-label">Contest Workflow Status</label>
+                <input class="bank-detail-input form-control" value="{{ ucwords(str_replace('-', ' ', $contestMis->status ?? 'pending')) }}" disabled />
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Commission Payout Status</label>
+                <input class="bank-detail-input form-control" value="{{ $related['status_text'] ?? 'Commission Pending' }}" disabled />
             </div>
         </div>
     </div>
 
     <div class="save-btn-container">
-        <button type="submit" class="save-btn">Update</button>
+        @php($currentRole = Auth::user()->roles[0]->id ?? 0)
+        @php($isCommissionCompleted = in_array(strtolower(trim((string)($related['status_text'] ?? ''))), ['commission paid', 'completed']))
+
+        @if($currentRole == 35)
+        <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $contestMis->status ?? 'pending' }}')">Update</button>
+        @if($isCommissionCompleted)
+        <button type="button" class="btn btn-primary" onclick="setStatusAndSubmit('approved')">Approve</button>
+        @endif
+        @elseif($currentRole == 36)
+        <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $contestMis->status ?? 'approved' }}')">Update</button>
+        <button type="button" class="btn btn-success" onclick="setStatusAndSubmit('completed')">Complete</button>
+        <button type="button" class="btn btn-danger" onclick="setStatusAndSubmit('rejected')">Reject</button>
+        @elseif($currentRole == 1)
+        <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $contestMis->status ?? 'pending' }}')">Update</button>
+        @if(($contestMis->status ?? 'pending') === 'pending' && $isCommissionCompleted)
+        <button type="button" class="btn btn-primary" onclick="setStatusAndSubmit('approved')">Approve</button>
+        @endif
+        @if(($contestMis->status ?? 'pending') === 'approved')
+        <button type="button" class="btn btn-success" onclick="setStatusAndSubmit('completed')">Complete</button>
+        <button type="button" class="btn btn-danger" onclick="setStatusAndSubmit('rejected')">Reject</button>
+        @endif
+        @endif
+        <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url('/contest') }}'">Cancel</button>
     </div>
 </form>
+<script>
+    function setStatusAndSubmit(status) {
+        document.getElementById('statusInput').value = status;
+        document.querySelector('form.needs-validation').submit();
+    }
+</script>
 @endsection

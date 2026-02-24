@@ -98,7 +98,7 @@
                 <div class="transaction-summary" id="transactionSummary">
                         <h6 class="mb-3"><strong>Selected Distribution Summary</strong></h6>
                         <div class="summary-row">
-                                <span class="summary-label">Commission Amount:</span>
+                                <span class="summary-label">{{ $amountLabel ?? 'Commission Amount' }}:</span>
                                 <span class="summary-value val-gross" id="sumGross">₹ 0</span>
                         </div>
                         <div class="summary-row">
@@ -106,8 +106,8 @@
                                 <span class="summary-value val-tds" id="sumTds">₹ 0</span>
                         </div>
 
-                        <!-- Advance Deduction: checker-only controls -->
-                        @if(auth()->user()->roles[0]->id == 36 && ($channelAdvance ?? 0) > 0)
+                        <!-- Advance Deduction: available for processing roles -->
+                        @if(in_array(auth()->user()->roles[0]->id, [1, 35, 36]) && ($channelAdvance ?? 0) > 0)
                         <div class="summary-row" style="align-items: center;">
                                 <span class="summary-label">
                                         <label style="cursor: pointer; margin: 0;">
@@ -143,6 +143,25 @@
 
         <!-- filter form -->
         <div class="bank-card p-4">
+                <ul class="nav nav-pills mb-3" role="tablist">
+                        <li class="nav-item me-2">
+                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">Commission</a>
+                        </li>
+                        <li class="nav-item me-2">
+                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">Contest</a>
+                        </li>
+                        <li class="nav-item">
+                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">Insurance</a>
+                        </li>
+                </ul>
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item me-1">
+                                <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'pending' ? 'active' : '' }}" data-tab="pending" href="#" role="tab">Pending</a>
+                        </li>
+                        <li class="nav-item">
+                                <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'completed' ? 'active' : '' }}" data-tab="completed" href="#" role="tab">Completed</a>
+                        </li>
+                </ul>
                 <div class="row">
                         <div class="col-lg-4 mb-2">
                                 <div class="bank-detail-inputs">
@@ -284,6 +303,9 @@
                 $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
         @endphp
 
+        var currentTab = @json($tab ?? 'pending');
+        var currentSettlementType = @json($settlementType ?? 'commission');
+
         function load_data(date = '', date_range = '', status = '') {
                 var columns = [
                         @if($showCheckbox)
@@ -420,7 +442,9 @@
                                         date: date,
                                         date_range: date_range,
                                         status: status,
-                                        p: "{{ $p }}"
+                                        p: "{{ $p }}",
+                                        tab: currentTab,
+                                        settlement_type: currentSettlementType
                                 },
                                 error: function(xhr, error, thrown) {
                                         console.log(xhr.responseText);
@@ -453,6 +477,25 @@
 
                 $('#refresh').click(function() {
                         window.location.reload();
+                });
+
+                $(document).on('click', '.settlement-tab', function(e) {
+                        e.preventDefault();
+                        var tab = $(this).data('tab');
+                        if (tab === currentTab) return;
+                        currentTab = tab;
+                        $('.settlement-tab').removeClass('active');
+                        $(this).addClass('active');
+                        $('.data-table-2').DataTable().destroy();
+                        load_data($('#date').val() || '', $('#date-range-picker').val() || '', $('#status').val() || '');
+                });
+
+                $(document).on('click', '.settlement-type-tab', function(e) {
+                        e.preventDefault();
+                        var settlementType = $(this).data('type');
+                        if (settlementType === currentSettlementType) return;
+                        currentSettlementType = settlementType;
+                        window.location.href = "{{ url('/settlement') }}?p={{ $p }}&settlement_type=" + settlementType + "&tab=" + currentTab;
                 });
 
                 @if($showCheckbox)

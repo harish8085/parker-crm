@@ -52,12 +52,23 @@
 
     <!-- Tabs -->
     <div class="p-4 pb-0">
-        <ul class="nav nav-tabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active settlement-tab" data-tab="pending" href="#" role="tab">Pending</a>
+        <ul class="nav nav-pills mb-3" role="tablist">
+            <li class="nav-item me-2">
+                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">Commission</a>
+            </li>
+            <li class="nav-item me-2">
+                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">Contest</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link settlement-tab" data-tab="completed" href="#" role="tab">Completed</a>
+                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">Insurance</a>
+            </li>
+        </ul>
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link {{ ($tab ?? 'pending') === 'pending' ? 'active' : '' }} settlement-tab" data-tab="pending" href="#" role="tab">Pending</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ ($tab ?? 'pending') === 'completed' ? 'active' : '' }} settlement-tab" data-tab="completed" href="#" role="tab">Completed</a>
             </li>
         </ul>
     </div>

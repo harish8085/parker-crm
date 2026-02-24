@@ -21,6 +21,8 @@ class ContestMis extends Model
         'contest_rate',
         'contest_amt',
         'payment_status',
+        'status',
+        'sharing_contest_commission',
         'uploaded_by',
     ];
 

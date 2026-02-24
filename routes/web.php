@@ -213,6 +213,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/contest/view/{id}', [ContestController::class, 'show'])->name('contest.show');
     Route::get('/contest/edit/{id}', [ContestController::class, 'edit'])->name('contest.edit');
     Route::put('/contest/{id}', [ContestController::class, 'update'])->name('contest.update');
+    Route::post('/contest/{id}/workflow-status', [ContestController::class, 'updateWorkflowStatus'])->name('contest.workflow-status');
 
     //insurance routes
     Route::get('/insurance', [InsuranceController::class, 'index'])->name('insurance.index');

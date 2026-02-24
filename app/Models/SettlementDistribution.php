@@ -13,6 +13,8 @@ class SettlementDistribution extends Model
         'settlement_id',
         'user_id',
         'application_id',
+        'contest_mis_id',
+        'settlement_type',
         'received_rate',
         'gross_amount',
         'tds',

@@ -3,9 +3,10 @@
 <script type="text/javascript">
                 $.fn.dataTable.ext.errMode = 'none';
 
-                var currentTab = 'pending';
+                var currentTab = @json($tab ?? 'pending');
+                var currentSettlementType = @json($settlementType ?? 'commission');
 
-       function load_data(partner_name = '', tab = 'pending') {
+       function load_data(partner_name = '', tab = 'pending', settlement_type = 'commission') {
                 var table = $('.data-table').DataTable({
                         debug: false, // Disable debugging
                         dom: 'Bfrtip<"bottom"l>', // 'l' adds the "Show entries" dropdown
@@ -113,6 +114,7 @@
                                 data: {
                                         partner_name: partner_name,
                                         tab: tab,
+                                        settlement_type: settlement_type,
                                 },
                                 error: function(xhr, error, thrown) {
                                         console.log(xhr.responseText);
@@ -168,7 +170,7 @@
         };
 
         $(document).ready(function() {
-                load_data('', currentTab);
+                load_data('', currentTab, currentSettlementType);
 
                 $('.select').select2({
                         placeholder: "Select an option",
@@ -187,14 +189,23 @@
 
                         // Destroy and reload DataTable with new tab
                         $('.data-table').DataTable().destroy();
-                        load_data($('#partner_name').val() || '', currentTab);
+                        load_data($('#partner_name').val() || '', currentTab, currentSettlementType);
+                });
+
+                $(document).on('click', '.settlement-type-tab', function(e) {
+                        e.preventDefault();
+                        var type = $(this).data('type');
+                        if (type === currentSettlementType) return;
+
+                        currentSettlementType = type;
+                        window.location.href = "{{ url('/settlement') }}?settlement_type=" + currentSettlementType + "&tab=" + currentTab;
                 });
 
                 $('#filter').click(function() {
                         var partner_name = $('#partner_name').val();
                         if (partner_name) {
                                 $('.data-table').DataTable().destroy();
-                                load_data(partner_name, currentTab);
+                                load_data(partner_name, currentTab, currentSettlementType);
                         } else {
                                 alert('Select at least one filter!');
                         }
