@@ -4,10 +4,70 @@
 <link rel="stylesheet" href="{{asset('assets/css/custom-table.css')}}">
 
 <style>
+        .settlement-type-switch {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 12px;
+        }
+
+        .settlement-type-wrap {
+                margin-bottom: 8px;
+        }
+
+        .settlement-type-caption {
+                font-size: 13px;
+                color: #6b7280;
+                margin-bottom: 8px;
+        }
+
+        .settlement-type-tab {
+                border: 1px solid #d0d7de;
+                border-radius: 12px;
+                padding: 12px 14px;
+                background: #ffffff;
+                color: #1f2937;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                display: block;
+        }
+
+        .settlement-type-tab:hover {
+                border-color: #94a3b8;
+                background: #f8fafc;
+        }
+
+        .settlement-type-tab.active {
+                border-color: #0ea5e9;
+                background: #f0f9ff;
+                box-shadow: inset 0 0 0 1px #bae6fd;
+        }
+
+        .settlement-type-title {
+                display: block;
+                font-size: 15px;
+                font-weight: 700;
+                color: #0f172a;
+        }
+
+        .settlement-type-note {
+                display: block;
+                font-size: 12px;
+                color: #475569;
+                margin-top: 2px;
+        }
+
+        @media (max-width: 991px) {
+                .settlement-type-switch {
+                        grid-template-columns: 1fr;
+                }
+        }
+
         .date_range {
                 display: none;
                 /* Hidden by default */
         }
+
         .transaction-summary {
                 display: none;
                 background: #ffffff;
@@ -15,8 +75,9 @@
                 border-radius: 8px;
                 padding: 15px 20px;
                 margin-bottom: 15px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
+
         .transaction-summary .summary-row {
                 display: flex;
                 justify-content: space-between;
@@ -24,9 +85,11 @@
                 font-size: 14px;
                 border-bottom: 1px solid #f0f0f0;
         }
+
         .transaction-summary .summary-row:last-child {
                 border-bottom: none;
         }
+
         .transaction-summary .summary-row.total {
                 border-top: 2px solid #333;
                 border-bottom: none;
@@ -35,27 +98,34 @@
                 padding-top: 12px;
                 margin-top: 5px;
         }
+
         .transaction-summary .summary-label {
                 color: #0a0000;
                 font-weight: 500;
         }
+
         .transaction-summary .summary-value {
                 font-weight: 700;
                 color: #333;
         }
+
         .transaction-summary .summary-value.val-gross {
                 color: #333;
         }
+
         .transaction-summary .summary-value.val-tds {
                 color: #555;
         }
+
         .transaction-summary .summary-value.val-advance {
                 color: #dc3545;
         }
+
         .transaction-summary .summary-value.val-net {
                 color: #28a745;
                 font-size: 20px;
         }
+
         #processBtn {
                 display: none;
         }
@@ -143,17 +213,23 @@
 
         <!-- filter form -->
         <div class="bank-card p-4">
-                <ul class="nav nav-pills mb-3" role="tablist">
-                        <li class="nav-item me-2">
-                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">Commission</a>
-                        </li>
-                        <li class="nav-item me-2">
-                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">Contest</a>
-                        </li>
-                        <li class="nav-item">
-                                <a class="nav-link settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">Insurance</a>
-                        </li>
-                </ul>
+                <div class="settlement-type-wrap">
+                        <div class="settlement-type-caption">Choose settlement page</div>
+                        <div class="settlement-type-switch">
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">
+                                        <span class="settlement-type-title">Commission</span>
+                                        <span class="settlement-type-note">Regular payout settlements</span>
+                                </a>
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">
+                                        <span class="settlement-type-title">Contest</span>
+                                        <span class="settlement-type-note">Contest payout settlements</span>
+                                </a>
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">
+                                        <span class="settlement-type-title">Insurance</span>
+                                        <span class="settlement-type-note">Insurance payout settlements</span>
+                                </a>
+                        </div>
+                </div>
                 <ul class="nav nav-tabs mb-3" role="tablist">
                         <li class="nav-item me-1">
                                 <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'pending' ? 'active' : '' }}" data-tab="pending" href="#" role="tab">Pending</a>
@@ -297,10 +373,10 @@
 
 <!-- Datatable -->
 <script type="text/javascript">
-                $.fn.dataTable.ext.errMode = 'none';
+        $.fn.dataTable.ext.errMode = 'none';
 
         @php
-                $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
+        $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
         @endphp
 
         var currentTab = @json($tab ?? 'pending');
@@ -388,8 +464,7 @@
                                 [10, 25, 50, 100, 500, -1],
                                 [10, 25, 50, 100, 500, 'All']
                         ],
-                        buttons: [
-                                {
+                        buttons: [{
                                         extend: 'csvHtml5',
                                         text: 'CSV',
                                         title: 'Settlements',
@@ -511,7 +586,9 @@
                                 if (isChecked && selectedIds.indexOf(id) === -1) {
                                         selectedIds.push(id);
                                 } else if (!isChecked) {
-                                        selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                        selectedIds = selectedIds.filter(function(item) {
+                                                return item !== id;
+                                        });
                                 }
                         });
                         updateSummary();
@@ -525,7 +602,9 @@
                                         selectedIds.push(id);
                                 }
                         } else {
-                                selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                selectedIds = selectedIds.filter(function(item) {
+                                        return item !== id;
+                                });
                                 $('#selectAll').prop('checked', false);
                         }
                         updateSummary();
@@ -566,7 +645,9 @@
                                 $('#processBtn').show().prop('disabled', false);
 
                                 // Client-side calculation from data attributes
-                                var clientGross = 0, clientTds = 0, clientNet = 0;
+                                var clientGross = 0,
+                                        clientTds = 0,
+                                        clientNet = 0;
                                 $('.dist-checkbox:checked').each(function() {
                                         clientGross += parseFloat($(this).data('gross')) || 0;
                                         clientTds += parseFloat($(this).data('tds')) || 0;
