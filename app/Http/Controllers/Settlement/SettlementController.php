@@ -27,6 +27,7 @@ class SettlementController extends Controller
     public function index(Request $request)
     {
         $p = request('p');
+        $hideSettlementTabs = (bool) $request->boolean('detail', false);
         $settlementType = in_array($request->input('settlement_type'), ['commission', 'contest', 'insurance'], true)
             ? $request->input('settlement_type')
             : 'commission';
@@ -194,11 +195,11 @@ class SettlementController extends Controller
                         $statusText = ucwords($status);
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
                     })
-                    ->addColumn('action', function ($row) use ($settlementType) {
+                    ->addColumn('action', function ($row) use ($settlementType, $tab) {
                         $buttons = '';
                         $roleId = (int) (auth()->user()->roles[0]->id ?? 0);
                         if (auth()->user()->hasPermission('settlement', 'view')) {
-                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/view/' . $row->settlement_id) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
+                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/distribution/view/' . $row->id . '?settlement_type=' . $settlementType . '&tab=' . $tab) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
                         }
                         if (
                             $settlementType === 'commission'
@@ -218,7 +219,7 @@ class SettlementController extends Controller
                 $channelAdvance = \App\Models\Advance::where('user_id', $p)->value('advance_amount') ?? 0;
             }
             $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
-            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p', 'channelAdvance', 'tdsPercentage', 'settlementType', 'tab', 'amountLabel'));
+            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p', 'channelAdvance', 'tdsPercentage', 'settlementType', 'tab', 'amountLabel', 'hideSettlementTabs'));
         } else {
             // Admin/Staff view: Show parent channels list
             if ($request->ajax()) {
@@ -319,7 +320,7 @@ class SettlementController extends Controller
                             if ($tab === 'completed') {
                                 $btn = "<img onclick=\"window.location.href='" . url('/settlement/summary/' . $row->id . '?settlement_type=' . $settlementType) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Summary'>";
                             } else {
-                                $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id . '&settlement_type=' . $settlementType . '&tab=' . $tab) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Details'>";
+                                $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id . '&settlement_type=' . $settlementType . '&tab=' . $tab . '&detail=1') . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Details'>";
                             }
                         }
                         return $btn;
@@ -540,8 +541,21 @@ class SettlementController extends Controller
     private function getDistributionContext(SettlementDistribution $distribution, string $settlementType): array
     {
         if ($settlementType === 'contest') {
-            $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
+            $contest = null;
+            if (!empty($distribution->contest_mis_id)) {
+                $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
+            }
+
             $application = null;
+            if (!$contest && !empty($distribution->application_id)) {
+                $application = DB::table('applications')->where('id', $distribution->application_id)->first();
+                if ($application && !empty($application->app_id)) {
+                    $contest = DB::table('contest_mis')
+                        ->where('application_no', $application->app_id)
+                        ->orderByDesc('id')
+                        ->first();
+                }
+            }
             if ($contest && !empty($contest->application_no)) {
                 $application = DB::table('applications')->where('app_id', $contest->application_no)->first();
             }
@@ -551,12 +565,12 @@ class SettlementController extends Controller
             }
 
             return [
-                'app_id' => $contest->application_no ?? 'N/A',
-                'customer_name' => $contest->customer_name ?? '-',
-                'disbursement_amount' => (float) ($contest->loan_amt ?? 0),
+                'app_id' => $contest->application_no ?? ($application->app_id ?? 'N/A'),
+                'customer_name' => $contest->customer_name ?? ($application->customer_name ?? '-'),
+                'disbursement_amount' => (float) ($contest->loan_amt ?? ($application->disburse_amount ?? 0)),
                 'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
-                'company_receiving' => isset($contest->contest_rate) ? ($contest->contest_rate . '%') : '-',
-                'company_receiving_numeric' => (float) ($contest->contest_rate ?? 0),
+                'company_receiving' => isset($contest->contest_rate) ? ($contest->contest_rate . '%') : (($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-'),
+                'company_receiving_numeric' => (float) ($contest->contest_rate ?? ($application->commission_rate ?? 0)),
             ];
         }
 
@@ -750,6 +764,72 @@ class SettlementController extends Controller
 
         return view('Frontend.Settlement.edit_distribution', compact(
             'Route', 'distribution', 'app', 'settlement', 'channelUser', 'tdsPercentage', 'submitter', 'payoutAmount'
+        ));
+    }
+
+    /**
+     * View a single distribution (read-only).
+     */
+    public function showDistribution(Request $request, $id)
+    {
+        $Route = 'View Distribution';
+        $distribution = SettlementDistribution::findOrFail($id);
+        $settlement = Settlement::findOrFail($distribution->settlement_id);
+        $channelUser = User::find($settlement->user_id);
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+
+        $settlementType = in_array($request->input('settlement_type'), ['commission', 'contest', 'insurance'], true)
+            ? $request->input('settlement_type')
+            : ($settlement->settlement_type ?? 'commission');
+        $tab = in_array($request->input('tab'), ['pending', 'completed'], true)
+            ? $request->input('tab')
+            : 'pending';
+
+        $app = null;
+        $contest = null;
+        if ($settlementType === 'contest' && !empty($distribution->contest_mis_id)) {
+            $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
+        }
+        if (!empty($distribution->application_id)) {
+            $app = Application::find($distribution->application_id);
+        }
+        if (!$contest && $app && !empty($app->app_id) && $settlementType === 'contest') {
+            $contest = DB::table('contest_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
+        }
+        if (!$app && $contest && !empty($contest->application_no)) {
+            $app = Application::where('app_id', $contest->application_no)->first();
+        }
+
+        $submitter = null;
+        if ($app && $app->user_id) {
+            $submitter = User::find($app->user_id);
+        }
+
+        $companyReceiving = $settlementType === 'contest'
+            ? (isset($contest->contest_rate) ? ($contest->contest_rate . '%') : '-')
+            : (($app && $app->commission_rate) ? ($app->commission_rate . '%') : '-');
+
+        $payoutAmount = 0;
+        if ($settlementType === 'contest') {
+            $payoutAmount = round((float) ($distribution->rc_commission ?? 0), 2);
+        } elseif ($app && $app->bank_mis_id) {
+            $bankMis = DB::table('bank_mis')->where('id', $app->bank_mis_id)->first();
+            $payoutAmount = $bankMis ? round(floatval($bankMis->payout_amount), 2) : 0;
+        }
+
+        return view('Frontend.Settlement.show_distribution', compact(
+            'Route',
+            'distribution',
+            'app',
+            'contest',
+            'settlement',
+            'channelUser',
+            'tdsPercentage',
+            'submitter',
+            'payoutAmount',
+            'settlementType',
+            'tab',
+            'companyReceiving'
         ));
     }
 

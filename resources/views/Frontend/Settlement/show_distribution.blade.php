@@ -57,7 +57,7 @@
     <div class="settlement-header">
         <h3 class="settlement-heading">View Distribution</h3>
         <div class="settlement-btn-container">
-            <a href="{{ url('/settlement?p=' . $settlement->user_id . '&tab=completed&settlement_type=' . ($settlement->settlement_type ?? 'commission')) }}" style="text-decoration: none;">
+            <a href="{{ url('/settlement?p=' . $settlement->user_id . '&tab=' . ($tab ?? 'pending') . '&settlement_type=' . ($settlementType ?? ($settlement->settlement_type ?? 'commission')) . '&detail=1') }}" style="text-decoration: none;">
                 <button class="settlement-header-btn">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </button>
@@ -78,6 +78,8 @@
             <div class="detail-value">
                 @if($app)
                 <a href="{{ url('/application/view/' . $app->id) }}" class="text-primary">{{ $app->app_id }}</a>
+                @elseif(($contest->application_no ?? null))
+                {{ $contest->application_no }}
                 @else
                 N/A
                 @endif
@@ -85,15 +87,15 @@
         </div>
         <div class="detail-item">
             <label>Customer Name</label>
-            <div class="detail-value">{{ $app->customer_name ?? '-' }}</div>
+            <div class="detail-value">{{ $contest->customer_name ?? ($app->customer_name ?? '-') }}</div>
         </div>
         <div class="detail-item">
             <label>Disbursement Amount</label>
-            <div class="detail-value">₹ {{ number_format($app->disburse_amount ?? 0, 2) }}</div>
+            <div class="detail-value">? {{ number_format(($settlementType ?? 'commission') === 'contest' ? ($contest->loan_amt ?? 0) : ($app->disburse_amount ?? 0), 2) }}</div>
         </div>
         <div class="detail-item">
-            <label>Bank Payout Amount</label>
-            <div class="detail-value">₹ {{ number_format($payoutAmount ?? 0, 2) }}</div>
+            <label>{{ ($settlementType ?? 'commission') === 'contest' ? 'Contest Amount' : 'Bank Payout Amount' }}</label>
+            <div class="detail-value">? {{ number_format($payoutAmount ?? 0, 2) }}</div>
         </div>
         <div class="detail-item">
             <label>Submitted By</label>
@@ -102,8 +104,8 @@
             </div>
         </div>
         <div class="detail-item">
-            <label>Company Receiving</label>
-            <div class="detail-value">{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</div>
+            <label>{{ ($settlementType ?? 'commission') === 'contest' ? 'Contest Receiving' : 'Company Receiving' }}</label>
+            <div class="detail-value">{{ $companyReceiving ?? '-' }}</div>
         </div>
         <div class="detail-item">
             <label>Sharing Commission</label>
@@ -117,16 +119,16 @@
     <div class="card-top-border">Calculation</div>
     <div style="padding: 15px; max-width: 450px;">
         <div class="calc-row">
-            <span class="calc-label">Commission Amount</span>
-            <span class="calc-value">₹ {{ number_format($distribution->gross_amount ?? 0, 2) }}</span>
+            <span class="calc-label">{{ ($settlementType ?? 'commission') === 'contest' ? 'Channel Contest Amount' : 'Commission Amount' }}</span>
+            <span class="calc-value">? {{ number_format($distribution->gross_amount ?? 0, 2) }}</span>
         </div>
         <div class="calc-row">
             <span class="calc-label">TDS ({{ $tdsPercentage }}%)</span>
-            <span class="calc-value">₹ {{ number_format($distribution->tds ?? 0, 2) }}</span>
+            <span class="calc-value">? {{ number_format($distribution->tds ?? 0, 2) }}</span>
         </div>
         <div class="calc-row total">
-            <span class="calc-label">Net Payable</span>
-            <span class="calc-value">₹ {{ number_format($distribution->amount ?? 0, 2) }}</span>
+            <span class="calc-label">{{ ($settlementType ?? 'commission') === 'contest' ? 'Net Value' : 'Net Payable' }}</span>
+            <span class="calc-value">? {{ number_format($distribution->amount ?? 0, 2) }}</span>
         </div>
     </div>
 </div>

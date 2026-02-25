@@ -213,6 +213,7 @@
 
         <!-- filter form -->
         <div class="bank-card p-4">
+                @if(!($hideSettlementTabs ?? false))
                 <div class="settlement-type-wrap">
                         <div class="settlement-type-caption">Choose settlement page</div>
                         <div class="settlement-type-switch">
@@ -238,6 +239,7 @@
                                 <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'completed' ? 'active' : '' }}" data-tab="completed" href="#" role="tab">Completed</a>
                         </li>
                 </ul>
+                @endif
                 <div class="row">
                         <div class="col-lg-4 mb-2">
                                 <div class="bank-detail-inputs">
@@ -712,6 +714,16 @@
                                 return;
                         }
 
+                        var selectedNet = 0;
+                        $('.dist-checkbox:checked').each(function() {
+                                selectedNet += parseFloat($(this).data('net')) || 0;
+                        });
+                        var advanceAmount = getAdvanceDeduction();
+                        if (advanceAmount > selectedNet) {
+                                alert('Advance deduction cannot be more than selected net payout amount (₹ ' + selectedNet.toFixed(2) + ').');
+                                return;
+                        }
+
                         if (!confirm('Are you sure you want to process ' + selectedIds.length + ' distribution(s) into a transaction?')) {
                                 return;
                         }
@@ -725,7 +737,6 @@
                         });
 
                         // Add advance amount
-                        var advanceAmount = getAdvanceDeduction();
                         form.append('<input type="hidden" name="advance_amount" value="' + advanceAmount + '">');
 
                         form.submit();

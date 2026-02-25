@@ -203,6 +203,7 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     // Settlement routes (under CheckLogin so they bypass CheckPermission)
     Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
+    Route::get('/settlement/distribution/view/{id}', [SettlementController::class, 'showDistribution'])->name('settlement.distribution.view');
     Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
     Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
 
