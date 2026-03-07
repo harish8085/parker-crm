@@ -21,6 +21,9 @@ if (!function_exists('getPermissionName')) {
             case 'contest':
                 return 'Contest MIS';
                 break;
+            case 'insurance':
+                return 'Insurance MIS';
+                break;
             case 'settlement':
                 return 'Settlement';
                 break;

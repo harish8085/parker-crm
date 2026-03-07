@@ -34,7 +34,9 @@ class SettlementController extends Controller
         $tab = in_array($request->input('tab'), ['pending', 'completed'], true)
             ? $request->input('tab')
             : 'pending';
-        $amountLabel = $settlementType === 'contest' ? 'Contest Amount' : 'Commission Amount';
+        $amountLabel = $settlementType === 'contest'
+            ? 'Contest Amount'
+            : ($settlementType === 'insurance' ? 'Insurance Amount' : 'Commission Amount');
 
         $Route = 'Settlement';
         $user = Auth::user();
@@ -383,7 +385,9 @@ class SettlementController extends Controller
 
         $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
         $settlementType = $settlement->settlement_type ?? 'commission';
-        $amountLabel = $settlementType === 'contest' ? 'Contest Amount' : 'Commission Amount';
+        $amountLabel = $settlementType === 'contest'
+            ? 'Contest Amount'
+            : ($settlementType === 'insurance' ? 'Insurance Amount' : 'Commission Amount');
         return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage', 'settlementType', 'amountLabel'));
     }
 
@@ -571,6 +575,36 @@ class SettlementController extends Controller
                 'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
                 'company_receiving' => isset($contest->contest_rate) ? ($contest->contest_rate . '%') : (($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-'),
                 'company_receiving_numeric' => (float) ($contest->contest_rate ?? ($application->commission_rate ?? 0)),
+            ];
+        }
+
+        if ($settlementType === 'insurance') {
+            $insurance = null;
+            $application = null;
+            if (!empty($distribution->application_id)) {
+                $application = DB::table('applications')->where('id', $distribution->application_id)->first();
+                if ($application && !empty($application->app_id)) {
+                    $insurance = DB::table('insurance_mis')
+                        ->where('application_no', $application->app_id)
+                        ->orderByDesc('id')
+                        ->first();
+                }
+            }
+            if ($insurance && !empty($insurance->application_no)) {
+                $application = DB::table('applications')->where('app_id', $insurance->application_no)->first();
+            }
+            $submitter = null;
+            if ($application && $application->user_id) {
+                $submitter = DB::table('users')->where('id', $application->user_id)->first();
+            }
+
+            return [
+                'app_id' => $insurance->application_no ?? ($application->app_id ?? 'N/A'),
+                'customer_name' => $insurance->customer_name ?? ($application->customer_name ?? '-'),
+                'disbursement_amount' => (float) ($insurance->loan_amt ?? ($application->disburse_amount ?? 0)),
+                'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
+                'company_receiving' => isset($insurance->insurance_rate) ? ($insurance->insurance_rate . '%') : (($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-'),
+                'company_receiving_numeric' => (float) ($insurance->insurance_rate ?? ($application->commission_rate ?? 0)),
             ];
         }
 
@@ -787,6 +821,7 @@ class SettlementController extends Controller
 
         $app = null;
         $contest = null;
+        $insurance = null;
         if ($settlementType === 'contest' && !empty($distribution->contest_mis_id)) {
             $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
         }
@@ -796,8 +831,14 @@ class SettlementController extends Controller
         if (!$contest && $app && !empty($app->app_id) && $settlementType === 'contest') {
             $contest = DB::table('contest_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
         }
+        if ($settlementType === 'insurance' && $app && !empty($app->app_id)) {
+            $insurance = DB::table('insurance_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
+        }
         if (!$app && $contest && !empty($contest->application_no)) {
             $app = Application::where('app_id', $contest->application_no)->first();
+        }
+        if (!$app && $insurance && !empty($insurance->application_no)) {
+            $app = Application::where('app_id', $insurance->application_no)->first();
         }
 
         $submitter = null;
@@ -807,10 +848,12 @@ class SettlementController extends Controller
 
         $companyReceiving = $settlementType === 'contest'
             ? (isset($contest->contest_rate) ? ($contest->contest_rate . '%') : '-')
-            : (($app && $app->commission_rate) ? ($app->commission_rate . '%') : '-');
+            : ($settlementType === 'insurance'
+                ? (isset($insurance->insurance_rate) ? ($insurance->insurance_rate . '%') : '-')
+                : (($app && $app->commission_rate) ? ($app->commission_rate . '%') : '-'));
 
         $payoutAmount = 0;
-        if ($settlementType === 'contest') {
+        if (in_array($settlementType, ['contest', 'insurance'], true)) {
             $payoutAmount = round((float) ($distribution->rc_commission ?? 0), 2);
         } elseif ($app && $app->bank_mis_id) {
             $bankMis = DB::table('bank_mis')->where('id', $app->bank_mis_id)->first();
@@ -822,6 +865,7 @@ class SettlementController extends Controller
             'distribution',
             'app',
             'contest',
+            'insurance',
             'settlement',
             'channelUser',
             'tdsPercentage',

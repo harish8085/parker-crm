@@ -218,6 +218,11 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     //insurance routes
     Route::get('/insurance', [InsuranceController::class, 'index'])->name('insurance.index');
+    Route::get('/insurance/upload', [InsuranceController::class, 'uploadView'])->name('insurance.upload.view');
+    Route::post('/insurance/upload', [InsuranceController::class, 'upload'])->name('insurance.upload');
+    Route::get('/insurance/view/{id}', [InsuranceController::class, 'show'])->name('insurance.show');
+    Route::get('/insurance/edit/{id}', [InsuranceController::class, 'edit'])->name('insurance.edit');
+    Route::put('/insurance/{id}', [InsuranceController::class, 'update'])->name('insurance.update');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {
