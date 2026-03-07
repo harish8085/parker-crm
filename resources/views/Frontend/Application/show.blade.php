@@ -16,6 +16,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         </ol>
     </nav>
 </div>
+
 <div class="bank-card">
     <div class="card-top-border">Basic Details</div>
     <div class="card-form">

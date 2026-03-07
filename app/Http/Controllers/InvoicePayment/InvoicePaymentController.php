@@ -4,7 +4,6 @@ namespace App\Http\Controllers\InvoicePayment;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Application;
 use App\Models\Bank;
 use App\Models\BankMIS;
 use App\Models\Product;
@@ -26,7 +25,7 @@ class InvoicePaymentController extends Controller
         $bank = Bank::all();
         $product = Product::all();
 
-        $query = InvoicePaymentView::query();
+        $query = InvoicePaymentView::with('applicationNos');
 
         if ($request->date) {
             $now = Carbon::now();
@@ -277,23 +276,22 @@ class InvoicePaymentController extends Controller
         $Route = 'View Invoice Payment';
         $applicationDetails = [];
         $invoicePayment = InvoicePaymentView::findOrFail($id);
-        // extrect all application no from application_no colum which are comma separated string search each application no in bank mis table and get the application details i want to show application details in show view.
-        $applicationNos = explode(',', $invoicePayment->application_no);
-        foreach ($applicationNos as $appNo) {
-            $application = Application::where('application_no', trim($appNo))->first();
-            if ($application) {
-                $bankMIS = BankMIS::where('application_id', $application->id)->first();
-                $applicationDetails[] = [
-                    'application_no' => $application->application_no,
-                    'applicant_name' => $application->applicant_name,
-                    'product_name' => $application->product ? $application->product->product_name : '',
-                    'bank_mis_no' => $bankMIS ? $bankMIS->bank_mis_no : '',
-                    'mis_amount' => $bankMIS ? '₹' . number_format($bankMIS->mis_amount, 2) : '-',
-                    'mis_month' => $bankMIS ? date('M-Y', strtotime($bankMIS->mis_month)) : '-',
-                    'dis'
-                ];
-            }
+        $applicationNos = $invoicePayment->applicationNos->pluck('application_no')->toArray();
+        $bankMisRecords = BankMIS::with(['bank', 'product'])
+            ->whereIn('app_id', $applicationNos)
+            ->get();
+
+        foreach ($bankMisRecords as $record) {
+            $applicationDetails[] = [
+                'application_no' => $record->app_id,
+                'applicant_name' => $record->customer_name ?? '',
+                'product_name' => $record->product ? $record->product->name : '',
+                'bank_mis_no' => $record->bank_mis_no ?? '',
+                'mis_amount' => $record->payout_amount ? '₹' . number_format($record->payout_amount, 2) : '-',
+                'mis_month' => $record->bank_mis_month ? date('M-Y', strtotime($record->bank_mis_month)) : '-',
+            ];
         }
+
         return view('Frontend.InvoicePayment.view', compact('invoicePayment', 'Route', 'applicationDetails'));
     }
 
@@ -329,6 +327,47 @@ class InvoicePaymentController extends Controller
 
         try {
             $invoicePayment = InvoicePaymentView::findOrFail($id);
+            $referenceNo1 = isset($validated['referance_no1']) ? trim((string) $validated['referance_no1']) : '';
+            $referenceNo2 = isset($validated['referance_no2']) ? trim((string) $validated['referance_no2']) : '';
+
+            if ($referenceNo1 !== '' && $referenceNo2 !== '' && strcasecmp($referenceNo1, $referenceNo2) === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'UTR No 1 and UTR No 2 must be different.'
+                ], 422);
+            }
+
+            if ($referenceNo1 !== '') {
+                $existsRef1 = InvoicePaymentView::where('id', '!=', $id)
+                    ->where(function ($query) use ($referenceNo1) {
+                        $query->where('referance_no1', $referenceNo1)
+                            ->orWhere('referance_no2', $referenceNo1);
+                    })
+                    ->exists();
+
+                if ($existsRef1) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'UTR No 1 / Reference No already exists. Please use a unique value.'
+                    ], 422);
+                }
+            }
+
+            if ($referenceNo2 !== '') {
+                $existsRef2 = InvoicePaymentView::where('id', '!=', $id)
+                    ->where(function ($query) use ($referenceNo2) {
+                        $query->where('referance_no1', $referenceNo2)
+                            ->orWhere('referance_no2', $referenceNo2);
+                    })
+                    ->exists();
+
+                if ($existsRef2) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'UTR No 2 / Reference No already exists. Please use a unique value.'
+                    ], 422);
+                }
+            }
 
             // add payment paid in to existing paid amount
             if (isset($validated['payment_paid'])) {
@@ -428,3 +467,4 @@ class InvoicePaymentController extends Controller
         ]);
     }
 }
+

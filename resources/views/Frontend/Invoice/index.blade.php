@@ -521,8 +521,12 @@
                 }
             },
             error: function(xhr, status, error) {
-                const errorMessage = xhr.responseJSON?.message || 'An error occurred while saving the invoice.';
-                alert('Error: ' + errorMessage);
+                const invoiceNoError = xhr.responseJSON?.errors?.invoice_no?.[0];
+                const errorMessage = invoiceNoError || xhr.responseJSON?.message || 'An error occurred while saving the invoice.';
+                alert(errorMessage);
+                if (invoiceNoError) {
+                    location.reload();
+                }
                 console.log('Error:', xhr.responseText);
             }
         });

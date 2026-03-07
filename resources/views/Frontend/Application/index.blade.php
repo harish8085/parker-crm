@@ -20,7 +20,7 @@
         <h3 class="application-heading">All Application</h3>
         <div class="btn-container">
             <!-- // user should not not have checker or maker role to access add and upload button -->
-            @if(auth()->user()->hasPermission('application','create'))
+            @if(auth()->user()->hasPermission('application','create') || in_array(auth()->user()->roles[0]->id, [35,36]))
             <a href="{{ url('/application/create') }}" style="text-decoration: none;">
                 <button class="application-header-btn">
                     <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">Add
@@ -28,7 +28,7 @@
             </a>
             @endif
 
-            @if(auth()->user()->hasPermission('application','create'))
+            @if(auth()->user()->hasPermission('application','create') || in_array(auth()->user()->roles[0]->id, [35,36]))
             <a href="{{ url('/application/create/upload') }}" style="text-decoration: none;">
                 <button class="application-header-btn">
                     <img class="application-header-icon" src="{{ asset('assets/images/import.svg') }}">Upload
@@ -73,7 +73,8 @@
                     <select class="bank-detail-input form-select select" required name="partner_name" id="partner_name">
                         <option value=""></option>
                         @foreach($users as $u)
-                        <option value="{{$u->id}}">{{$u->first_name}} {{$u->last_name}}</option>
+                        @php $identifier = $u->Emp_Id ?: $u->id; @endphp
+                        <option value="{{$u->id}}">{{$u->first_name}} {{$u->last_name}} ({{$identifier}})</option>
                         @endforeach
                     </select>
                 </div>

@@ -42,14 +42,12 @@ class AuthController extends Controller
             $email = $request->email;
             $password = $request->password;
 
-
             if (!empty($email) && !empty($password)) {
-
                 // Determine the subdomain and user type
                 $subdomain = explode('.', $request->getHost())[0];
                 switch ($subdomain) {
                     case 'admin':
-                        $type = ['admin', 'staff']; // Search for both admin and staff types
+                        $type = ['admin', 'staff'];
                         break;
                     case 'parker':
                         $type = ['admin', 'staff','channel','sales'];
@@ -72,12 +70,27 @@ class AuthController extends Controller
                 if (Auth::attempt($userdata)) {
                     $user = Auth::user();
 
+                    // Restrict login for inactive channels and their associates
+                    if ($user->user_type === 'channel') {
+                        if ($user->status == 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your account is inactive. Please contact admin.');
+                        }
+                    }
+                    // If associate, check parent channel status
+                    if ($user->user_type === 'staff' || $user->user_type === 'sales') {
+                        $parentChannel = \App\Models\ChannelUser::where('associate_channel_id', $user->id)->with('channel')->first();
+                        if ($parentChannel && $parentChannel->channel && $parentChannel->channel->status == 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your parent is no longer associated with Parker.');
+                        }
+                    }
+
                     if (in_array($user->user_type, $type)) {
                         if ($request->has('remember') == null) {
                             setcookie('email', $email, 100);
                             setcookie('password', $password, 100);
                         } else {
-
                             setcookie('email', $email, time() + 606024100);
                             setcookie('password', $password, time() + 606024100);
                         }

@@ -55,6 +55,56 @@
         });
     });
 
+    // Admin: delete advance amount from listing
+    $(document).on('click', '.advance-delete-btn', function () {
+        var advanceId = $(this).data('advance-id');
+        var remainingAmount = parseFloat($(this).data('remaining-amount') || 0);
+
+        if (remainingAmount <= 0) {
+            bootbox.alert('Whole advance amount is already settled in previous settlements. Nothing left to delete.');
+            return;
+        }
+
+        bootbox.prompt({
+            title: 'Enter delete amount (max ₹' + remainingAmount.toFixed(2) + ')',
+            value: remainingAmount.toFixed(2),
+            callback: function (result) {
+                if (result === null) {
+                    return;
+                }
+
+                var deleteAmount = parseFloat(result);
+                if (isNaN(deleteAmount) || deleteAmount <= 0) {
+                    bootbox.alert('Please enter a valid delete amount greater than 0.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '/advance/delete/' + advanceId,
+                    type: 'DELETE',
+                    data: {
+                        delete_amount: deleteAmount
+                    },
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (response) {
+                        bootbox.alert(response.message || 'Advance deleted successfully.', function () {
+                            $('.data-table').DataTable().ajax.reload();
+                        });
+                    },
+                    error: function (xhr) {
+                        var msg = 'Failed to delete advance.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            msg = xhr.responseJSON.message;
+                        }
+                        bootbox.alert(msg);
+                    }
+                });
+            }
+        });
+    });
+
 </script>
 
 <!-- Datatable -->

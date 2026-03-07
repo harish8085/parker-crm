@@ -11,9 +11,11 @@ use App\Models\Product;
 use App\Models\StaffAssign;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use App\Models\InvoicePaymentView;
+use App\Models\InvoiceApplicationNo;
 
 class InvoiceController extends Controller
 {
@@ -26,12 +28,8 @@ class InvoiceController extends Controller
         $bank = Bank::all();
         $product = Product::all();
 
-        $invoicedAppIds = InvoicePaymentView::get()
-            ->map(function ($invoice) {
-                // Split the comma-separated application numbers
-                return explode(',', $invoice->application_no);
-            })
-            ->flatten()
+        $invoicedAppIds = InvoiceApplicationNo::query()
+            ->pluck('application_no')
             ->map(function ($appId) {
                 return trim($appId);
             })
@@ -242,29 +240,38 @@ class InvoiceController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'invoice_no' => 'required|string',
-            'invoice_date' => 'required|date',
-            'bank_gst_no' => 'required|string',
-            'bank_hsn_code' => 'required|string',
-            'bank_address' => 'nullable|string',
-            'in_state' => 'required|in:yes,no',
-            'taxable_value' => 'required|numeric|min:0',
-            'invoice_value' => 'required|numeric|min:0',
-            'payment_received_bank' => 'required|string',
-            'mis_month' => 'nullable|string',
-            'company_name' => 'nullable|string',
-            'group_name' => 'nullable|string',
-            'dsa_gst_no' => 'nullable|string',
-            'cgst' => 'required|numeric|min:0',
-            'sgst' => 'required|numeric|min:0',
-            'igst' => 'required|numeric|min:0',
-            'tds' => 'nullable|numeric|min:0',
-            'payment_amount' => 'required|numeric|min:0',
-            'remaining_amount' => 'nullable|numeric|min:0',
-            'mis_ids' => 'required|array',
-            'mis_ids.*' => 'integer',
-        ]);
+        $validated = $request->validate(
+            [
+                'invoice_no' => [
+                    'required',
+                    'string',
+                    Rule::unique('invoice_payment_view', 'invoice_no'),
+                ],
+                'invoice_date' => 'required|date',
+                'bank_gst_no' => 'required|string',
+                'bank_hsn_code' => 'required|string',
+                'bank_address' => 'nullable|string',
+                'in_state' => 'required|in:yes,no',
+                'taxable_value' => 'required|numeric|min:0',
+                'invoice_value' => 'required|numeric|min:0',
+                'payment_received_bank' => 'required|string',
+                'mis_month' => 'nullable|string',
+                'company_name' => 'nullable|string',
+                'group_name' => 'nullable|string',
+                'dsa_gst_no' => 'nullable|string',
+                'cgst' => 'required|numeric|min:0',
+                'sgst' => 'required|numeric|min:0',
+                'igst' => 'required|numeric|min:0',
+                'tds' => 'nullable|numeric|min:0',
+                'payment_amount' => 'required|numeric|min:0',
+                'remaining_amount' => 'nullable|numeric|min:0',
+                'mis_ids' => 'required|array',
+                'mis_ids.*' => 'integer',
+            ],
+            [
+                'invoice_no.unique' => 'Invoice has already been created with this invoice number. Please add a new invoice number.',
+            ]
+        );
 
         try {
             $bankMisRecords = BankMIS::with(['bank', 'product'])
@@ -279,7 +286,9 @@ class InvoiceController extends Controller
             }
 
             $bankName = $bankMisRecords->first()->bank->name ?? '-';
-            $applicationNumbers = $bankMisRecords->pluck('app_id')->implode(',');
+            $applicationNumbers = $bankMisRecords->pluck('app_id')->map(function ($appId) {
+                return trim((string) $appId);
+            })->filter()->values();
 
             $invoicePayment = InvoicePaymentView::create([
                 'bank_name' => $bankName,
@@ -289,7 +298,6 @@ class InvoiceController extends Controller
                 'bank_gst_no' => $validated['bank_gst_no'],
                 'bank_hsn_code' => $validated['bank_hsn_code'],
                 'dsa_gst_no' => $validated['dsa_gst_no'] ?? '',
-                'application_no' => $applicationNumbers,
                 'taxable_value' => $validated['taxable_value'],
                 'invoice_value' => $validated['invoice_value'],
                 'payment_received_bank' => $validated['payment_received_bank'],
@@ -304,6 +312,11 @@ class InvoiceController extends Controller
                 'group_name' => $validated['group_name'] ?? '',
                 'company_name' => $validated['company_name'] ?? '',
             ]);
+            $invoicePayment->applicationNos()->createMany(
+                $applicationNumbers->map(function ($appNo) {
+                    return ['application_no' => $appNo];
+                })->toArray()
+            );
 
             return response()->json([
                 'success' => true,

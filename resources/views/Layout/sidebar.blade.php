@@ -73,10 +73,17 @@
                 <!-- // group bank mis , contest , insurance.. under bank mis and show based on permissions -->
 
 
-                @if(auth()->user()->roles[0]->id ==1)
+                @if(auth()->user()->roles[0]->id ==1 || auth()->user()->user_type == 'checker')
                 <li class="list-item {{(Request::path() == 'advance')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'advance')?'active-li':''}}" href="{{url('advance')}}">
                         <img class="dashboard-icons" src="{{asset((Request::path() == 'advance')?'assets/images/sheet-active.svg':'assets/images/sheet.svg')}}" alt="error">Advance
+                    </a>
+                </li>
+                @endif
+                @if(auth()->user()->roles[0]->id ==1 || auth()->user()->user_type == 'admin' || auth()->user()->user_type == 'checker')
+                <li class="list-item {{(Request::path() == 'advance-requests')?'active-li':''}}">
+                    <a class="nav-links {{(Request::path() == 'advance-requests')?'active-li':''}}" href="{{ route('advance-requests.index', ['tab' => 'pending']) }}">
+                        <img class="dashboard-icons" src="{{asset((Request::path() == 'advance-requests')?'assets/images/sheet-active.svg':'assets/images/sheet.svg')}}" alt="error">Advance Request
                     </a>
                 </li>
                 @endif
@@ -167,17 +174,16 @@
                                 <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice')?'assets/images/invoice_blue.svg':'assets/images/invoice_white.svg')}}" alt="error">Invoices
                             </a>
                         </li>
-                        <li class="dropdown-list-li {{(Request::path() == 'mis_tracker')?'active-li':''}}">
-                            <a class="dropdown-item nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
-                                <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
-                            </a>
-                        </li>
                         <li class="dropdown-list-li {{(Request::path() == 'invoice_payment')?'active-li':''}}">
                             <a class="dropdown-item nav-links {{(Request::path() == 'invoice_payment')?'active-li':''}}" href="{{url('invoice_payment')}}">
                                 <img class="dashboard-icons" src="{{asset((Request::path() == 'invoice_payment')?'assets/images/invoice_payment-blue.svg':'assets/images/invoice_payment-white.svg')}}" alt="error"> Invoice Payment
                             </a>
                         </li>
-
+                        <li class="dropdown-list-li {{(Request::path() == 'mis_tracker')?'active-li':''}}">
+                            <a class="dropdown-item nav-links {{(Request::path() == 'mis_tracker')?'active-li':''}}" href="{{url('mis_tracker')}}">
+                                <img class="dashboard-icons" src="{{asset((Request::path() == 'mis_tracker')?'assets/images/mis-tracker_blue.svg':'assets/images/mis-tracker-white.svg')}}" alt="error"> MIS Tracker
+                            </a>
+                        </li>
                     </ul>
                 </li>
                 @endif

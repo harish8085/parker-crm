@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MasterCodeController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementCategoryController;
 use App\Http\Controllers\Advance\AdvanceController;
+use App\Http\Controllers\Advance\AdvanceRequestController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Bank\BankController;
@@ -132,6 +133,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/getAllProduct', [BankProductController::class, 'getAllProduct']);
     Route::post('/getServiceProduct', [ServiceController::class, 'getServiceProduct']);
     Route::post('/getUserCommission', [ApplicationController::class, 'getUserCommission']);
+    Route::get('/application/channel/{channelId}/associates', [ApplicationController::class, 'getAssociatedPartnersByChannel'])->name('application.channel.associates');
 
     //Manage Permission Route
     Route::get('/sheet-matching', [SheetMatchingController::class, 'index'])->name('sheet-matching.index');
@@ -172,11 +174,18 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
     Route::get('/advance/update/{id}', [AdvanceController::class, 'edit'])->name('advance.edit');
     Route::post('/advance/update/{id}', [AdvanceController::class, 'update'])->name('advance.update');
+    Route::delete('/advance/delete/{id}', [AdvanceController::class, 'destroy'])->name('advance.destroy');
     Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
     Route::get('/advance/applications/by-user', [AdvanceController::class, 'applicationsByUser'])->name('advance.applications.by-user');
     Route::get('/advance/applications/list-by-user', [AdvanceController::class, 'applicationsListByUser'])->name('advance.applications.list-by-user');
     Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
     Route::get('/advance/log/{logId}/application-ids', [AdvanceController::class, 'getLogApplicationIds'])->name('advance.log.application-ids');
+    Route::delete('/advance/log/delete/{logId}', [AdvanceController::class, 'destroyLog'])->name('advance.log.destroy');
+    Route::get('/advance-requests', [AdvanceRequestController::class, 'index'])->name('advance-requests.index');
+    Route::post('/advance-requests/{id}/approve', [AdvanceRequestController::class, 'approve'])->name('advance-requests.approve');
+    Route::post('/advance-requests/{id}/reject', [AdvanceRequestController::class, 'reject'])->name('advance-requests.reject');
+    Route::get('/advance-requests/{id}/cases', [AdvanceRequestController::class, 'cases'])->name('advance-requests.cases');
+    Route::get('/advance-requests/checkers/search', [AdvanceRequestController::class, 'searchCheckers'])->name('advance-requests.checkers.search');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');
