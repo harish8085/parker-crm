@@ -270,7 +270,7 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
 
             @if(in_array($roleId, [1, 2, 35, 36]))
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Sharing Commission</label>
+                <label class="bank-input-label">Sharing Commission <span class="required">*</span></label>
                 <input class="bank-detail-input form-control" type="number" step="0.01" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission" value="{{$application->sharing_commission}}">
             </div>
             @else
@@ -514,6 +514,19 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
                 return false;
             } else {
                 $('#commission_rate').addClass('is-valid').removeClass('is-invalid');
+            }
+        }
+
+        // Sharing commission required before approve/complete
+        if ((status === 'approved' || status === 'completed') && $('#sharing_commission').length) {
+            const sharingVal = ($('#sharing_commission').val() || '').trim();
+            if (!sharingVal) {
+                alert('Sharing Commission is required before approving or completing the application!');
+                $('#sharing_commission').removeClass('is-valid').addClass('is-invalid');
+                $('#sharing_commission').focus();
+                return false;
+            } else {
+                $('#sharing_commission').addClass('is-valid').removeClass('is-invalid');
             }
         }
 

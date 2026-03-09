@@ -46,7 +46,7 @@
                 @if(auth()->user()->hasPermission('bank_mis','view') )
                 <li class="nav-item dropdown list-item {{(Request::path() == 'bank_mis' ||Request::path() == 'contest' ||Request::path() == 'insurance')?'active':''}}">
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
-                        <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">MIS 
+                        <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">Bank MIS 
                         <span class="custom-dropdown-arrow">
                             <img class="dropdown-icon" src="{{asset((Request::path() == 'bank_mis' ||Request::path() == 'contest' ||Request::path() == 'insurance')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
                         </span>
@@ -55,7 +55,7 @@
 
                         <li class="list-item {{(Request::path() == 'bank_mis')?'active-li':''}}">
                             <a class="nav-links {{(Request::path() == 'bank_mis')?'active-li':''}}" href="{{url('bank_mis')}}">
-                                <img class="dashboard-icons" src="{{ asset((Request::path() == 'bank_mis')?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Bank MIS</a>
+                                <img class="dashboard-icons" src="{{ asset((Request::path() == 'bank_mis')?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Commission MIS</a>
                         </li>
                         <li class="list-item {{(Request::path() == 'contest')?'active-li':''}}">
                             <a class="nav-links {{(Request::path() == 'contest')?'active-li':''}}" href="{{url('contest')}}">
