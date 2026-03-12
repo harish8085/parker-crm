@@ -89,15 +89,11 @@ class User extends Authenticatable
 
     public function hasPermission($permissionName, $type)
     {
-        // Get all roles assigned to the user
-        $roles = $this->roles()->with('permissions')->first();
-
-        $permissions = $roles->permissions;
-        // Check if any of the roles have the required permission
-        foreach ($permissions as $permission) {
-
-            if ($permission->name == $permissionName) {
-                if ($permission->$type) {
+        // Check all roles assigned to the user
+        $roles = $this->roles()->with('permissions')->get();
+        foreach ($roles as $role) {
+            foreach ($role->permissions as $permission) {
+                if ($permission->name === $permissionName && $permission->$type) {
                     return true;
                 }
             }

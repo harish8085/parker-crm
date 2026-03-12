@@ -156,7 +156,7 @@
         <!-- Channel Advance Balance Info -->
         @if(($channelAdvance ?? 0) > 0)
         <div class="p-4 pb-0">
-                <div class="alert alert-warning d-flex align-items-center mb-0" style="border-radius: 8px;">
+                <div class="alert alert-danger d-flex align-items-center mb-0" style="border-radius: 8px;">
                         <i class="fas fa-info-circle me-2" style="font-size: 18px;"></i>
                         <span>Channel Advance Balance: <strong>₹ {{ indianNumberFormat($channelAdvance) }}</strong></span>
                 </div>

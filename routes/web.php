@@ -145,8 +145,6 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     Route::post('/getFileData', [SheetMatchingController::class, 'getFileData']);
     Route::post('/application/update/remark', [ApplicationController::class, 'updateRemark']);
-    Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
-    Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
 
     //Bank Route
     Route::get('/remark-status', [RemarkController::class, 'index'])->name('remark.index');
@@ -368,10 +366,12 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::put('/staff/update/role/{role}', [RoleController::class, 'update']);
     Route::delete('/staff/delete/role/{role}', [RoleController::class, 'destroy']);
 
-    //Manage Permission Route
-    Route::get('/staff/view/permissions', [PermissionController::class, 'index'])->name('permission.index');
-    Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
-    Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
+    //Manage Permission Route (Admin only)
+    Route::middleware([CheckAdmin::class])->group(function () {
+        Route::get('/staff/view/permissions', [PermissionController::class, 'index'])->name('permission.index');
+        Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
+        Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
+    });
 
     //
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

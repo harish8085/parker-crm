@@ -60,8 +60,24 @@ if (!function_exists('getPermissionName')) {
             case 'master_code':
                 return 'Master Code';
                 break;
+            case 'announcements':
+                return 'Announcements';
+                break;
+            case 'invoice':
+                return 'Invoice';
+                break;
+            case 'invoice_payment':
+                return 'Invoice Payment';
+                break;
+            case 'sample-sheet':
+                return 'Sample Sheet';
+                break;
+            case 'transactions':
+                return 'Transactions';
+                break;
             default:
-                return 'Unknown Permission';
+                $label = trim(str_replace(['-', '_'], ' ', $param));
+                return $label !== '' ? ucwords($label) : 'Unknown Permission';
                 break;
         }
     }

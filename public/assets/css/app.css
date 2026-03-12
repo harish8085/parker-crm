@@ -84,7 +84,7 @@ img.admin-icon {
 /* sidebar css */
 
 .sidebar-container {
-    background-color: #012670;
+    background: linear-gradient(180deg, #012670 0%, #0b2e7a 45%, #0f3a8a 100%);
     width: 240px;
     display: flex;
     flex-direction: column;
@@ -99,6 +99,8 @@ img.admin-icon {
     max-height: 100vh;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.3) transparent;
+    box-shadow: 0 0 18px rgba(0, 0, 0, 0.12);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-container::-webkit-scrollbar {
@@ -143,6 +145,7 @@ ul.ul-container {
     margin-top: 30px;
     list-style: none;
     padding-left: 0px;
+    padding-right: 10px;
 }
 
 li.list-item {
@@ -157,10 +160,19 @@ li.nav-item.dropdown.list-item {
 a.nav-links {
     color: white;
     text-decoration: none;
-    font-size: 16px;
+    font-size: 15px;
     text-align: justify;
     display: flex;
-    margin-left: 30px;
+    margin-left: 20px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+a.nav-link.dropdown-toggle.nav-links {
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 a.nav-links.dropdown-item {
@@ -171,6 +183,7 @@ a.nav-links.dropdown-item {
 
 img.dashboard-icons {
     padding-right: 12px;
+    opacity: 0.95;
 }
 
 button.log-out-btn {
@@ -185,6 +198,7 @@ button.log-out-btn {
 
 li.nav-item.dropdown.list-item.active {
     background-color: #ffffff14;
+    border-left: 3px solid rgba(255, 255, 255, 0.7);
 }
 
 li.nav-item.dropdown.list-item:hover {
@@ -207,6 +221,8 @@ a.nav-link.dropdown-toggle.nav-links:hover {
 
 a.nav-links:hover {
     text-decoration: none;
+    background-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(2px);
 }
 
 .active-li {
@@ -214,6 +230,7 @@ a.nav-links:hover {
     color: #012670 !important;
     font-weight: 600;
     margin-bottom: 5px;
+    box-shadow: 0 2px 8px rgba(1, 38, 112, 0.12);
 }
 
 li.dropdown-list-li {
@@ -241,10 +258,11 @@ ul.dropdown-menu.show {
     margin-top: 3px;
     width: 100%;
     background: #ffffff14;
+    border-radius: 10px;
 }
 
 .custom-dropdown-arrow {
-    margin-left: 30px;
+    margin-left: auto;
 }
 
 ul.dropdown-menu.sidebar-menu.show {

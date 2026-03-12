@@ -89,7 +89,11 @@ class ProcessSettlement implements ShouldQueue
         }
 
         // Create settlement distribution for this specific application
-        $tds_percentage = Settings::where('name', 'TDS')->first()->value;
+        $tds_percentage = Settings::where('name', 'TDS')->value('value');
+        if ($tds_percentage === null) {
+            Log::warning('TDS setting not found; defaulting to 0');
+            $tds_percentage = 0;
+        }
         $tds = round($amount * $tds_percentage / 100, 2);
         $netAmount = round($amount - $tds, 2);
         $bank_data = BankData::where('user_id', $parentChannelId)->first();

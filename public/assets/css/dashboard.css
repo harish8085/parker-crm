@@ -3,6 +3,19 @@
     padding: 14px 18px;
     border: 1px solid #d3d3d359;
     border-radius: 10px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.dashboard-card-link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+.dashboard-card-link:hover .card.card-container {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+.dashboard-card-link:focus {
+    outline: none;
 }
 p.cards-pg {
     color: #AFAFAF;
