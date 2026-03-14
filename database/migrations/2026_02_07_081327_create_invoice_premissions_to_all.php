@@ -36,7 +36,7 @@ class CreateInvoicePremissionsToAll extends Migration
                 'name'   => 'invoice',
                 'create' => 0,
                 'update' => 0,
-                'view'   => 1,
+                'view'   => 0,
                 'delete' => 0,
             ];
             $permission = Permission::create($permissionData);
