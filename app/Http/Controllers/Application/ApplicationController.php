@@ -672,6 +672,12 @@ class ApplicationController extends Controller
             $application = new Application();
             $application->user_id = $user_id;
             $application->app_id = $request->app_id;
+
+            // Secured group: allow duplicate base app_id with sequential postfix (-001, -002, etc.)
+            if ($request->group == 'Secured') {
+                $application->app_id = generateUniqueAppId($request->app_id, Application::class);
+            }
+
             $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));
             $application->case_location = $request->case_location;
             $application->case_state = $request->case_state;
@@ -969,6 +975,12 @@ class ApplicationController extends Controller
         // }
         // Update the application with the validated data
         $application->app_id = $request->app_id;
+
+        // Secured group: if app_id was changed, ensure it doesn't conflict with existing records
+        if ($request->group == 'Secured' && $request->app_id !== $application->getOriginal('app_id')) {
+            $application->app_id = generateUniqueAppId($request->app_id, Application::class, [], $application->id);
+        }
+
         $application->disbursement_date = date('Y-m-d', strtotime($request->disbursement_date));
         $application->case_location = $request->case_location;
         $application->case_state = $request->case_state;
@@ -1352,39 +1364,37 @@ class ApplicationController extends Controller
                 if ($row['DISBURSE AMOUNT'] !== '') {
                     $appId = ($row['APP ID'] == '') ? null : $row['APP ID'];
 
-                    // Check if the app_id exists in the database
-                    $existingApplication = null;
-
-                    if (!is_null($appId)) {
-                        // Check for an existing record with the same app_id
-                        $existingApplication = Application::where('app_id', $appId)->first();
-                    }
-
-                    // If app_id exists and FRESH/BT is not 'tranche', skip this row
-                    if ($existingApplication && strtolower($row['FRESH/BT']) != 'tranche') {
-                        continue;  // Skip the current row
-                    }
-
-                    // Proceed to insert if app_id is new, or if FRESH/BT is 'tranche'
+                    // Determine bank, product, and group early (needed for Secured duplicate logic)
                     $bank_id = Bank::where('name', $row['BANK NAME'])->value('id');
                     $bank = Bank::where('name', $row['BANK NAME'])->first();
                     $product_id = Product::where('name', $row['PRODUCT NAME'])->value('id');
                     $group = Product::where('id', $product_id)->value('group');
 
+                    // Handle duplicate app_id based on group type
+                    if (!is_null($appId)) {
+                        $existingApplication = Application::where('app_id', $appId)->first();
+                        if ($existingApplication) {
+                            if ($group == 'Secured') {
+                                // Secured: allow duplicate with sequential postfix (-001, -002, etc.)
+                                $appId = generateUniqueAppId($appId, Application::class);
+                            } else {
+                                // Unsecured: skip duplicate (existing behavior)
+                                continue;
+                            }
+                        }
+                    }
 
                     $bank_product = BankProduct::where('bank_id', $bank_id)->where('product_id', $product_id)->first();
                     $application = new Application();
-                    // Associate the loan application with the authenticated user
                     $application->user_id = $userId;
-                    // Map Excel data to model attributes
                     if ($bank_product) {
                         if ($bank_product->auto_generate_lan) {
                             $application->app_id = strtoupper(Str::slug($bank->short_name) . '_' . strtoupper(Str::slug($row['PRODUCT NAME'])) . '_' . rand(1111111, 9999999));
                         } else {
-                            $application->app_id = $row['APP ID'] ?? NULL;
+                            $application->app_id = $appId;
                         }
                     } else {
-                        $application->app_id = $row['APP ID'] ?? NULL;
+                        $application->app_id = $appId;
                     }
 
                     // Convert DateTimeImmutable to a string format
@@ -1551,12 +1561,18 @@ class ApplicationController extends Controller
                         }
                     }
 
-                    // Check if app_id already exists in BankMIS table
+                    // Handle duplicate app_id in BankMIS table
                     if (isset($data['app_id']) && !empty($data['app_id'])) {
                         $appIdExists = BankMIS::where('app_id', $data['app_id'])->exists();
                         if ($appIdExists) {
-                            $duplicateAppIds[] = $data['app_id'];
-                            continue;  // Skip this row if app_id already exists
+                            if ($group == 'Secured') {
+                                // Secured: allow duplicate with sequential postfix (-001, -002, etc.)
+                                $data['app_id'] = generateUniqueAppId($data['app_id'], BankMIS::class);
+                            } else {
+                                // Unsecured: skip duplicate (existing behavior)
+                                $duplicateAppIds[] = $data['app_id'];
+                                continue;
+                            }
                         }
                     }
 
