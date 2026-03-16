@@ -1270,3 +1270,46 @@ if (!function_exists('generateOTP')) {
         return 246810;
     }
 }
+
+if (!function_exists('generateUniqueAppId')) {
+
+    /**
+     * For Secured group: generate a unique app_id by appending -001, -002, etc.
+     * if the base app_id already exists in the given model's table.
+     * Returns the base app_id as-is if no duplicate is found.
+     *
+     * @param string $baseAppId  The original app_id to check
+     * @param string $modelClass The model class (Application::class or BankMIS::class)
+     * @param array  $extraConditions Additional where conditions ['column' => 'value']
+     * @param int|null $excludeId Exclude this record ID from the check (used during update)
+     * @return string
+     */
+    function generateUniqueAppId($baseAppId, $modelClass, $extraConditions = [], $excludeId = null)
+    {
+        $query = $modelClass::where('app_id', $baseAppId);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        foreach ($extraConditions as $col => $val) {
+            $query->where($col, $val);
+        }
+        if (!$query->exists()) {
+            return $baseAppId;
+        }
+
+        $postfixQuery = $modelClass::where('app_id', 'LIKE', $baseAppId . '-%');
+        if ($excludeId) {
+            $postfixQuery->where('id', '!=', $excludeId);
+        }
+        $existing = $postfixQuery->pluck('app_id');
+
+        $maxPostfix = 0;
+        foreach ($existing as $existingAppId) {
+            if (preg_match('/-(\d{3})$/', $existingAppId, $matches)) {
+                $maxPostfix = max($maxPostfix, intval($matches[1]));
+            }
+        }
+
+        return $baseAppId . '-' . str_pad($maxPostfix + 1, 3, '0', STR_PAD_LEFT);
+    }
+}
