@@ -16,6 +16,12 @@
 @endsection
 @section('body')
 <div class="card">
+    @if(session('success'))
+    <div class="alert alert-success mb-3">{{ session('success') }}</div>
+    @endif
+    @if(session('warning'))
+    <div class="alert alert-warning mb-3">{{ session('warning') }}</div>
+    @endif
     <div class="application-header">
         <h3 class="application-heading">All Application</h3>
         <div class="btn-container">

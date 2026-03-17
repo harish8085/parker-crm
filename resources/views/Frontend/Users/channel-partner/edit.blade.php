@@ -138,7 +138,10 @@
                  </select>
              </div>
 
-             @if($channelPartner->channelUser->isEmpty())
+             @php
+                 $isChannelRole = $channelPartner->roles->contains('id', 2);
+             @endphp
+             @if($isChannelRole || $channelPartner->channelUser->isEmpty())
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">User Commission <div class="tooltip-wrapper">
                          <span class="info-icon">i</span>

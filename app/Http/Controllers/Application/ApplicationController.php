@@ -34,6 +34,70 @@ use App\Models\ApplicationActivityLog;
 
 class ApplicationController extends Controller
 {
+    private function refreshMisMatchForApplication(Application $application): void
+    {
+        $bankProduct = BankProduct::where('bank_id', $application->bank_id)
+            ->where('product_id', $application->product_id)
+            ->first();
+
+        if (!$bankProduct) {
+            return;
+        }
+
+        $misRecord = null;
+        if (!empty($application->bank_mis_id)) {
+            $misRecord = BankMIS::where('id', $application->bank_mis_id)
+                ->where('bank_id', $application->bank_id)
+                ->where('product_id', $application->product_id)
+                ->first();
+        }
+
+        if (!$misRecord) {
+            if ($bankProduct->auto_generate_lan) {
+                $misRecord = BankMIS::where('bank_id', $application->bank_id)
+                    ->where('product_id', $application->product_id)
+                    ->where('customer_name', $application->customer_name)
+                    ->latest('id')
+                    ->first();
+            } else {
+                $misRecord = BankMIS::where('bank_id', $application->bank_id)
+                    ->where('product_id', $application->product_id)
+                    ->where('app_id', $application->app_id)
+                    ->latest('id')
+                    ->first();
+            }
+        }
+
+        if (!$misRecord) {
+            if (!empty($application->bank_mis_id)) {
+                $application->update(['bank_mis_id' => null]);
+            }
+            return;
+        }
+
+        $updateData = [
+            'app_id_is_matched' => checkValueAndSetFlag($application, 'app_id', $misRecord->app_id),
+            'case_location_is_matched' => checkValueAndSetFlag($application, 'case_location', $misRecord->case_location),
+            'customer_name_is_matched' => checkValueAndSetFlag($application, 'customer_name', $misRecord->customer_name),
+            'bank_id_is_matched' => checkValueAndSetFlag($application, 'bank_id', $misRecord->bank_id),
+            'product_id_is_matched' => checkValueAndSetFlag($application, 'product_id', $misRecord->product_id),
+            'group_is_matched' => checkValueAndSetFlag($application, 'group', $misRecord->group),
+            'disburse_amount_is_matched' => checkValueAndSetFlag($application, 'disburse_amount', floatval($misRecord->disbAmount ?? 0)),
+            'commission_rate_is_matched' => checkValueAndSetFlag($application, 'commission_rate', floatval($misRecord->payout_rate ?? 0)),
+            'updated_at' => Carbon::now(),
+            'bank_mis_id' => $misRecord->id,
+        ];
+
+        if ($bankProduct->auto_generate_lan) {
+            BankMIS::where('id', $misRecord->id)->update(['app_id' => $application->app_id]);
+            DB::table('applications')->where('id', $application->id)->update([
+                'app_id_is_value' => $misRecord->app_id
+            ]);
+            $updateData['app_id_is_matched'] = 1;
+        }
+
+        $application->update($updateData);
+    }
 
     public function index(Request $request)
     {
@@ -1157,6 +1221,7 @@ class ApplicationController extends Controller
         
         // Save the updated application to the database
         $application->save();
+        $this->refreshMisMatchForApplication($application);
 
         // Log activity: track changes
         $trackedFields = ['app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'sharing_commission', 'status', 'case_location', 'case_state', 'disbursement_date', 'group'];
@@ -1458,6 +1523,7 @@ class ApplicationController extends Controller
 
             // Iterate through each row of the Excel data and insert into the database
             $successCount = 0; // Variable to count successful entries
+            $duplicateAppIds = []; // Track duplicates for Unsecured group
 
 
             foreach ($rows as $row) {
@@ -1480,6 +1546,7 @@ class ApplicationController extends Controller
                                 $appId = generateUniqueAppId($appId, Application::class);
                             } else {
                                 // Unsecured: skip duplicate (existing behavior)
+                                $duplicateAppIds[] = $appId;
                                 continue;
                             }
                         }
@@ -1568,8 +1635,19 @@ class ApplicationController extends Controller
             if ($successCount > 0) {
                 $toastMessage = ($successCount > 1) ? "$successCount applications were" : "One application was";
                 $toastMessage .= " uploaded successfully.";
-                return redirect()->to('/application')->with('success', $toastMessage);
+                $redirect = redirect()->to('/application')->with('success', $toastMessage);
+                if (!empty($duplicateAppIds)) {
+                    $duplicateList = implode(', ', array_unique($duplicateAppIds));
+                    $warningMessage = "The following application number(s) already exist and were not added: $duplicateList. Please check your application numbers.";
+                    $redirect->with('warning', $warningMessage);
+                }
+                return $redirect;
             } else {
+                if (!empty($duplicateAppIds)) {
+                    $duplicateList = implode(', ', array_unique($duplicateAppIds));
+                    $warningMessage = "The following application number(s) already exist and were not added: $duplicateList. Please check your application numbers.";
+                    return redirect()->back()->with('warning', $warningMessage)->withInput();
+                }
                 // If no records were inserted
                 return response()->json([
                     'error' => 'No new records added',
