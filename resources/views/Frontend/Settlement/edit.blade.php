@@ -31,7 +31,7 @@
                 <input class="bank-detail-input form-control" type="date" name="settlement_date" id="settlement_date" value="{{$settlement->settlement_date}}" />
             </div>
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Total Commission Amount</label>
+                <label class="bank-input-label">Total {{ $amountLabel ?? 'Commission Amount' }}</label>
                 <input class="bank-detail-input form-control" type="number" name="amount" id="amount" placeholder="Enter amount" value="{{$settlement->amount}}" @if($settlement->status =='completed') readonly @endif/>
             </div>
             @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3)
@@ -71,18 +71,36 @@
                         <th class="table-header">Customer Name</th>
                         <th class="table-header">Disbursement Amount</th>
                         <th class="table-header">Submitted By</th>
-                        <th class="table-header">Company Receiving</th>
-                        <th class="table-header">Sharing Commission</th>
-                        <th class="table-header">Channel Commission</th>
-                        <th class="table-header">Commission Amount</th>
+                        <th class="table-header">{{ ($settlementType ?? 'commission') === 'contest' ? 'Contest Receiving' : 'Company Receiving' }}</th>
+                        @if(($settlementType ?? 'commission') === 'contest')
+                        <th class="table-header">Contest Amount</th>
+                        @endif
+                        <th class="table-header">{{ ($settlementType ?? 'commission') === 'contest' ? 'Channel Sharing' : 'Sharing Commission' }}</th>
+                        <th class="table-header">{{ ($settlementType ?? 'commission') === 'contest' ? 'Channel Contest Rate' : 'Channel Commission' }}</th>
+                        <th class="table-header">{{ ($settlementType ?? 'commission') === 'contest' ? 'Channel Contest Amount' : ($amountLabel ?? 'Commission Amount') }}</th>
                         <th class="table-header">TDS ({{ $tdsPercentage }}%)</th>
-                        <th class="table-header">Net Payable</th>
+                        <th class="table-header">{{ ($settlementType ?? 'commission') === 'contest' ? 'Net Value' : 'Net Payable' }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($settlement_distributions as $key => $dist)
                     @php
                         $app = \App\Models\Application::find($dist->application_id);
+                        $contest = (($settlementType ?? 'commission') === 'contest' && !empty($dist->contest_mis_id))
+                            ? \App\Models\ContestMis::find($dist->contest_mis_id)
+                            : null;
+                        $contestReceiving = ($contest && $contest->contest_rate !== null)
+                            ? (float) $contest->contest_rate
+                            : (($app && $app->commission_rate !== null) ? (float) $app->commission_rate : null);
+                        $sharingRate = $dist->received_rate !== null ? (float) $dist->received_rate : null;
+                        $contestAmount = (($settlementType ?? 'commission') === 'contest')
+                            ? (($dist->rc_commission ?? 0) > 0
+                                ? (float) $dist->rc_commission
+                                : (($sharingRate && $sharingRate > 0) ? round(((float)($dist->gross_amount ?? 0) / ($sharingRate / 100)), 2) : 0))
+                            : null;
+                        $channelRate = ($contestReceiving !== null && $sharingRate !== null)
+                            ? round($contestReceiving * ($sharingRate / 100), 4)
+                            : null;
                     @endphp
                     <tr>
                         <td>{{ $key + 1 }}</td>
@@ -103,16 +121,12 @@
                                 -
                             @endif
                         </td>
-                        <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
-                        <td>{{ $dist->received_rate ?? '-' }}%</td>
-                        <td>
-                            @php
-                                $rcCommission = ($app && $app->commission_rate && $dist->received_rate)
-                                    ? round(floatval($app->commission_rate) * (floatval($dist->received_rate) / 100), 2)
-                                    : null;
-                            @endphp
-                            {{ $rcCommission !== null ? $rcCommission . '%' : '-' }}
-                        </td>
+                        <td>{{ $contestReceiving !== null ? rtrim(rtrim(number_format($contestReceiving, 4, '.', ''), '0'), '.') . '%' : '-' }}</td>
+                        @if(($settlementType ?? 'commission') === 'contest')
+                        <td>₹ {{ number_format($contestAmount ?? 0, 2) }}</td>
+                        @endif
+                        <td>{{ $sharingRate !== null ? rtrim(rtrim(number_format($sharingRate, 2, '.', ''), '0'), '.') . '%' : '-' }}</td>
+                        <td>{{ $channelRate !== null ? rtrim(rtrim(number_format($channelRate, 4, '.', ''), '0'), '.') . '%' : '-' }}</td>
                         <td>₹ {{ number_format($dist->gross_amount ?? 0, 2) }}</td>
                         <td>₹ {{ number_format($dist->tds ?? 0, 2) }}</td>
                         <td>₹ {{ number_format($dist->amount ?? 0, 2) }}</td>
@@ -121,7 +135,7 @@
                 </tbody>
                 <tfoot>
                     <tr style="font-weight: bold; background-color: #f5f5f5;">
-                        <td colspan="8" class="text-end">Totals:</td>
+                        <td colspan="{{ ($settlementType ?? 'commission') === 'contest' ? 9 : 8 }}" class="text-end">Totals:</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('gross_amount'), 2) }}</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('tds'), 2) }}</td>
                         <td>₹ {{ number_format($settlement_distributions->sum('amount'), 2) }}</td>

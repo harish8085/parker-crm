@@ -4,10 +4,70 @@
 <link rel="stylesheet" href="{{asset('assets/css/custom-table.css')}}">
 
 <style>
+        .settlement-type-switch {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 12px;
+        }
+
+        .settlement-type-wrap {
+                margin-bottom: 8px;
+        }
+
+        .settlement-type-caption {
+                font-size: 13px;
+                color: #6b7280;
+                margin-bottom: 8px;
+        }
+
+        .settlement-type-tab {
+                border: 1px solid #d0d7de;
+                border-radius: 12px;
+                padding: 12px 14px;
+                background: #ffffff;
+                color: #1f2937;
+                text-decoration: none;
+                transition: all 0.2s ease;
+                display: block;
+        }
+
+        .settlement-type-tab:hover {
+                border-color: #94a3b8;
+                background: #f8fafc;
+        }
+
+        .settlement-type-tab.active {
+                border-color: #0ea5e9;
+                background: #f0f9ff;
+                box-shadow: inset 0 0 0 1px #bae6fd;
+        }
+
+        .settlement-type-title {
+                display: block;
+                font-size: 15px;
+                font-weight: 700;
+                color: #0f172a;
+        }
+
+        .settlement-type-note {
+                display: block;
+                font-size: 12px;
+                color: #475569;
+                margin-top: 2px;
+        }
+
+        @media (max-width: 991px) {
+                .settlement-type-switch {
+                        grid-template-columns: 1fr;
+                }
+        }
+
         .date_range {
                 display: none;
                 /* Hidden by default */
         }
+
         .transaction-summary {
                 display: none;
                 background: #ffffff;
@@ -15,8 +75,9 @@
                 border-radius: 8px;
                 padding: 15px 20px;
                 margin-bottom: 15px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
+
         .transaction-summary .summary-row {
                 display: flex;
                 justify-content: space-between;
@@ -24,9 +85,11 @@
                 font-size: 14px;
                 border-bottom: 1px solid #f0f0f0;
         }
+
         .transaction-summary .summary-row:last-child {
                 border-bottom: none;
         }
+
         .transaction-summary .summary-row.total {
                 border-top: 2px solid #333;
                 border-bottom: none;
@@ -35,27 +98,34 @@
                 padding-top: 12px;
                 margin-top: 5px;
         }
+
         .transaction-summary .summary-label {
                 color: #0a0000;
                 font-weight: 500;
         }
+
         .transaction-summary .summary-value {
                 font-weight: 700;
                 color: #333;
         }
+
         .transaction-summary .summary-value.val-gross {
                 color: #333;
         }
+
         .transaction-summary .summary-value.val-tds {
                 color: #555;
         }
+
         .transaction-summary .summary-value.val-advance {
                 color: #dc3545;
         }
+
         .transaction-summary .summary-value.val-net {
                 color: #28a745;
                 font-size: 20px;
         }
+
         #processBtn {
                 display: none;
         }
@@ -86,7 +156,7 @@
         <!-- Channel Advance Balance Info -->
         @if(($channelAdvance ?? 0) > 0)
         <div class="p-4 pb-0">
-                <div class="alert alert-warning d-flex align-items-center mb-0" style="border-radius: 8px;">
+                <div class="alert alert-danger d-flex align-items-center mb-0" style="border-radius: 8px;">
                         <i class="fas fa-info-circle me-2" style="font-size: 18px;"></i>
                         <span>Channel Advance Balance: <strong>₹ {{ indianNumberFormat($channelAdvance) }}</strong></span>
                 </div>
@@ -98,7 +168,7 @@
                 <div class="transaction-summary" id="transactionSummary">
                         <h6 class="mb-3"><strong>Selected Distribution Summary</strong></h6>
                         <div class="summary-row">
-                                <span class="summary-label">Commission Amount:</span>
+                                <span class="summary-label">{{ $amountLabel ?? 'Commission Amount' }}:</span>
                                 <span class="summary-value val-gross" id="sumGross">₹ 0</span>
                         </div>
                         <div class="summary-row">
@@ -106,8 +176,8 @@
                                 <span class="summary-value val-tds" id="sumTds">₹ 0</span>
                         </div>
 
-                        <!-- Advance Deduction: checker-only controls -->
-                        @if(auth()->user()->roles[0]->id == 36 && ($channelAdvance ?? 0) > 0)
+                        <!-- Advance Deduction: available for processing roles -->
+                        @if(in_array(auth()->user()->roles[0]->id, [1, 35, 36]) && ($channelAdvance ?? 0) > 0)
                         <div class="summary-row" style="align-items: center;">
                                 <span class="summary-label">
                                         <label style="cursor: pointer; margin: 0;">
@@ -143,6 +213,33 @@
 
         <!-- filter form -->
         <div class="bank-card p-4">
+                @if(!($hideSettlementTabs ?? false))
+                <div class="settlement-type-wrap">
+                        <div class="settlement-type-caption">Choose settlement page</div>
+                        <div class="settlement-type-switch">
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">
+                                        <span class="settlement-type-title">Commission</span>
+                                        <span class="settlement-type-note">Regular payout settlements</span>
+                                </a>
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">
+                                        <span class="settlement-type-title">Contest</span>
+                                        <span class="settlement-type-note">Contest payout settlements</span>
+                                </a>
+                                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">
+                                        <span class="settlement-type-title">Insurance</span>
+                                        <span class="settlement-type-note">Insurance payout settlements</span>
+                                </a>
+                        </div>
+                </div>
+                <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item me-1">
+                                <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'pending' ? 'active' : '' }}" data-tab="pending" href="#" role="tab">Pending</a>
+                        </li>
+                        <li class="nav-item">
+                                <a class="nav-link settlement-tab {{ ($tab ?? 'pending') === 'completed' ? 'active' : '' }}" data-tab="completed" href="#" role="tab">Completed</a>
+                        </li>
+                </ul>
+                @endif
                 <div class="row">
                         <div class="col-lg-4 mb-2">
                                 <div class="bank-detail-inputs">
@@ -278,11 +375,14 @@
 
 <!-- Datatable -->
 <script type="text/javascript">
-                $.fn.dataTable.ext.errMode = 'none';
+        $.fn.dataTable.ext.errMode = 'none';
 
         @php
-                $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
+        $showCheckbox = isset($p) && in_array(auth()->user()->roles[0]->id, [1, 35, 36]);
         @endphp
+
+        var currentTab = @json($tab ?? 'pending');
+        var currentSettlementType = @json($settlementType ?? 'commission');
 
         function load_data(date = '', date_range = '', status = '') {
                 var columns = [
@@ -366,8 +466,7 @@
                                 [10, 25, 50, 100, 500, -1],
                                 [10, 25, 50, 100, 500, 'All']
                         ],
-                        buttons: [
-                                {
+                        buttons: [{
                                         extend: 'csvHtml5',
                                         text: 'CSV',
                                         title: 'Settlements',
@@ -420,7 +519,9 @@
                                         date: date,
                                         date_range: date_range,
                                         status: status,
-                                        p: "{{ $p }}"
+                                        p: "{{ $p }}",
+                                        tab: currentTab,
+                                        settlement_type: currentSettlementType
                                 },
                                 error: function(xhr, error, thrown) {
                                         console.log(xhr.responseText);
@@ -455,6 +556,25 @@
                         window.location.reload();
                 });
 
+                $(document).on('click', '.settlement-tab', function(e) {
+                        e.preventDefault();
+                        var tab = $(this).data('tab');
+                        if (tab === currentTab) return;
+                        currentTab = tab;
+                        $('.settlement-tab').removeClass('active');
+                        $(this).addClass('active');
+                        $('.data-table-2').DataTable().destroy();
+                        load_data($('#date').val() || '', $('#date-range-picker').val() || '', $('#status').val() || '');
+                });
+
+                $(document).on('click', '.settlement-type-tab', function(e) {
+                        e.preventDefault();
+                        var settlementType = $(this).data('type');
+                        if (settlementType === currentSettlementType) return;
+                        currentSettlementType = settlementType;
+                        window.location.href = "{{ url('/settlement') }}?p={{ $p }}&settlement_type=" + settlementType + "&tab=" + currentTab;
+                });
+
                 @if($showCheckbox)
                 // Track selected IDs across pages
                 var selectedIds = [];
@@ -468,7 +588,9 @@
                                 if (isChecked && selectedIds.indexOf(id) === -1) {
                                         selectedIds.push(id);
                                 } else if (!isChecked) {
-                                        selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                        selectedIds = selectedIds.filter(function(item) {
+                                                return item !== id;
+                                        });
                                 }
                         });
                         updateSummary();
@@ -482,7 +604,9 @@
                                         selectedIds.push(id);
                                 }
                         } else {
-                                selectedIds = selectedIds.filter(function(item) { return item !== id; });
+                                selectedIds = selectedIds.filter(function(item) {
+                                        return item !== id;
+                                });
                                 $('#selectAll').prop('checked', false);
                         }
                         updateSummary();
@@ -523,7 +647,9 @@
                                 $('#processBtn').show().prop('disabled', false);
 
                                 // Client-side calculation from data attributes
-                                var clientGross = 0, clientTds = 0, clientNet = 0;
+                                var clientGross = 0,
+                                        clientTds = 0,
+                                        clientNet = 0;
                                 $('.dist-checkbox:checked').each(function() {
                                         clientGross += parseFloat($(this).data('gross')) || 0;
                                         clientTds += parseFloat($(this).data('tds')) || 0;
@@ -588,6 +714,16 @@
                                 return;
                         }
 
+                        var selectedNet = 0;
+                        $('.dist-checkbox:checked').each(function() {
+                                selectedNet += parseFloat($(this).data('net')) || 0;
+                        });
+                        var advanceAmount = getAdvanceDeduction();
+                        if (advanceAmount > selectedNet) {
+                                alert('Advance deduction cannot be more than selected net payout amount (₹ ' + selectedNet.toFixed(2) + ').');
+                                return;
+                        }
+
                         if (!confirm('Are you sure you want to process ' + selectedIds.length + ' distribution(s) into a transaction?')) {
                                 return;
                         }
@@ -601,7 +737,6 @@
                         });
 
                         // Add advance amount
-                        var advanceAmount = getAdvanceDeduction();
                         form.append('<input type="hidden" name="advance_amount" value="' + advanceAmount + '">');
 
                         form.submit();

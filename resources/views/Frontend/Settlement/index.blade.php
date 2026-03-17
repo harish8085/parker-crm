@@ -2,6 +2,58 @@
 @section('style')
 <link rel="stylesheet" href="{{asset('assets/css/settlement.css')}}">
 <link rel="stylesheet" href="{{asset('assets/css/custom-table.css')}}">
+<style>
+    .settlement-type-switch {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .settlement-type-wrap {
+        margin-bottom: 8px;
+    }
+    .settlement-type-caption {
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+    .settlement-type-tab {
+        border: 1px solid #d0d7de;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: #ffffff;
+        color: #1f2937;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: block;
+    }
+    .settlement-type-tab:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+    }
+    .settlement-type-tab.active {
+        border-color: #0ea5e9;
+        background: #f0f9ff;
+        box-shadow: inset 0 0 0 1px #bae6fd;
+    }
+    .settlement-type-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .settlement-type-note {
+        display: block;
+        font-size: 12px;
+        color: #475569;
+        margin-top: 2px;
+    }
+    @media (max-width: 991px) {
+        .settlement-type-switch {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 @endsection
 @section('body')
 
@@ -26,6 +78,35 @@
             </div>
     @endif
 
+    <!-- Tabs -->
+    <div class="p-4 pb-0">
+        <div class="settlement-type-wrap">
+            <div class="settlement-type-caption">Choose settlement page</div>
+            <div class="settlement-type-switch">
+                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'commission' ? 'active' : '' }}" data-type="commission" href="#" role="tab">
+                    <span class="settlement-type-title">Commission</span>
+                    <span class="settlement-type-note">Regular payout settlements</span>
+                </a>
+                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'contest' ? 'active' : '' }}" data-type="contest" href="#" role="tab">
+                    <span class="settlement-type-title">Contest</span>
+                    <span class="settlement-type-note">Contest payout settlements</span>
+                </a>
+                <a class="settlement-type-tab {{ ($settlementType ?? 'commission') === 'insurance' ? 'active' : '' }}" data-type="insurance" href="#" role="tab">
+                    <span class="settlement-type-title">Insurance</span>
+                    <span class="settlement-type-note">Insurance payout settlements</span>
+                </a>
+            </div>
+        </div>
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link {{ ($tab ?? 'pending') === 'pending' ? 'active' : '' }} settlement-tab" data-tab="pending" href="#" role="tab">Pending</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ ($tab ?? 'pending') === 'completed' ? 'active' : '' }} settlement-tab" data-tab="completed" href="#" role="tab">Completed</a>
+            </li>
+        </ul>
+    </div>
+
     <!-- filter form -->
     <div class="bank-card p-4">
         <div class="row">
@@ -47,19 +128,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-
-    <!-- Tabs -->
-    <div class="p-4 pb-0">
-        <ul class="nav nav-tabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active settlement-tab" data-tab="pending" href="#" role="tab">Pending</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link settlement-tab" data-tab="completed" href="#" role="tab">Completed</a>
-            </li>
-        </ul>
     </div>
 
     <div class="table-responsive p-4" id="myTable">

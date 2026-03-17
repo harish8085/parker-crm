@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\MasterCodeController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\AnnouncementCategoryController;
 use App\Http\Controllers\Advance\AdvanceController;
+use App\Http\Controllers\Advance\AdvanceRequestController;
 use App\Http\Controllers\Application\ApplicationController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Bank\BankController;
@@ -33,12 +34,14 @@ use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
 use App\Http\Controllers\User\MasterDataController;
 use App\Http\Controllers\MISTracker\MISTrackerController;
-use App\Http\Controllers\Bank_MIS\InvoiceController as Bank_MISInvoiceController;
+use App\Http\Controllers\Contest\ContestController;
+use App\Http\Controllers\Insurance\InsuranceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
 use Illuminate\Support\Facades\Route;
+
 
 
 /*
@@ -108,14 +111,15 @@ Route::middleware([CheckLogin::class])->group(function () {
     //mis tracker
     Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
 
+    // Invoice Payment Route
     Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
     Route::post('/invoice_payment/filter', [InvoicePaymentController::class, 'filter'])->name('invoice_payment.filter');
     Route::get('/invoice_payment/view/{id}', [InvoicePaymentController::class, 'show'])->name('invoice_payment.show');
     Route::get('/invoice_payment/edit/{id}', [InvoicePaymentController::class, 'edit'])->name('invoice_payment.edit');
     Route::put('/invoice_payment/{id}', [InvoicePaymentController::class, 'update'])->name('invoice_payment.update');
     Route::delete('/invoice_payment/{id}', [InvoicePaymentController::class, 'destroy'])->name('invoice_payment.destroy');
-
     Route::post('/invoice_payment/getInvoiceCases', [InvoicePaymentController::class, 'getInvoiceCases'])->name('invoice_payment.getInvoiceCases');
+
 });
 
 
@@ -129,6 +133,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/getAllProduct', [BankProductController::class, 'getAllProduct']);
     Route::post('/getServiceProduct', [ServiceController::class, 'getServiceProduct']);
     Route::post('/getUserCommission', [ApplicationController::class, 'getUserCommission']);
+    Route::get('/application/channel/{channelId}/associates', [ApplicationController::class, 'getAssociatedPartnersByChannel'])->name('application.channel.associates');
 
     //Manage Permission Route
     Route::get('/sheet-matching', [SheetMatchingController::class, 'index'])->name('sheet-matching.index');
@@ -140,8 +145,6 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     Route::post('/getFileData', [SheetMatchingController::class, 'getFileData']);
     Route::post('/application/update/remark', [ApplicationController::class, 'updateRemark']);
-    Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
-    Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
 
     //Bank Route
     Route::get('/remark-status', [RemarkController::class, 'index'])->name('remark.index');
@@ -169,11 +172,18 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::get('/advance/view/{id}', [AdvanceController::class, 'show'])->name('advance.show');
     Route::get('/advance/update/{id}', [AdvanceController::class, 'edit'])->name('advance.edit');
     Route::post('/advance/update/{id}', [AdvanceController::class, 'update'])->name('advance.update');
+    Route::delete('/advance/delete/{id}', [AdvanceController::class, 'destroy'])->name('advance.destroy');
     Route::get('/advance/users/search', [AdvanceController::class, 'searchUsers'])->name('advance.users.search');
     Route::get('/advance/applications/by-user', [AdvanceController::class, 'applicationsByUser'])->name('advance.applications.by-user');
     Route::get('/advance/applications/list-by-user', [AdvanceController::class, 'applicationsListByUser'])->name('advance.applications.list-by-user');
     Route::post('/advance/cases/calculate-amount', [AdvanceController::class, 'calculateCaseAmount'])->name('advance.cases.calculate');
     Route::get('/advance/log/{logId}/application-ids', [AdvanceController::class, 'getLogApplicationIds'])->name('advance.log.application-ids');
+    Route::delete('/advance/log/delete/{logId}', [AdvanceController::class, 'destroyLog'])->name('advance.log.destroy');
+    Route::get('/advance-requests', [AdvanceRequestController::class, 'index'])->name('advance-requests.index');
+    Route::post('/advance-requests/{id}/approve', [AdvanceRequestController::class, 'approve'])->name('advance-requests.approve');
+    Route::post('/advance-requests/{id}/reject', [AdvanceRequestController::class, 'reject'])->name('advance-requests.reject');
+    Route::get('/advance-requests/{id}/cases', [AdvanceRequestController::class, 'cases'])->name('advance-requests.cases');
+    Route::get('/advance-requests/checkers/search', [AdvanceRequestController::class, 'searchCheckers'])->name('advance-requests.checkers.search');
 
     // Announcement popup API for logged-in users
     Route::get('/announcements/active', [AnnouncementPopupController::class, 'active'])->name('announcements.active');
@@ -200,8 +210,26 @@ Route::middleware([CheckLogin::class])->group(function () {
 
     // Settlement routes (under CheckLogin so they bypass CheckPermission)
     Route::get('/settlement/distribution/edit/{id}', [SettlementController::class, 'editDistribution'])->name('settlement.distribution.edit');
+    Route::get('/settlement/distribution/view/{id}', [SettlementController::class, 'showDistribution'])->name('settlement.distribution.view');
     Route::post('/settlement/distribution/update/{id}', [SettlementController::class, 'updateDistribution'])->name('settlement.distribution.update');
     Route::get('/settlement/summary/{userId}', [SettlementController::class, 'settlementSummary'])->name('settlement.summary');
+
+    // contest routes
+    Route::get('/contest', [ContestController::class, 'index'])->name('contest.index');
+    Route::get('/contest/upload', [ContestController::class, 'uploadView'])->name('contest.upload.view');
+    Route::post('/contest/upload', [ContestController::class, 'upload'])->name('contest.upload');
+    Route::get('/contest/view/{id}', [ContestController::class, 'show'])->name('contest.show');
+    Route::get('/contest/edit/{id}', [ContestController::class, 'edit'])->name('contest.edit');
+    Route::put('/contest/{id}', [ContestController::class, 'update'])->name('contest.update');
+    Route::post('/contest/{id}/workflow-status', [ContestController::class, 'updateWorkflowStatus'])->name('contest.workflow-status');
+
+    //insurance routes
+    Route::get('/insurance', [InsuranceController::class, 'index'])->name('insurance.index');
+    Route::get('/insurance/upload', [InsuranceController::class, 'uploadView'])->name('insurance.upload.view');
+    Route::post('/insurance/upload', [InsuranceController::class, 'upload'])->name('insurance.upload');
+    Route::get('/insurance/view/{id}', [InsuranceController::class, 'show'])->name('insurance.show');
+    Route::get('/insurance/edit/{id}', [InsuranceController::class, 'edit'])->name('insurance.edit');
+    Route::put('/insurance/{id}', [InsuranceController::class, 'update'])->name('insurance.update');
 });
 
 Route::middleware([CheckPermission::class])->group(function () {
@@ -338,10 +366,12 @@ Route::middleware([CheckPermission::class])->group(function () {
     Route::put('/staff/update/role/{role}', [RoleController::class, 'update']);
     Route::delete('/staff/delete/role/{role}', [RoleController::class, 'destroy']);
 
-    //Manage Permission Route
-    Route::get('/staff/view/permissions', [PermissionController::class, 'index'])->name('permission.index');
-    Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
-    Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
+    //Manage Permission Route (Admin only)
+    Route::middleware([CheckAdmin::class])->group(function () {
+        Route::get('/staff/view/permissions', [PermissionController::class, 'index'])->name('permission.index');
+        Route::get('/staff/view/getPermission/{role}', [PermissionController::class, 'getPermission']);
+        Route::post('/staff/create/updatePermission',  [PermissionController::class, 'updatePermission']);
+    });
 
     //
     Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

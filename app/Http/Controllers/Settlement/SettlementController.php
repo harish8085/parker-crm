@@ -27,39 +27,54 @@ class SettlementController extends Controller
     public function index(Request $request)
     {
         $p = request('p');
+        $hideSettlementTabs = (bool) $request->boolean('detail', false);
+        $settlementType = in_array($request->input('settlement_type'), ['commission', 'contest', 'insurance'], true)
+            ? $request->input('settlement_type')
+            : 'commission';
+        $tab = in_array($request->input('tab'), ['pending', 'completed'], true)
+            ? $request->input('tab')
+            : 'pending';
+        $amountLabel = $settlementType === 'contest'
+            ? 'Contest Amount'
+            : ($settlementType === 'insurance' ? 'Insurance Amount' : 'Commission Amount');
 
         $Route = 'Settlement';
         $user = Auth::user();
 
-        $settlements = $this->getSettlementData($user, $p);
+        $settlements = $this->getSettlementData($user, $p, $settlementType);
 
         Session::put('channel_url', $p);
 
         // Channel/Sales users or detail view (when ?p= is set)
         // Makers (35) and Checkers (36) see the admin-like parent channel list, not the user view
         if ((Auth::user()->roles[0]->id == 2 || Auth::user()->roles[0]->id == 3) || $p) {
-            $settlements = $this->getSettlementData($user, $p);
+            $settlements = $this->getSettlementData($user, $p, $settlementType);
 
             if ($request->ajax()) {
                 // For detail view: show settlement_distributions (application-level breakdown)
                 $query = SettlementDistribution::query();
+                $statusScopedSettlements = Settlement::query()
+                    ->where('settlement_type', $settlementType)
+                    ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
+                    ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'));
 
                 if ($p) {
                     // Admin viewing a specific channel's distributions
-                    $settlementIds = Settlement::where('user_id', $p)->pluck('id');
+                    $settlementIds = (clone $statusScopedSettlements)->where('user_id', $p)->pluck('id');
                     $query->whereIn('settlement_id', $settlementIds);
                 } else {
                     // Channel/Sales user viewing their own distributions
-                    $settlementIds = Settlement::where('user_id', $user->id)
-                        ->where('status', '!=', 'checker')
-                        ->pluck('id');
+                    $settlementIds = (clone $statusScopedSettlements)->where('user_id', $user->id)->pluck('id');
                     $query->whereIn('settlement_id', $settlementIds);
                 }
+                $query->where('settlement_type', $settlementType);
 
-                // Hide completed/paid distributions
-                $query->where(function ($q) {
-                    $q->whereNull('payment_status')->orWhere('payment_status', '!=', 'Success');
-                });
+                if ($tab === 'pending') {
+                    // Hide completed/paid distributions only in pending tab
+                    $query->where(function ($q) {
+                        $q->whereNull('payment_status')->orWhere('payment_status', '!=', 'Success');
+                    });
+                }
 
                 // Date filter
                 if ($request->date) {
@@ -106,6 +121,7 @@ class SettlementController extends Controller
 
                 if ($request->status) {
                     $filteredSettlementIds = Settlement::where('user_id', $p ?? $user->id)
+                        ->where('settlement_type', $settlementType)
                         ->where('status', $request->status)
                         ->pluck('id');
                     $query->whereIn('settlement_id', $filteredSettlementIds);
@@ -124,36 +140,32 @@ class SettlementController extends Controller
                         }
                         return '';
                     })
-                    ->addColumn('app_id', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        return $application ? $application->app_id : 'N/A';
+                    ->addColumn('app_id', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        return $ctx['app_id'];
                     })
-                    ->addColumn('customer_name', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        return $application->customer_name ?? '-';
+                    ->addColumn('customer_name', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        return $ctx['customer_name'];
                     })
-                    ->addColumn('disbursement_amount', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        return $application ? '₹ ' . indianNumberFormat($application->disburse_amount ?? 0) : '-';
+                    ->addColumn('disbursement_amount', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        return '₹ ' . indianNumberFormat($ctx['disbursement_amount']);
                     })
-                    ->addColumn('submitted_by', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        if ($application && $application->user_id) {
-                            $user = DB::table('users')->where('id', $application->user_id)->first();
-                            return $user ? $user->first_name . ' ' . ($user->last_name ?? '') : '-';
-                        }
-                        return '-';
+                    ->addColumn('submitted_by', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        return $ctx['submitted_by'];
                     })
-                    ->addColumn('company_receiving', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        return $application && $application->commission_rate ? $application->commission_rate . '%' : '-';
+                    ->addColumn('company_receiving', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        return $ctx['company_receiving'];
                     })
                     ->addColumn('received_rate', function ($row) {
                         return $row->received_rate ? $row->received_rate . '%' : '-';
                     })
-                    ->addColumn('received_commission', function ($row) {
-                        $application = DB::table('applications')->where('id', $row->application_id)->first();
-                        $commissionRate = $application && $application->commission_rate ? floatval($application->commission_rate) : 0;
+                    ->addColumn('received_commission', function ($row) use ($settlementType) {
+                        $ctx = $this->getDistributionContext($row, $settlementType);
+                        $commissionRate = floatval($ctx['company_receiving_numeric'] ?? 0);
                         $receivedRate = $row->received_rate ? floatval($row->received_rate) : 0;
                         if ($commissionRate > 0 && $receivedRate > 0) {
                             $receivedCommission = round($commissionRate * ($receivedRate / 100), 2);
@@ -170,8 +182,8 @@ class SettlementController extends Controller
                     ->addColumn('net_amount', function ($row) {
                         return '₹ ' . indianNumberFormat($row->amount ?? 0);
                     })
-                    ->addColumn('advance_flag', function ($row) {
-                        $hasAdvance = DB::table('advance_payment_cases')
+                    ->addColumn('advance_flag', function ($row) use ($settlementType) {
+                        $hasAdvance = $settlementType === 'commission' && DB::table('advance_payment_cases')
                             ->where('application_id', $row->application_id)
                             ->exists();
                         return $hasAdvance
@@ -185,12 +197,17 @@ class SettlementController extends Controller
                         $statusText = ucwords($status);
                         return '<button class="status-buttons ' . $statusClass . '">' . $statusText . '</button>';
                     })
-                    ->addColumn('action', function ($row) {
+                    ->addColumn('action', function ($row) use ($settlementType, $tab) {
                         $buttons = '';
+                        $roleId = (int) (auth()->user()->roles[0]->id ?? 0);
                         if (auth()->user()->hasPermission('settlement', 'view')) {
-                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/view/' . $row->settlement_id) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
+                            $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/distribution/view/' . $row->id . '?settlement_type=' . $settlementType . '&tab=' . $tab) . '\'" src="' . asset('assets/images/eye-icon.svg') . '">';
                         }
-                        if (auth()->user()->hasPermission('settlement', 'update')) {
+                        if (
+                            $settlementType === 'commission'
+                            && auth()->user()->hasPermission('settlement', 'update')
+                            && !in_array($roleId, [2, 3], true)
+                        ) {
                             $buttons .= '<img onclick="window.location.href=\'' . url('/settlement/distribution/edit/' . $row->id) . '\'" src="' . asset('assets/images/Edit.svg') . '">';
                         }
                         return $buttons;
@@ -204,13 +221,12 @@ class SettlementController extends Controller
                 $channelAdvance = \App\Models\Advance::where('user_id', $p)->value('advance_amount') ?? 0;
             }
             $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
-            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p', 'channelAdvance', 'tdsPercentage'));
+            return view('Frontend.Settlement.userView', compact('Route', 'settlements', 'p', 'channelAdvance', 'tdsPercentage', 'settlementType', 'tab', 'amountLabel', 'hideSettlementTabs'));
         } else {
             // Admin/Staff view: Show parent channels list
             if ($request->ajax()) {
-                $tab = $request->input('tab', 'pending');
                 // Only show parent channels that have settlements matching the tab filter
-                $query = $this->getParentChannelQuery($user, $tab);
+                $query = $this->getParentChannelQuery($user, $tab, $settlementType);
 
                 if ($request->first_name) {
                     $query->where('first_name', $request->first_name);
@@ -221,17 +237,19 @@ class SettlementController extends Controller
                     ->editColumn('first_name', function ($row) {
                         return $row->first_name . ' ' . $row->last_name;
                     })
-                    ->addColumn('net_amount', function ($row) use ($tab) {
+                    ->addColumn('net_amount', function ($row) use ($tab, $settlementType) {
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($amount);
                     })
-                    ->addColumn('tds_amount', function ($row) use ($tab) {
+                    ->addColumn('tds_amount', function ($row) use ($tab, $settlementType) {
                         $settlementIds = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->pluck('id');
@@ -240,9 +258,10 @@ class SettlementController extends Controller
                             ->sum('tds');
                         return '₹ ' . indianNumberFormat($tdsAmount);
                     })
-                    ->addColumn('payout_amount', function ($row) use ($tab) {
+                    ->addColumn('payout_amount', function ($row) use ($tab, $settlementType) {
                         $settlementIds = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->pluck('id');
@@ -251,14 +270,16 @@ class SettlementController extends Controller
                             ->sum('tds');
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($amount - $tdsAmount);
                     })
-                    ->addColumn('remaining_amount', function ($row) use ($tab) {
+                    ->addColumn('remaining_amount', function ($row) use ($tab, $settlementType) {
                         $settlementIds = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->pluck('id');
@@ -267,6 +288,7 @@ class SettlementController extends Controller
                             ->sum('tds');
                         $amount = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->sum('amount');
@@ -281,9 +303,10 @@ class SettlementController extends Controller
                         $advance = DB::table('advances')->where('user_id', $row->id)->first();
                         return '₹ ' . indianNumberFormat($advance->advance_amount ?? 0);
                     })
-                    ->addColumn('paid_amount', function ($row) use ($tab) {
+                    ->addColumn('paid_amount', function ($row) use ($tab, $settlementType) {
                         $settlementIds = DB::table('settlements')
                             ->where('user_id', $row->id)
+                            ->where('settlement_type', $settlementType)
                             ->when($tab === 'completed', fn($q) => $q->where('status', 'completed'))
                             ->when($tab === 'pending', fn($q) => $q->where('status', '!=', 'completed'))
                             ->pluck('id');
@@ -293,13 +316,13 @@ class SettlementController extends Controller
                             ->sum('amount');
                         return '₹ ' . indianNumberFormat($paidAmount);
                     })
-                    ->addColumn('action', function ($row) use ($tab) {
+                    ->addColumn('action', function ($row) use ($tab, $settlementType) {
                         $btn = '';
                         if (auth()->user()->hasPermission('application', 'view')) {
                             if ($tab === 'completed') {
-                                $btn = "<img onclick=\"window.location.href='" . url('/settlement/summary/' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Summary'>";
+                                $btn = "<img onclick=\"window.location.href='" . url('/settlement/summary/' . $row->id . '?settlement_type=' . $settlementType) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Summary'>";
                             } else {
-                                $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id) . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Details'>";
+                                $btn = "<img onclick=\"window.location.href='" . url('/settlement?p=' . $row->id . '&settlement_type=' . $settlementType . '&tab=' . $tab . '&detail=1') . "'\" src='" . asset('assets/images/eye-icon.svg') . "' style='cursor:pointer;' title='View Details'>";
                             }
                         }
                         return $btn;
@@ -308,7 +331,7 @@ class SettlementController extends Controller
                     ->make(true);
             }
             $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
-            return view('Frontend.Settlement.index', compact('Route', 'settlements', 'p', 'tdsPercentage'));
+            return view('Frontend.Settlement.index', compact('Route', 'settlements', 'p', 'tdsPercentage', 'settlementType', 'tab', 'amountLabel'));
         }
     }
 
@@ -344,6 +367,11 @@ class SettlementController extends Controller
 
     public function edit($id)
     {
+        $roleId = (int) (Auth::user()->roles[0]->id ?? 0);
+        if (in_array($roleId, [2, 3], true)) {
+            abort(403, 'Channel/Associate cannot edit settlements.');
+        }
+
         $Route = 'Edit Settlement';
         $settlement = Settlement::findOrFail($id);
 
@@ -356,11 +384,20 @@ class SettlementController extends Controller
         $channelUser = User::find($settlement->user_id);
 
         $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
-        return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage'));
+        $settlementType = $settlement->settlement_type ?? 'commission';
+        $amountLabel = $settlementType === 'contest'
+            ? 'Contest Amount'
+            : ($settlementType === 'insurance' ? 'Insurance Amount' : 'Commission Amount');
+        return view('Frontend.Settlement.edit', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage', 'settlementType', 'amountLabel'));
     }
 
     public function update(Request $request, $id)
     {
+        $roleId = (int) (Auth::user()->roles[0]->id ?? 0);
+        if (in_array($roleId, [2, 3], true)) {
+            abort(403, 'Channel/Associate cannot update settlements.');
+        }
+
         // Validate the form data
         $validatedData = $request->validate([
             'amount' => 'required',
@@ -436,7 +473,9 @@ class SettlementController extends Controller
         $channelUser = User::find($settlement->user_id);
 
         $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
-        return view('Frontend.Settlement.show', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage'));
+        $settlementType = $settlement->settlement_type ?? 'commission';
+        $amountLabel = $settlementType === 'contest' ? 'Contest Amount' : 'Commission Amount';
+        return view('Frontend.Settlement.show', compact('Route', 'settlement', 'banks', 'settlement_distributions', 'channelUser', 'tdsPercentage', 'settlementType', 'amountLabel'));
     }
 
 
@@ -444,13 +483,13 @@ class SettlementController extends Controller
      * Get parent channels that have settlements (for admin list view).
      * @param string $tab 'pending' or 'completed' - filters by settlement status
      */
-    private function getParentChannelQuery($user, $tab = 'pending')
+    private function getParentChannelQuery($user, $tab = 'pending', $settlementType = 'commission')
     {
         // Get user IDs filtered by settlement status
         if ($tab === 'completed') {
-            $userIdsWithSettlements = Settlement::where('status', 'completed')->pluck('user_id')->unique()->toArray();
+            $userIdsWithSettlements = Settlement::where('status', 'completed')->where('settlement_type', $settlementType)->pluck('user_id')->unique()->toArray();
         } else {
-            $userIdsWithSettlements = Settlement::where('status', '!=', 'completed')->pluck('user_id')->unique()->toArray();
+            $userIdsWithSettlements = Settlement::where('status', '!=', 'completed')->where('settlement_type', $settlementType)->pluck('user_id')->unique()->toArray();
         }
 
         $roleId = $user->roles[0]->id;
@@ -469,22 +508,22 @@ class SettlementController extends Controller
         }
     }
 
-    private function getSettlementData($user, $p)
+    private function getSettlementData($user, $p, $settlementType = 'commission')
     {
         $roleId = $user->roles[0]->id;
 
         if (in_array($roleId, [1, 35, 36])) {
             // Admin, Maker, Checker: see all parent channels with settlements
             if ($p) {
-                $data = Settlement::where('user_id', $p)->paginate(25);
+                $data = Settlement::where('user_id', $p)->where('settlement_type', $settlementType)->paginate(25);
                 $data->appends(['p' => $p]);
             } else {
                 // Only parent channels that have settlements
-                $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+                $userIdsWithSettlements = Settlement::where('settlement_type', $settlementType)->pluck('user_id')->unique()->toArray();
                 $data = User::whereIn('id', $userIdsWithSettlements)->paginate(25);
             }
         } elseif (in_array($roleId, [2, 3])) {
-            $data = Settlement::where('user_id', $user->id)->where('status', '!=', 'checker')->paginate(25);
+            $data = Settlement::where('user_id', $user->id)->where('settlement_type', $settlementType)->where('status', '!=', 'checker')->paginate(25);
         } else {
             $channelAssign = StaffAssign::where('user_id', $user->id)->value('channel_sales_id');
             $channelAssign = json_decode($channelAssign, true);
@@ -492,15 +531,97 @@ class SettlementController extends Controller
                 $data = collect([]);
             } else {
                 if ($p) {
-                    $data = Settlement::where('user_id', $p)->paginate(25);
+                    $data = Settlement::where('user_id', $p)->where('settlement_type', $settlementType)->paginate(25);
                     $data->appends(['p' => $p]);
                 } else {
-                    $userIdsWithSettlements = Settlement::pluck('user_id')->unique()->toArray();
+                    $userIdsWithSettlements = Settlement::where('settlement_type', $settlementType)->pluck('user_id')->unique()->toArray();
                     $data = User::whereIn('id', $channelAssign)->whereIn('id', $userIdsWithSettlements)->paginate(25);
                 }
             }
         }
         return $data;
+    }
+
+    private function getDistributionContext(SettlementDistribution $distribution, string $settlementType): array
+    {
+        if ($settlementType === 'contest') {
+            $contest = null;
+            if (!empty($distribution->contest_mis_id)) {
+                $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
+            }
+
+            $application = null;
+            if (!$contest && !empty($distribution->application_id)) {
+                $application = DB::table('applications')->where('id', $distribution->application_id)->first();
+                if ($application && !empty($application->app_id)) {
+                    $contest = DB::table('contest_mis')
+                        ->where('application_no', $application->app_id)
+                        ->orderByDesc('id')
+                        ->first();
+                }
+            }
+            if ($contest && !empty($contest->application_no)) {
+                $application = DB::table('applications')->where('app_id', $contest->application_no)->first();
+            }
+            $submitter = null;
+            if ($application && $application->user_id) {
+                $submitter = DB::table('users')->where('id', $application->user_id)->first();
+            }
+
+            return [
+                'app_id' => $contest->application_no ?? ($application->app_id ?? 'N/A'),
+                'customer_name' => $contest->customer_name ?? ($application->customer_name ?? '-'),
+                'disbursement_amount' => (float) ($contest->loan_amt ?? ($application->disburse_amount ?? 0)),
+                'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
+                'company_receiving' => isset($contest->contest_rate) ? ($contest->contest_rate . '%') : (($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-'),
+                'company_receiving_numeric' => (float) ($contest->contest_rate ?? ($application->commission_rate ?? 0)),
+            ];
+        }
+
+        if ($settlementType === 'insurance') {
+            $insurance = null;
+            $application = null;
+            if (!empty($distribution->application_id)) {
+                $application = DB::table('applications')->where('id', $distribution->application_id)->first();
+                if ($application && !empty($application->app_id)) {
+                    $insurance = DB::table('insurance_mis')
+                        ->where('application_no', $application->app_id)
+                        ->orderByDesc('id')
+                        ->first();
+                }
+            }
+            if ($insurance && !empty($insurance->application_no)) {
+                $application = DB::table('applications')->where('app_id', $insurance->application_no)->first();
+            }
+            $submitter = null;
+            if ($application && $application->user_id) {
+                $submitter = DB::table('users')->where('id', $application->user_id)->first();
+            }
+
+            return [
+                'app_id' => $insurance->application_no ?? ($application->app_id ?? 'N/A'),
+                'customer_name' => $insurance->customer_name ?? ($application->customer_name ?? '-'),
+                'disbursement_amount' => (float) ($insurance->loan_amt ?? ($application->disburse_amount ?? 0)),
+                'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
+                'company_receiving' => isset($insurance->insurance_rate) ? ($insurance->insurance_rate . '%') : (($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-'),
+                'company_receiving_numeric' => (float) ($insurance->insurance_rate ?? ($application->commission_rate ?? 0)),
+            ];
+        }
+
+        $application = DB::table('applications')->where('id', $distribution->application_id)->first();
+        $submitter = null;
+        if ($application && $application->user_id) {
+            $submitter = DB::table('users')->where('id', $application->user_id)->first();
+        }
+
+        return [
+            'app_id' => $application->app_id ?? 'N/A',
+            'customer_name' => $application->customer_name ?? '-',
+            'disbursement_amount' => (float) ($application->disburse_amount ?? 0),
+            'submitted_by' => $submitter ? trim(($submitter->first_name ?? '') . ' ' . ($submitter->last_name ?? '')) : '-',
+            'company_receiving' => ($application && $application->commission_rate) ? ($application->commission_rate . '%') : '-',
+            'company_receiving_numeric' => (float) ($application->commission_rate ?? 0),
+        ];
     }
 
     public function uploadView()
@@ -607,9 +728,13 @@ class SettlementController extends Controller
     {
         $Route = 'Settlement Summary';
         $channelUser = User::findOrFail($userId);
+        $settlementType = in_array(request('settlement_type'), ['commission', 'contest', 'insurance'], true)
+            ? request('settlement_type')
+            : 'commission';
 
         // Get all completed settlements for this channel
         $settlements = Settlement::where('user_id', $userId)
+            ->where('settlement_type', $settlementType)
             ->where('status', 'completed')
             ->get();
 
@@ -646,6 +771,11 @@ class SettlementController extends Controller
      */
     public function editDistribution($id)
     {
+        $roleId = (int) (Auth::user()->roles[0]->id ?? 0);
+        if (in_array($roleId, [2, 3], true)) {
+            abort(403, 'Channel/Associate cannot edit settlement distributions.');
+        }
+
         $Route = 'Edit Distribution';
         $distribution = SettlementDistribution::findOrFail($id);
         $app = Application::find($distribution->application_id);
@@ -672,10 +802,91 @@ class SettlementController extends Controller
     }
 
     /**
+     * View a single distribution (read-only).
+     */
+    public function showDistribution(Request $request, $id)
+    {
+        $Route = 'View Distribution';
+        $distribution = SettlementDistribution::findOrFail($id);
+        $settlement = Settlement::findOrFail($distribution->settlement_id);
+        $channelUser = User::find($settlement->user_id);
+        $tdsPercentage = Settings::where('name', 'TDS')->first()->value ?? 2;
+
+        $settlementType = in_array($request->input('settlement_type'), ['commission', 'contest', 'insurance'], true)
+            ? $request->input('settlement_type')
+            : ($settlement->settlement_type ?? 'commission');
+        $tab = in_array($request->input('tab'), ['pending', 'completed'], true)
+            ? $request->input('tab')
+            : 'pending';
+
+        $app = null;
+        $contest = null;
+        $insurance = null;
+        if ($settlementType === 'contest' && !empty($distribution->contest_mis_id)) {
+            $contest = DB::table('contest_mis')->where('id', $distribution->contest_mis_id)->first();
+        }
+        if (!empty($distribution->application_id)) {
+            $app = Application::find($distribution->application_id);
+        }
+        if (!$contest && $app && !empty($app->app_id) && $settlementType === 'contest') {
+            $contest = DB::table('contest_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
+        }
+        if ($settlementType === 'insurance' && $app && !empty($app->app_id)) {
+            $insurance = DB::table('insurance_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
+        }
+        if (!$app && $contest && !empty($contest->application_no)) {
+            $app = Application::where('app_id', $contest->application_no)->first();
+        }
+        if (!$app && $insurance && !empty($insurance->application_no)) {
+            $app = Application::where('app_id', $insurance->application_no)->first();
+        }
+
+        $submitter = null;
+        if ($app && $app->user_id) {
+            $submitter = User::find($app->user_id);
+        }
+
+        $companyReceiving = $settlementType === 'contest'
+            ? (isset($contest->contest_rate) ? ($contest->contest_rate . '%') : '-')
+            : ($settlementType === 'insurance'
+                ? (isset($insurance->insurance_rate) ? ($insurance->insurance_rate . '%') : '-')
+                : (($app && $app->commission_rate) ? ($app->commission_rate . '%') : '-'));
+
+        $payoutAmount = 0;
+        if (in_array($settlementType, ['contest', 'insurance'], true)) {
+            $payoutAmount = round((float) ($distribution->rc_commission ?? 0), 2);
+        } elseif ($app && $app->bank_mis_id) {
+            $bankMis = DB::table('bank_mis')->where('id', $app->bank_mis_id)->first();
+            $payoutAmount = $bankMis ? round(floatval($bankMis->payout_amount), 2) : 0;
+        }
+
+        return view('Frontend.Settlement.show_distribution', compact(
+            'Route',
+            'distribution',
+            'app',
+            'contest',
+            'insurance',
+            'settlement',
+            'channelUser',
+            'tdsPercentage',
+            'submitter',
+            'payoutAmount',
+            'settlementType',
+            'tab',
+            'companyReceiving'
+        ));
+    }
+
+    /**
      * Update a single settlement distribution's sharing commission and recalculate amounts.
      */
     public function updateDistribution(Request $request, $id)
     {
+        $roleId = (int) (Auth::user()->roles[0]->id ?? 0);
+        if (in_array($roleId, [2, 3], true)) {
+            abort(403, 'Channel/Associate cannot update settlement distributions.');
+        }
+
         $request->validate([
             'received_rate' => 'required|numeric|min:0|max:100',
         ]);

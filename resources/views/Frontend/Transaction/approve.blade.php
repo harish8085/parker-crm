@@ -105,6 +105,7 @@
         <!-- Application-wise Breakdown -->
         <div class="approve-card">
             <h6 class="mb-3"><strong>Application-wise Breakdown</strong></h6>
+            @php $isContest = (($transaction->settlement->settlement_type ?? 'commission') === 'contest'); @endphp
             <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
@@ -114,26 +115,36 @@
                             <th>Customer Name</th>
                             <th>Disbursement Amount</th>
                             <th>Submitted By</th>
-                            <th>Company Receiving</th>
-                            <th>Sharing Commission</th>
-                            <th>Channel Commission</th>
-                            <th>Commission Amount</th>
+                            <th>{{ $isContest ? 'Contest Receiving' : 'Company Receiving' }}</th>
+                            <th>{{ $isContest ? 'Channel Sharing' : 'Sharing Commission' }}</th>
+                            <th>{{ $isContest ? 'Channel Contest Rate' : 'Channel Commission' }}</th>
+                            <th>{{ $isContest ? 'Channel Contest Amount' : 'Commission Amount' }}</th>
                             <th>TDS</th>
-                            <th>Net Amount</th>
+                            <th>{{ $isContest ? 'Net Value' : 'Net Amount' }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($transaction->items as $index => $item)
                         @php
-                            $app = $item->settlementDistribution && $item->settlementDistribution->application_id
-                                ? \App\Models\Application::find($item->settlementDistribution->application_id)
+                            $dist = $item->settlementDistribution;
+                            $app = $dist && $dist->application_id
+                                ? \App\Models\Application::find($dist->application_id)
                                 : null;
+                            $contest = null;
+                            if ($isContest && $dist && !empty($dist->contest_mis_id)) {
+                                $contest = \Illuminate\Support\Facades\DB::table('contest_mis')->where('id', $dist->contest_mis_id)->first();
+                            } elseif ($isContest && $app && !empty($app->app_id)) {
+                                $contest = \Illuminate\Support\Facades\DB::table('contest_mis')->where('application_no', $app->app_id)->orderByDesc('id')->first();
+                            }
+                            $baseRate = $isContest ? (float) ($contest->contest_rate ?? 0) : (float) ($app->commission_rate ?? 0);
+                            $sharingRate = (float) ($dist->received_rate ?? 0);
+                            $channelRate = ($baseRate > 0 && $sharingRate > 0) ? round($baseRate * ($sharingRate / 100), 2) : null;
                         @endphp
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $app->app_id ?? 'N/A' }}</td>
-                            <td>{{ $app->customer_name ?? '-' }}</td>
-                            <td>₹ {{ indianNumberFormat($app->disburse_amount ?? 0) }}</td>
+                            <td>{{ $isContest ? ($contest->application_no ?? ($app->app_id ?? 'N/A')) : ($app->app_id ?? 'N/A') }}</td>
+                            <td>{{ $isContest ? ($contest->customer_name ?? ($app->customer_name ?? '-')) : ($app->customer_name ?? '-') }}</td>
+                            <td>₹ {{ indianNumberFormat($isContest ? ($contest->loan_amt ?? 0) : ($app->disburse_amount ?? 0)) }}</td>
                             <td>
                                 @if($app && $app->user_id)
                                     @php $submitter = \App\Models\User::find($app->user_id); @endphp
@@ -142,16 +153,9 @@
                                     -
                                 @endif
                             </td>
-                            <td>{{ $app && $app->commission_rate ? $app->commission_rate . '%' : '-' }}</td>
-                            <td>{{ $item->settlementDistribution && $item->settlementDistribution->received_rate ? $item->settlementDistribution->received_rate . '%' : '-' }}</td>
-                            <td>
-                                @php
-                                    $rcComm = ($app && $app->commission_rate && $item->settlementDistribution && $item->settlementDistribution->received_rate)
-                                        ? round(floatval($app->commission_rate) * (floatval($item->settlementDistribution->received_rate) / 100), 2)
-                                        : null;
-                                @endphp
-                                {{ $rcComm !== null ? $rcComm . '%' : '-' }}
-                            </td>
+                            <td>{{ $baseRate > 0 ? $baseRate . '%' : '-' }}</td>
+                            <td>{{ $sharingRate > 0 ? $sharingRate . '%' : '-' }}</td>
+                            <td>{{ $channelRate !== null ? $channelRate . '%' : '-' }}</td>
                             <td>₹ {{ indianNumberFormat($item->gross_amount) }}</td>
                             <td>₹ {{ indianNumberFormat($item->tds) }}</td>
                             <td>₹ {{ indianNumberFormat($item->net_amount) }}</td>
@@ -662,3 +666,4 @@
     });
 </script>
 @endsection
+

@@ -187,6 +187,7 @@ class BankProductController extends Controller
         $products = Product::whereIn('id', $productIdsArray)->get();
         return $products;
     }
+
     public function update(Request $request, BankProduct $bankProduct)
     {
         $request->validate([

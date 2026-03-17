@@ -6,10 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Advance;
 use App\Models\AdvanceAmountLog;
 use App\Models\AdvancePaymentCase;
+use App\Models\AdvanceRequest;
+use App\Models\AdvanceRequestCase;
 use App\Models\Application;
 use App\Models\BankProduct;
+use App\Models\ChannelUser;
+use App\Models\Transaction;
 use App\Models\User;
+use App\Notifications\AdvanceRequestNotification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class AdvanceController extends Controller
@@ -71,6 +78,11 @@ class AdvanceController extends Controller
                     $btn .= "<svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' style='color: #007bff;'>";
                     $btn .= "<path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'></path><circle cx='12' cy='12' r='3'></circle>";
                     $btn .= "</svg></a>";
+
+                    if ($this->isAdminUser()) {
+                        $btn .= " <img class='advance-delete-btn' data-advance-id='" . e($row->id) . "' data-remaining-amount='" . e((float) $row->advance_amount) . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='Delete' title='Delete Advance Balance' style='cursor:pointer;'>";
+                    }
+
                     return $btn;
                 })
                 ->rawColumns(['advance_status', 'action'])
@@ -87,6 +99,7 @@ class AdvanceController extends Controller
     public function create()
     {
         $Route = 'Add Advance';
+        $isCheckerUser = $this->isCheckerUser();
         $users = User::select('id', 'first_name', 'last_name', 'email')
             ->whereHas('roles', function ($query) {
                 $query->where('roles.id', 2);
@@ -96,7 +109,7 @@ class AdvanceController extends Controller
             ->limit(10)
             ->get();
 
-        return view('Frontend.Advance.create', compact('Route', 'users'));
+        return view('Frontend.Advance.create', compact('Route', 'users', 'isCheckerUser'));
     }
 
     /**
@@ -136,6 +149,32 @@ class AdvanceController extends Controller
 
             // If case_type is "case", calculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
+                $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
+                $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
+                    ->whereIn('user_id', $eligibleUserIds)
+                    ->where('status', 'pending')
+                    ->whereNotNull('app_id')
+                    ->where('app_id', '!=', '')
+                    ->where(function ($query) {
+                        $query->whereNull('app_id_is_matched')
+                            ->orWhere('app_id_is_matched', '!=', 1);
+                    })
+                    ->whereDoesntHave('advancePaymentCase')
+                    ->whereNotIn('id', function ($subQuery) {
+                        $subQuery->select('arc.application_id')
+                            ->from('advance_request_cases as arc')
+                            ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                            ->where('ar.status', 'pending');
+                    })
+                    ->count();
+
+                if ($availableSelectedCount !== count($selectedAppIds)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Some selected cases are no longer available for advance request. Please reload and select again.');
+                }
+
                 $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
                     ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
 
@@ -183,17 +222,72 @@ class AdvanceController extends Controller
                 $validated['advance_amount'] = $totalAdvanceAmount;
             }
     
+            if ($this->isCheckerUser()) {
+                $advanceRequest = DB::transaction(function () use ($validated, $perCaseAmounts) {
+                    $requestModel = AdvanceRequest::create([
+                        'user_id' => $validated['user_id'],
+                        'requested_by' => auth()->id(),
+                        'case_type' => $validated['case_type'],
+                        'requested_amount' => $validated['advance_amount'],
+                        'advance_remark' => $validated['advance_remark'] ?? null,
+                        'status' => 'pending',
+                    ]);
+
+                    if ($validated['case_type'] === 'case' && !empty($validated['application_ids'])) {
+                        $applicationsWithDetails = Application::with('product')
+                            ->whereIn('id', $validated['application_ids'])
+                            ->get()
+                            ->keyBy('id');
+
+                        foreach ($validated['application_ids'] as $applicationId) {
+                            $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                            if ($caseAmount === null) {
+                                continue;
+                            }
+
+                            $application = $applicationsWithDetails->get($applicationId);
+                            $productName = $application && $application->product ? $application->product->name : null;
+
+                            $productPercent = null;
+                            if ($application) {
+                                $bankProduct = BankProduct::where('bank_id', $application->bank_id)
+                                    ->where('product_id', $application->product_id)
+                                    ->first();
+                                $productPercent = $bankProduct ? $bankProduct->percent : null;
+                            }
+
+                            AdvanceRequestCase::create([
+                                'advance_request_id' => $requestModel->id,
+                                'application_id' => $applicationId,
+                                'product' => $productName,
+                                'product_percent' => $productPercent,
+                                'advance_payment_amount' => $caseAmount,
+                            ]);
+                        }
+                    }
+
+                    return $requestModel;
+                });
+
+                foreach ($this->getAdminUsers() as $admin) {
+                    $admin->notify(new AdvanceRequestNotification(
+                        'New advance request #' . $advanceRequest->id . ' submitted by checker.',
+                        url('/advance-requests?tab=pending')
+                    ));
+                }
+
+                return redirect()->route('advance.index')->with('success', 'Advance request submitted successfully and sent for admin approval.');
+            }
+
             $advanceAmountLog = Advance::createAdvance([
                 'user_id' => $validated['user_id'],
                 'advance_amount' => $validated['advance_amount'],
                 'advance_remark' => $validated['advance_remark'] ?? null,
-                'advance_type' => 'add', // default type now
+                'advance_type' => 'add',
                 'created_by' => auth()->user()->id,
             ]);
 
-            // If there are specific cases selected, create records in advance_payment_cases
             if ($validated['case_type'] === 'case' && !empty($validated['application_ids']) && $advanceAmountLog) {
-                // Load applications with product relationship to get product names
                 $applicationsWithDetails = Application::with('product')
                     ->whereIn('id', $validated['application_ids'])
                     ->get()
@@ -202,14 +296,12 @@ class AdvanceController extends Controller
                 foreach ($validated['application_ids'] as $applicationId) {
                     $caseAmount = $perCaseAmounts[$applicationId] ?? null;
                     if ($caseAmount === null) {
-                        // Should not happen, but guard anyway
                         continue;
                     }
 
                     $application = $applicationsWithDetails->get($applicationId);
                     $productName = $application && $application->product ? $application->product->name : null;
-                    
-                    // Get product percent from BankProduct
+
                     $productPercent = null;
                     if ($application) {
                         $bankProduct = BankProduct::where('bank_id', $application->bank_id)
@@ -228,7 +320,7 @@ class AdvanceController extends Controller
                     ]);
                 }
             }
-    
+
             return redirect()->route('advance.index')->with('success', 'Advance created successfully.');
         } catch (\Throwable $e) {
             // You might further log the exception here
@@ -290,10 +382,24 @@ class AdvanceController extends Controller
 
         $term = $request->get('q');
         $userId = $request->get('user_id');
+        $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $userId);
 
         $applications = Application::select('id', 'app_id', 'customer_name', 'disburse_amount')
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $eligibleUserIds)
             ->where('status', 'pending')
+            ->whereNotNull('app_id')
+            ->where('app_id', '!=', '')
+            ->where(function ($query) {
+                $query->whereNull('app_id_is_matched')
+                    ->orWhere('app_id_is_matched', '!=', 1);
+            })
+            ->whereDoesntHave('advancePaymentCase')
+            ->whereNotIn('id', function ($subQuery) {
+                $subQuery->select('arc.application_id')
+                    ->from('advance_request_cases as arc')
+                    ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                    ->where('ar.status', 'pending');
+            })
             ->when($term, function ($query) use ($term) {
                 $query->where(function ($inner) use ($term) {
                     $inner->where('app_id', 'like', '%' . $term . '%')
@@ -331,13 +437,24 @@ class AdvanceController extends Controller
         ]);
 
         $userId = $request->get('user_id');
+        $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $userId);
 
         $applications = Application::with(['bank', 'product'])
-            ->where('user_id', $userId)
+            ->whereIn('user_id', $eligibleUserIds)
             ->where('status', 'pending')
             ->whereNotNull('app_id')
             ->where('app_id', '!=', '')
+            ->where(function ($query) {
+                $query->whereNull('app_id_is_matched')
+                    ->orWhere('app_id_is_matched', '!=', 1);
+            })
             ->whereDoesntHave('advancePaymentCase')
+            ->whereNotIn('id', function ($subQuery) {
+                $subQuery->select('arc.application_id')
+                    ->from('advance_request_cases as arc')
+                    ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                    ->where('ar.status', 'pending');
+            })
             ->orderBy('id', 'desc')
             ->get([
                 'id', 'app_id', 'customer_name', 'customer_firm_name', 
@@ -363,6 +480,22 @@ class AdvanceController extends Controller
         });
 
         return response()->json($results);
+    }
+
+    /**
+     * Return selected channel user id plus all linked associate user ids.
+     *
+     * @param int $channelUserId
+     * @return array<int>
+     */
+    private function getChannelWithAssociateUserIds(int $channelUserId): array
+    {
+        $associateIds = ChannelUser::where('channel_id', $channelUserId)
+            ->pluck('associate_channel_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        return array_values(array_unique(array_merge([$channelUserId], $associateIds)));
     }
 
     /**
@@ -481,14 +614,24 @@ class AdvanceController extends Controller
                     return $row->remark ? $row->remark : '-';
                 })
                 ->addColumn('actions', function ($row) {
+                    $buttons = '';
+
                     // Check if this log has associated payment cases
                     $hasCases = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $row->id)->exists();
                     if ($hasCases) {
-                        return '<button type="button" class="btn btn-sm btn-info view-app-ids" data-log-id="' . $row->id . '" title="View Application IDs">
-                                    <i class="fas fa-eye"></i>
-                                </button>';
+                        $buttons .= '<button type="button" class="btn btn-sm btn-info view-app-ids" data-log-id="' . $row->id . '" title="View Application IDs">
+                                <i class="fas fa-eye"></i>
+                            </button> ';
                     }
-                    return '-';
+
+                    // Only admin can delete add logs.
+                    if ($this->isAdminUser() && $row->type === 'add') {
+                        $buttons .= '<button type="button" class="btn btn-sm btn-danger delete-log-btn" data-log-id="' . $row->id . '" data-log-amount="' . (float) $row->advance_amount . '" title="Delete Advance Log">
+                                <i class="fas fa-trash"></i>
+                            </button>';
+                    }
+
+                    return trim($buttons) !== '' ? $buttons : '-';
                 })
                 ->rawColumns(['type', 'actions'])
                 ->make(true);
@@ -502,6 +645,10 @@ class AdvanceController extends Controller
      */
     public function edit($id)
     {
+        if ($this->isCheckerUser()) {
+            abort(403, 'Checker cannot edit approved advances.');
+        }
+
         $Route = 'Edit Advance';
         $advance = Advance::with('user', 'advanceAmountLogs')->findOrFail($id);
 
@@ -550,6 +697,10 @@ class AdvanceController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if ($this->isCheckerUser()) {
+            return redirect()->route('advance.index')->with('error', 'Checker cannot update approved advances.');
+        }
+
         try {
             $messages = [
                 'user_id.required' => 'Please select a channel partner.',
@@ -580,6 +731,32 @@ class AdvanceController extends Controller
 
             // If case_type is "case", recalculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
+                $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
+                $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
+                    ->whereIn('user_id', $eligibleUserIds)
+                    ->where('status', 'pending')
+                    ->whereNotNull('app_id')
+                    ->where('app_id', '!=', '')
+                    ->where(function ($query) {
+                        $query->whereNull('app_id_is_matched')
+                            ->orWhere('app_id_is_matched', '!=', 1);
+                    })
+                    ->whereDoesntHave('advancePaymentCase')
+                    ->whereNotIn('id', function ($subQuery) {
+                        $subQuery->select('arc.application_id')
+                            ->from('advance_request_cases as arc')
+                            ->join('advance_requests as ar', 'ar.id', '=', 'arc.advance_request_id')
+                            ->where('ar.status', 'pending');
+                    })
+                    ->count();
+
+                if ($availableSelectedCount !== count($selectedAppIds)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Some selected cases are no longer available. Please reload and select again.');
+                }
+
                 $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
                     ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
 
@@ -742,5 +919,144 @@ class AdvanceController extends Controller
                 'message' => 'Failed to fetch application IDs: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Delete advance balance from listing (admin only).
+     * This is an amount-based delete to avoid touching already settled deductions.
+     */
+    public function destroy(Request $request, $id)
+    {
+        if (!$this->isAdminUser()) {
+            return response()->json(['message' => 'Only admin can delete advance.'], 403);
+        }
+
+        $request->validate([
+            'delete_amount' => 'required|numeric|min:0.01',
+        ]);
+
+        $advance = Advance::with('advanceAmountLogs')->findOrFail($id);
+        $deleteAmount = round((float) $request->input('delete_amount'), 2);
+        $remainingAdvance = round((float) ($advance->advance_amount ?? 0), 2);
+
+        $totalSettledInTransactions = round((float) Transaction::where('user_id', $advance->user_id)
+            ->where('status', 'completed')
+            ->sum('advance_amount'), 2);
+
+        if ($remainingAdvance <= 0) {
+            return response()->json([
+                'message' => 'Whole advance amount is already settled in previous settlements. Nothing left to delete.',
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        if ($deleteAmount > $remainingAdvance) {
+            return response()->json([
+                'message' => 'Delete amount cannot be greater than remaining advance. Some amount is already settled in previous settlements.',
+                'remaining_advance' => $remainingAdvance,
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        DB::transaction(function () use ($advance, $deleteAmount) {
+            Advance::createAdvance([
+                'user_id' => $advance->user_id,
+                'advance_amount' => $deleteAmount,
+                'advance_type' => 'deduct',
+                'advance_date' => now()->toDateString(),
+                'advance_status' => 1,
+                'advance_remark' => 'Deleted from advance listing by admin',
+                'created_by' => auth()->id(),
+            ]);
+        });
+
+        $advance->refresh();
+        return response()->json([
+            'message' => 'Advance deleted successfully from remaining balance.',
+            'remaining_advance' => round((float) ($advance->advance_amount ?? 0), 2),
+        ]);
+    }
+
+    /**
+     * Delete an add-log entry (admin only).
+     * For case-based logs, linked cases are released and become selectable again.
+     */
+    public function destroyLog($logId)
+    {
+        if (!$this->isAdminUser()) {
+            return response()->json(['message' => 'Only admin can delete advance logs.'], 403);
+        }
+
+        $log = AdvanceAmountLog::with(['advance', 'paymentCases'])->findOrFail($logId);
+        if (!$log->advance) {
+            return response()->json(['message' => 'Advance not found for this log.'], 404);
+        }
+
+        if ($log->type !== 'add') {
+            return response()->json(['message' => 'Only add-type logs can be deleted.'], 422);
+        }
+
+        $logAmount = round((float) ($log->advance_amount ?? 0), 2);
+        $remainingAdvance = round((float) ($log->advance->advance_amount ?? 0), 2);
+        $totalSettledInTransactions = round((float) Transaction::where('user_id', $log->advance->user_id)
+            ->where('status', 'completed')
+            ->sum('advance_amount'), 2);
+
+        if ($logAmount <= 0) {
+            return response()->json(['message' => 'Invalid advance log amount.'], 422);
+        }
+
+        if ($remainingAdvance <= 0 || $logAmount > $remainingAdvance) {
+            return response()->json([
+                'message' => 'This advance log cannot be deleted because some or all amount is already settled in previous settlements.',
+                'remaining_advance' => $remainingAdvance,
+                'log_amount' => $logAmount,
+                'settled_amount' => $totalSettledInTransactions,
+            ], 422);
+        }
+
+        DB::transaction(function () use ($log, $logAmount) {
+            $advance = $log->advance;
+            $advance->advance_amount = round(max(0, (float) $advance->advance_amount - $logAmount), 2);
+            $advance->save();
+
+            // Release case mappings first so these cases appear again in Add Advance (case type).
+            AdvancePaymentCase::where('advance_amount_log_id', $log->id)->delete();
+            $log->delete();
+        });
+
+        return response()->json([
+            'message' => 'Advance log deleted successfully. Linked cases are now available for new advance.',
+        ]);
+    }
+
+    private function isAdminUser(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->user_type === 'admin' || $user->roles()->where('roles.id', 1)->exists();
+    }
+
+    private function isCheckerUser(): bool
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return false;
+        }
+
+        return $user->user_type === 'checker';
+    }
+
+    private function getAdminUsers()
+    {
+        return User::query()
+            ->where('user_type', 'admin')
+            ->orWhereHas('roles', function ($query) {
+                $query->where('roles.id', 1);
+            })
+            ->get();
     }
 }

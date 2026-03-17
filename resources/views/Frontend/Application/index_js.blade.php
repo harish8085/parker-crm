@@ -328,6 +328,12 @@
                                         data: 'user_id',
                                         name: 'user_id'
                                 },
+                                {
+                                        data: 'parent_name',
+                                        name: 'parent_name',
+                                        orderable: false,
+                                        searchable: false
+                                },
                                 @endif {
                                         data: 'app_id',
                                         name: 'app_id'
@@ -348,14 +354,12 @@
                                         data: 'disburse_amount',
                                         name: 'disburse_amount'
                                 },
+                                @if($user->roles[0]->id != 37)
                                 {
                                         data: 'commission_rate',
                                         name: 'commission_rate'
                                 },
-                                {
-                                        data: 'remark',
-                                        name: 'remark'
-                                },
+                                @endif
                                 {
                                         data: 'status',
                                         name: 'status'

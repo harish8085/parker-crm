@@ -1,5 +1,6 @@
 @php
 $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_type');
+$roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::user()->roles[0]->id ?? 0);
 @endphp
 @extends('Layout.app')
 @section('style')
@@ -9,16 +10,23 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 @endsection
 @section('body')
-<div class="breadcrumb-container" style="margin-bottom: 24px;">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb bg-white px-0 py-2" style="margin-bottom:0;">
-            <li class="breadcrumb-item"><a href="{{ url('/application') }}">Applications</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Edit Application</li>
-        </ol>
-    </nav>
+<div class="breadcrumb-container d-flex justify-content-between align-items-center mb-3 mt-5" style="margin-bottom: 24px;">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb bg-white px-0 py-2 " style="margin-bottom:0;">
+                <li class="breadcrumb-item"><a href="{{ url('/application') }}">Applications</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Application</li>
+            </ol>
+
+        </nav>
+    </div>
+    <div>
+        <a href="{{ url('/application') }}" class="btn btn-secondary">Back</a>
+    </div>
+
 </div>
 
-@if(in_array(Auth::user()->roles[0]->pivot->role_id, [2, 3, 37]) && $application->status !== 'pending')
+@if(in_array($roleId, [2, 3, 37]) && $application->status !== 'pending')
 <div class="alert alert-warning">
     <i class="fas fa-lock"></i> This application is no longer in Pending status and cannot be edited.
     <a href="{{ url('/application') }}" class="btn btn-sm btn-secondary ms-3">Back to List</a>
@@ -38,36 +46,38 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(Auth::user()->roles[0]->pivot->role_id !=2 && Auth::user()->roles[0]->pivot->role_id!=3 && Auth::user()->roles[0]->pivot->role_id !=35 && Auth::user()->roles[0]->pivot->role_id !=36 && Auth::user()->roles[0]->pivot->role_id !=37)
+            @if(!in_array($roleId, [3,37]))
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type<span class="required">*</span></label>
                 <select class="bank-detail-input form-select" required name="user_type" id="user_type">
                     <option value="" selected disabled>Select User Type</option>
-                    <option value="channel" @if($isChannel=='channel' ) selected @endif>Channel Partner</option>
-                    <option value="sales" @if($isChannel!='channel' ) selected @endif>Sales Person</option>
+                    @if($roleId == 2)
+                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
+                    @else
+                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
+                    @endif
+                    <option value="associate" @if($selectedUserType=='associate' ) selected @endif>Associate Partner</option>
                 </select>
             </div>
             <div class="bank-detail-inputs channel">
                 <label class="bank-input-label" for="validationCustom01">Channel Partner<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" required name="channel_sales_id" id="channel_id">
+                <select class="bank-detail-input form-select" name="channel_id" id="channel_id">
                     <option value="" selected disabled>Select Channel Partner</option>
                     @foreach($channels as $channel)
-                    <option value="{{$channel->id}}" @if($channel->id == $application->user_id) selected @endif>{{$channel->first_name}}</option>
+                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}} {{$channel->last_name}} ({{ $channel->Emp_Id ?: $channel->id }})</option>
                     @endforeach
                 </select>
             </div>
-            <div class="bank-detail-inputs sales">
-                <label class="bank-input-label" for="validationCustom01">Sales Person<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" required name="channel_sales_id" id="sales_id">
-                    <option value="" selected disabled>Select Sales Person</option>
-                    @foreach($sales as $sale)
-                    <option value="{{$sale->id}}" @if($sale->id == $application->user_id) selected @endif>{{$sale->first_name}} {{$sale->last_name}}</option>
-                    @endforeach
+
+            <div class="bank-detail-inputs associate">
+                <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
+                <select class="bank-detail-input form-select" name="associate_id" id="associate_id">
+                    <option value="" selected disabled>Select Associate Partner</option>
                 </select>
             </div>
             @endif
-            @if(Auth::user()->roles[0]->pivot->role_id == 35 || Auth::user()->roles[0]->pivot->role_id == 36)
+            @if($roleId == 35 || $roleId == 36)
             @if($application->parentChannel)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Parent Channel </label>
@@ -98,7 +108,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Disbursment Date<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="date" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" value="{{$application->disbursement_date}}" />
+                <input class="bank-detail-input form-control" type="text" name="disbursement_date" id="disbursement_date" placeholder="Enter disbursment date" value="{{ $application->disbursement_date ? \Carbon\Carbon::parse($application->disbursement_date)->format('d-m-Y') : '' }}" autocomplete="off" />
             </div>
 
             <div class="bank-detail-inputs">
@@ -114,6 +124,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                     @endif
                 </label>
                 <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter customer name" value="{{$application->customer_name}}">
+            </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Customer Phone</label>
+                <input class="bank-detail-input form-control" type="text" name="customer_phone" id="customer_phone" placeholder="Enter customer phone number" value="{{$application->customer_phone}}" maxlength="20">
             </div>
 
             <div class="bank-detail-inputs">
@@ -237,6 +251,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <input class="bank-detail-input form-control" type="number" name="disburse_amount" id="disburse_amount" placeholder="Enter Disburse Amount" value="{{$application->disburse_amount}}">
             </div>
 
+            @if($roleId != 37)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Commission Rate
                     @if($application->bank_mis_id && $application->bankData)
@@ -251,35 +266,39 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 </label>
                 <input class="bank-detail-input form-control" type="number" name="commission_rate" id="commission_rate" placeholder="Enter Commission Rate" value="{{$application->commission_rate}}">
             </div>
+            @endif
 
-            <!-- Sharing Commission - Hidden field, auto-populated from parent's commission rate -->
+            @if(in_array($roleId, [1, 2, 35, 36]))
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sharing Commission <span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="number" step="0.01" name="sharing_commission" id="sharing_commission" placeholder="Enter Sharing Commission" value="{{$application->sharing_commission}}">
+            </div>
+            @else
             <input type="hidden" name="sharing_commission" id="sharing_commission" value="{{$application->sharing_commission}}">
+            @endif
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Name
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" type="text" name="banker_name" id="banker_name" placeholder="Enter Banker Name" value=" {{$application->banker_name}}">
             </div>
 
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Number
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" maxlength="10" type="number" name="banker_number" id="banker_number" placeholder="Enter Banker Number" value="{{$application->banker_number}}">
             </div>
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Banker Email
-                    @if(Auth::user()->roles[0]->pivot->role_id ==2 && Auth::user()->roles[0]->pivot->role_id==3)
+                    @if(in_array($roleId, [2, 3]))
                     <span class="required">*</span>
                     @endif</label>
-                </label>
                 <input class="bank-detail-input form-control" type="email" name="banker_email" id="banker_email" placeholder="Enter Banker Email" value="{{$application->banker_email}}">
             </div>
 
@@ -290,13 +309,13 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 <label class="bank-input-label">Current Status</label>
                 <div style="padding: 8px 0;">
                     @php
-                        $statusColorMap = [
-                            'pending' => 'warning',
-                            'approved' => 'primary',
-                            'completed' => 'success',
-                            'rejected' => 'danger',
-                        ];
-                        $badgeColor = $statusColorMap[$application->status] ?? 'secondary';
+                    $statusColorMap = [
+                    'pending' => 'warning',
+                    'approved' => 'primary',
+                    'completed' => 'success',
+                    'rejected' => 'danger',
+                    ];
+                    $badgeColor = $statusColorMap[$application->status] ?? 'secondary';
                     @endphp
                     <span class="badge bg-{{ $badgeColor }}" style="font-size: 14px; padding: 6px 14px;">{{ ucfirst($application->status) }}</span>
                 </div>
@@ -312,50 +331,50 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
     {{-- Action buttons based on role --}}
     <div class="save-btn-container">
-        @php $currentRole = Auth::user()->roles[0]->pivot->role_id; @endphp
+        @php $currentRole = $roleId; @endphp
 
         @if($currentRole == 35)
-            {{-- Maker: Save, Approve, Reject --}}
-            <button type="button" class="btn btn-success" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
-                <i class="fas fa-save"></i> Save
-            </button>
-            <button type="button" class="btn btn-primary" id="approveBtn" onclick="setStatusAndSubmit('approved')">
-                <i class="fas fa-check-circle"></i> Approve
-            </button>
-            <button type="button" class="btn btn-danger" id="rejectBtn" onclick="setStatusAndSubmit('rejected')">
-                <i class="fas fa-times-circle"></i> Reject
-            </button>
+        {{-- Maker: Save, Approve, Reject --}}
+        <button type="button" class="btn btn-success" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-primary" id="approveBtn" onclick="setStatusAndSubmit('approved')">
+            <i class="fas fa-check-circle"></i> Approve
+        </button>
+        <button type="button" class="btn btn-danger" id="rejectBtn" onclick="setStatusAndSubmit('rejected')">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
         @elseif($currentRole == 36)
-            {{-- Checker: Save, Complete, Reject (with reason modal) --}}
-            <button type="button" class="btn btn-secondary" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
-                <i class="fas fa-save"></i> Save
-            </button>
-            <button type="button" class="btn btn-success" id="completeBtn" onclick="setStatusAndSubmit('completed')">
-                <i class="fas fa-check"></i> Mark as Completed
-            </button>
-            <button type="button" class="btn btn-danger" id="checkerRejectBtn" data-bs-toggle="modal" data-bs-target="#checkerRejectModal">
-                <i class="fas fa-times-circle"></i> Reject
-            </button>
+        {{-- Checker: Save, Complete, Reject (with reason modal) --}}
+        <button type="button" class="btn btn-secondary" id="saveBtn" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-success" id="completeBtn" onclick="setStatusAndSubmit('completed')">
+            <i class="fas fa-check"></i> Mark as Completed
+        </button>
+        <button type="button" class="btn btn-danger" id="checkerRejectBtn" data-bs-toggle="modal" data-bs-target="#checkerRejectModal">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
         @elseif($currentRole == 1)
-            {{-- Admin: Save, Approve, Reject --}}
-            <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $application->status }}')">
-                <i class="fas fa-save"></i> Save
-            </button>
-            <button type="button" class="btn btn-primary" onclick="setStatusAndSubmit('approved')">
-                <i class="fas fa-check-circle"></i> Approve
-            </button>
-            <button type="button" class="btn btn-danger" onclick="setStatusAndSubmit('rejected')">
-                <i class="fas fa-times-circle"></i> Reject
-            </button>
+        {{-- Admin: Save, Approve, Reject --}}
+        <button type="button" class="btn btn-secondary" onclick="setStatusAndSubmit('{{ $application->status }}')">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button type="button" class="btn btn-primary" onclick="setStatusAndSubmit('approved')">
+            <i class="fas fa-check-circle"></i> Approve
+        </button>
+        <button type="button" class="btn btn-danger" onclick="setStatusAndSubmit('rejected')">
+            <i class="fas fa-times-circle"></i> Reject
+        </button>
         @else
-            {{-- Channel/Sales/Associate: Save only --}}
-            <button class="btn btn-primary" id="submitBtn">Save</button>
+        {{-- Channel/Sales/Associate: Save only --}}
+        <button class="btn btn-primary" id="submitBtn">Save</button>
         @endif
         <button class="btn btn-secondary" onclick="window.location.href='{{ url('/application') }}'; return false;">Cancel</button>
     </div>
 
     {{-- Checker Reject Reason Modal --}}
-    @if(Auth::user()->roles[0]->pivot->role_id == 36)
+    @if($roleId == 36)
     <div class="modal fade" id="checkerRejectModal" tabindex="-1" aria-labelledby="checkerRejectModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -392,10 +411,10 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 <script>
     function validateApplicationForm(status) {
         var isValid = true;
-        var roleId = '{{ Auth::user()->roles[0]->pivot->role_id }}';
+        var roleId = Number(`{{$roleId}}`);
 
-        // Admin: validate user type selection
-        if (roleId == 1) {
+        // Roles that can choose the target user
+        if (roleId != 3 && roleId != 37) {
             if (!$('#user_type').val()) {
                 $('#user_type').removeClass('is-valid').addClass('is-invalid');
                 $('#user_type').focus();
@@ -411,13 +430,20 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 } else {
                     $('#channel_id').addClass('is-valid').removeClass('is-invalid');
                 }
-            } else {
-                if (!$('#sales_id').val()) {
-                    $('#sales_id').removeClass('is-valid').addClass('is-invalid');
-                    $('#sales_id').focus();
+            } else if ($('#user_type').val() == 'associate') {
+                if (!$('#associate_channel_id').val()) {
+                    $('#associate_channel_id').removeClass('is-valid').addClass('is-invalid');
+                    $('#associate_channel_id').focus();
                     return false;
                 } else {
-                    $('#sales_id').addClass('is-valid').removeClass('is-invalid');
+                    $('#associate_channel_id').addClass('is-valid').removeClass('is-invalid');
+                }
+                if (!$('#associate_id').val()) {
+                    $('#associate_id').removeClass('is-valid').addClass('is-invalid');
+                    $('#associate_id').focus();
+                    return false;
+                } else {
+                    $('#associate_id').addClass('is-valid').removeClass('is-invalid');
                 }
             }
         }
@@ -479,8 +505,8 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
             $('#disburse_amount').addClass('is-valid').removeClass('is-invalid');
         }
 
-        // Commission rate required when completing
-        if (status === 'completed') {
+        // Commission rate required when completing (if field is visible for role)
+        if (status === 'completed' && $('#commission_rate').length) {
             if (!$('#commission_rate').val() || $('#commission_rate').val().trim() === '') {
                 alert('Commission Rate field cannot be empty when completing an application!');
                 $('#commission_rate').removeClass('is-valid').addClass('is-invalid');
@@ -488,6 +514,19 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 return false;
             } else {
                 $('#commission_rate').addClass('is-valid').removeClass('is-invalid');
+            }
+        }
+
+        // Sharing commission required before approve/complete
+        if ((status === 'approved' || status === 'completed') && $('#sharing_commission').length) {
+            const sharingVal = ($('#sharing_commission').val() || '').trim();
+            if (!sharingVal) {
+                alert('Sharing Commission is required before approving or completing the application!');
+                $('#sharing_commission').removeClass('is-valid').addClass('is-invalid');
+                $('#sharing_commission').focus();
+                return false;
+            } else {
+                $('#sharing_commission').addClass('is-valid').removeClass('is-invalid');
             }
         }
 
@@ -549,16 +588,57 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             }
         });
-        var user_type = `{{$isChannel}}`
         var group = `{{$application->group}}`
+        var roleId = Number(`{{$roleId}}`);
+        var authUserId = Number(`{{Auth::id()}}`);
+        var applicationUserId = Number(`{{$application->user_id}}`);
 
-        if (user_type == 'channel') {
-            $('.channel').show()
-            $('.sales').hide()
+        $('.channel').hide()
+        $('.associate-channel').hide()
+        $('.associate').hide()
 
-        } else {
-            $('.channel').hide()
-            $('.sales').show()
+        function loadAssociates(channelId, selectedAssociateId = null) {
+            $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
+            if (!channelId) {
+                return;
+            }
+            $.ajax({
+                url: '/application/channel/' + channelId + '/associates',
+                type: 'GET',
+                success: function(response) {
+                    $.each(response, function(_, associate) {
+                        var emp = associate.emp_id ? associate.emp_id : associate.id;
+                        var selected = Number(selectedAssociateId) === Number(associate.id) ? 'selected' : '';
+                        $('#associate_id').append('<option value="' + associate.id + '" ' + selected + '>' + associate.name + ' (' + emp + ')</option>');
+                    });
+                }
+            });
+        }
+
+        function handleUserTypeVisibility() {
+            $('.channel, .associate-channel, .associate').hide();
+            if ($('#user_type').val() == 'channel') {
+                $('.channel').show();
+            } else if ($('#user_type').val() == 'associate') {
+                $('.associate-channel').show();
+                $('.associate').show();
+                if (roleId === 2) {
+                    $('#associate_channel_id').val(authUserId);
+                }
+                loadAssociates($('#associate_channel_id').val(), applicationUserId);
+            }
+        }
+
+        $('#associate_channel_id').change(function() {
+            loadAssociates($(this).val(), null);
+        });
+
+        handleUserTypeVisibility()
+        if ($('#user_type').val() == 'associate') {
+            if (roleId === 2 && !$('#associate_channel_id').val()) {
+                $('#associate_channel_id').val(authUserId);
+            }
+            loadAssociates($('#associate_channel_id').val(), applicationUserId);
         }
         if (group.toLowerCase() == 'secured') {
             $('.secured').show()
@@ -582,7 +662,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         })
 
         $('#disbursement_date').datepicker({
-            format: 'yyyy-mm-dd', // Specify the date format
+            format: 'dd-mm-yyyy', // Specify the date format
             autoclose: true, // Close the datepicker automatically after selection
             todayHighlight: true, // Highlight today's date
             endDate: new Date() // Set the end date to today, preventing future dates
@@ -610,18 +690,7 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
         });
         // });
-        $('#user_type').change(function() {
-
-            if ($(this).val() == 'channel') {
-                $('.sales').hide()
-                $('.channel').show()
-
-            } else {
-                $('.sales').show()
-                $('.channel').hide()
-
-            }
-        })
+        $('#user_type').change(handleUserTypeVisibility)
 
 
         $('#bank_id,#group').change(function() {
@@ -654,9 +723,13 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         $('#submitBtn').click(function(event) {
             event.preventDefault();
             var statusVal = $('#statusInput').val();
-            if (validateApplicationForm(statusVal)) {
-                $('.needs-validation').submit();
+            if (!validateApplicationForm(statusVal)) {
+                return false;
             }
+            if ($('#user_type').val() === 'associate') {
+                $('#channel_id').val($('#associate_channel_id').val());
+            }
+            $('.needs-validation').submit();
         });
 
         function performAjaxRequest(url, type, data, successCallback) {

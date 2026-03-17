@@ -4,9 +4,10 @@
     align-items: center;
     margin-bottom: 20px;
 }
+
 .file-container-filled {
     border: 2px dashed #000!important;
-    background-color: #CC5B5B!important;
+    background-color: #52d40d!important;
 }
 
 .file-container {

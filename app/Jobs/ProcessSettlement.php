@@ -79,6 +79,7 @@ class ProcessSettlement implements ShouldQueue
             $settlement = new Settlement();
             $settlement->user_id = $parentChannelId;
             $settlement->application_id = $application->id;
+            $settlement->settlement_type = 'commission';
             $settlement->status = 'checker';
             $settlement->received_rate = $percentage;
             $settlement->amount = $amount;
@@ -88,7 +89,11 @@ class ProcessSettlement implements ShouldQueue
         }
 
         // Create settlement distribution for this specific application
-        $tds_percentage = Settings::where('name', 'TDS')->first()->value;
+        $tds_percentage = Settings::where('name', 'TDS')->value('value');
+        if ($tds_percentage === null) {
+            Log::warning('TDS setting not found; defaulting to 0');
+            $tds_percentage = 0;
+        }
         $tds = round($amount * $tds_percentage / 100, 2);
         $netAmount = round($amount - $tds, 2);
         $bank_data = BankData::where('user_id', $parentChannelId)->first();
@@ -97,6 +102,7 @@ class ProcessSettlement implements ShouldQueue
         $settlement_distribution->settlement_id = $settlement->id;
         $settlement_distribution->user_id = $application->user_id;
         $settlement_distribution->application_id = $application->id;
+        $settlement_distribution->settlement_type = 'commission';
         $settlement_distribution->received_rate = $percentage;
         $settlement_distribution->gross_amount = $amount; // commission amount (not bank payout)
         $settlement_distribution->amount = $netAmount;

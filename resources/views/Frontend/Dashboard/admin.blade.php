@@ -1,4 +1,4 @@
-@extends('Layout.app')
+﻿@extends('Layout.app')
 @section('style')
 <link rel="stylesheet" href="{{asset('assets/css/dashboard.css')}}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
@@ -9,55 +9,71 @@
     {{-- Row 1: Application Stats --}}
     <div class="row">
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
-                <p class="cards-pg">Total Applications</p>
-                <h3 class="card-total">{{$total_application}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('application')}}">
+                <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
+                    <p class="cards-pg">Total Applications</p>
+                    <h3 class="card-total">{{$total_application}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
-                <p class="cards-pg">Completed Applications</p>
-                <h3 class="card-total">{{$completed_application}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('application')}}">
+                <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
+                    <p class="cards-pg">Completed Applications</p>
+                    <h3 class="card-total">{{$completed_application}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
-                <p class="cards-pg">Pending Applications</p>
-                <h3 class="card-total">{{$pending_application}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('application')}}">
+                <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
+                    <p class="cards-pg">Pending Applications</p>
+                    <h3 class="card-total">{{$pending_application}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
-                <p class="cards-pg">Rejected Applications</p>
-                <h3 class="card-total">{{$rejected_application}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('application')}}">
+                <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
+                    <p class="cards-pg">Rejected Applications</p>
+                    <h3 class="card-total">{{$rejected_application}}</h3>
+                </div>
+            </a>
         </div>
     </div>
     {{-- Row 4: Transaction Stats --}}
     <div class="row rows-container">
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
-                <p class="cards-pg">Pending Transactions</p>
-                <h3 class="card-total">{{$pending_transactions}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('transactions')}}">
+                <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
+                    <p class="cards-pg">Pending Transactions</p>
+                    <h3 class="card-total">{{$pending_transactions}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #6C63FF; margin-bottom: 0;">
-                <p class="cards-pg">Approved Transactions</p>
-                <h3 class="card-total">{{$approved_transactions}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('transactions')}}">
+                <div class="card card-container" style="border-left: 8px solid #6C63FF; margin-bottom: 0;">
+                    <p class="cards-pg">Approved Transactions</p>
+                    <h3 class="card-total">{{$approved_transactions}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
-                <p class="cards-pg">Completed Transactions</p>
-                <h3 class="card-total">{{$completed_transactions}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('transactions')}}">
+                <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
+                    <p class="cards-pg">Completed Transactions</p>
+                    <h3 class="card-total">{{$completed_transactions}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
-                <p class="cards-pg">Cancelled Transactions</p>
-                <h3 class="card-total">{{$cancelled_transactions}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('transactions')}}">
+                <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
+                    <p class="cards-pg">Cancelled Transactions</p>
+                    <h3 class="card-total">{{$cancelled_transactions}}</h3>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -66,22 +82,28 @@
     {{-- Row 3: Users --}}
     <div class="row rows-container">
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
-                <p class="cards-pg">Total Channel Partners</p>
-                <h3 class="card-total">{{$total_channel_partner}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('channel')}}">
+                <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
+                    <p class="cards-pg">Total Channel Partners</p>
+                    <h3 class="card-total">{{$total_channel_partner}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
-                <p class="cards-pg">Total Associates</p>
-                <h3 class="card-total">{{$total_associate}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('channel')}}">
+                <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
+                    <p class="cards-pg">Total Associates</p>
+                    <h3 class="card-total">{{$total_associate}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
-                <p class="cards-pg">Approved Applications</p>
-                <h3 class="card-total">{{$approved_application}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('application')}}">
+                <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
+                    <p class="cards-pg">Approved Applications</p>
+                    <h3 class="card-total">{{$approved_application}}</h3>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -89,16 +111,20 @@
     {{-- Row 2: Settlement Stats --}}
     <div class="row rows-container">
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
-                <p class="cards-pg">Pending Settlement</p>
-                <h3 class="card-total">₹ {{indianNumberFormat($pending_settlement)}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('settlement')}}">
+                <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
+                    <p class="cards-pg">Pending Settlement</p>
+                    <h3 class="card-total">₹ {{indianNumberFormat($pending_settlement)}}</h3>
+                </div>
+            </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
-                <p class="cards-pg">Completed Settlement</p>
-                <h3 class="card-total">₹ {{indianNumberFormat($total_settlement)}}</h3>
-            </div>
+            <a class="dashboard-card-link" href="{{url('settlement')}}">
+                <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
+                    <p class="cards-pg">Completed Settlement</p>
+                    <h3 class="card-total">₹ {{indianNumberFormat($total_settlement)}}</h3>
+                </div>
+            </a>
         </div>
     </div>
 
@@ -206,3 +232,4 @@
 </script>
 <script src="{{asset('assets/js/dashboard.js')}}"></script>
 @endsection
+

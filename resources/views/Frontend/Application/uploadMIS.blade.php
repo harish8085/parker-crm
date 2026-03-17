@@ -49,6 +49,10 @@
         @csrf
         <div class="file-container" id="cont">
             <input class="input-file" type="hidden" required name="user_id" id="user_id" />
+            <input class="input-file" type="hidden" name="user_type" id="selected_user_type" />
+            <input class="input-file" type="hidden" name="channel_id" id="selected_channel_id" />
+            <input class="input-file" type="hidden" name="sales_id" id="selected_sales_id" />
+            <input class="input-file" type="hidden" name="associate_id" id="selected_associate_id" />
             <input class="input-file" type="file" accept=".csv,.xlsx" required name="csv_file" id="csv_file" />
             <div class="content-container">
                 <img src="{{asset('assets/images/cloud-upload-img.svg')}}" id="img">
@@ -88,8 +92,12 @@
                         <div class="roles-dropdown">
                             <select class="form-select" required name="user_type" id="user_type">
                                 <option value="" selected disabled>Select User Type</option>
+                                @if($role_id == 2)
                                 <option value="channel">Channel Partner</option>
-                                <option value="sales">Sales Person</option>
+                                @elseif(!in_array($role_id, [3,37]))
+                                <option value="channel">Channel Partner</option>
+                                @endif
+                                <option value="associate">Associate Partner</option>
                             </select>
                         </div>
                     </div>
@@ -119,6 +127,27 @@
                         </div>
                     </div>
                 </div>
+                <div class="row associate-channel">
+                    <div class="col-12 p-2">
+                        <label class="input-label">Select Channel Partner<span class="required">*</span></label>
+                        <div class="roles-dropdown">
+                            <select class="form-select" name="associate_channel_id" id="associate_channel_id">
+                                <option value="" selected disabled>Select Channel Partner</option>
+                                @foreach($channels as $channel)
+                                <option value="{{$channel->id}}" @if($role_id == 2 && $channel->id == $user_id) selected @endif>{{$channel->first_name}}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row associate">
+                    <div class="col-12 p-2">
+                        <label class="input-label">Select Associate Partner<span class="required">*</span></label>
+                        <select class="form-select" name="associate_id" id="associate_id">
+                            <option value="" selected disabled>Select Associate Partner</option>
+                        </select>
+                    </div>
+                </div>
 
                 <div class="save-btn-container">
                     <div class="loader-1">
@@ -138,29 +167,72 @@
     $(document).ready(function() {
         $('.channel').hide()
         $('.sales').hide()
+        $('.associate-channel').hide()
+        $('.associate').hide()
         var role_id = `{{$role_id}}`
         var user_id = `{{$user_id}}`
+
+        function loadAssociates(channelId) {
+            $('#associate_id').html('<option value=\"\" selected disabled>Select Associate Partner</option>');
+            if (!channelId) {
+                return;
+            }
+            $.ajax({
+                url: '/application/channel/' + channelId + '/associates',
+                type: 'GET',
+                success: function(response) {
+                    $.each(response, function(_, associate) {
+                        var emp = associate.emp_id ? associate.emp_id : associate.id;
+                        $('#associate_id').append('<option value=\"' + associate.id + '\">' + associate.name + ' (' + emp + ')</option>');
+                    });
+                }
+            });
+        }
+
+        function toggleTypeFields() {
+            var type = $('#user_type').val();
+            $('.channel,.sales,.associate-channel,.associate').hide();
+
+            if (type == 'channel') {
+                $('.channel').show();
+            } else if (type == 'sales') {
+                $('.sales').show();
+            } else if (type == 'associate') {
+                $('.associate-channel,.associate').show();
+                if (Number(role_id) == 2) {
+                    $('#associate_channel_id').val(user_id).trigger('change');
+                }
+            }
+        }
 
         $('#submitBtn').click(function() {
             $('#submitBtn').hide()
             $('.loader-1').show()
         })
-        $('#user_type').change(function() {
+        $('#user_type').change(toggleTypeFields)
+        $('#associate_channel_id').change(function() {
+            loadAssociates($(this).val());
+        });
 
-            if ($(this).val() == 'channel') {
-                $('.sales').hide()
-                $('.channel').show()
+        if (Number(role_id) == 2) {
+            $('#user_type').val('channel');
+            toggleTypeFields();
+        }
 
-            } else {
-                $('.sales').show()
-                $('.channel').hide()
-
-            }
-        })
         $('#select_user').click(function() {
-            if ($('#user_type').val() == 'channel') {
+            var selectedType = $('#user_type').val();
+            if (!selectedType) {
+                $('#user_type').addClass('is-invalid').focus();
+                return false;
+            }
+
+            if (selectedType == 'channel') {
                 if ($('#channel_id').val()) {
                     $('#user_id').val($('#channel_id').val())
+                    $('#selected_user_type').val('channel')
+                    $('#selected_channel_id').val($('#channel_id').val())
+                    $('#selected_sales_id').val('')
+                    $('#selected_associate_id').val('')
                     $('#channel_id').addClass('is-valid').removeClass('is-invalid');
                 } else {
                     $('#channel_id').removeClass('is-valid').addClass('is-invalid');
@@ -169,15 +241,34 @@
                 }
 
 
-            } else {
+            } else if (selectedType == 'sales') {
                 if ($('#sales_id').val()) {
                     $('#user_id').val($('#sales_id').val())
+                    $('#selected_user_type').val('sales')
+                    $('#selected_sales_id').val($('#sales_id').val())
+                    $('#selected_channel_id').val('')
+                    $('#selected_associate_id').val('')
                     $('#sales_id').addClass('is-valid').removeClass('is-invalid');
                 } else {
                     $('#sales_id').removeClass('is-valid').addClass('is-invalid');
                     $('#sales_id').focus();
                     return false;
                 }
+            } else if (selectedType == 'associate') {
+                if (!$('#associate_channel_id').val()) {
+                    $('#associate_channel_id').addClass('is-invalid').focus();
+                    return false;
+                }
+                if (!$('#associate_id').val()) {
+                    $('#associate_id').addClass('is-invalid').focus();
+                    return false;
+                }
+
+                $('#user_id').val($('#associate_id').val())
+                $('#selected_user_type').val('associate')
+                $('#selected_channel_id').val($('#associate_channel_id').val())
+                $('#selected_associate_id').val($('#associate_id').val())
+                $('#selected_sales_id').val('')
             }
             $('#myModal').modal('hide')
         })
@@ -189,11 +280,18 @@
                 $('#p').html('Remove')
                 $('#p').addClass('text-dark')
                 $('#img').attr('src', `{{asset('assets/images/delete.svg')}}`);
-                if (role_id != 2 && role_id != 3 && role_id != 37) {
-
-                    $('#myModal').modal('show')
-                } else {
+                if (Number(role_id) == 3 || Number(role_id) == 37) {
                     $('#user_id').val(user_id)
+                    $('#selected_user_type').val(Number(role_id) == 3 ? 'sales' : 'associate')
+                    $('#selected_sales_id').val(Number(role_id) == 3 ? user_id : '')
+                    $('#selected_associate_id').val(Number(role_id) == 37 ? user_id : '')
+                    $('#selected_channel_id').val('')
+                } else {
+                    if (Number(role_id) == 2) {
+                        $('#user_type').val('channel');
+                        toggleTypeFields();
+                    }
+                    $('#myModal').modal('show')
                 }
             } else {
                 $('#cont').removeClass('file-container-filled')

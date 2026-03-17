@@ -73,7 +73,8 @@
         <h3 class="application-heading">Advances</h3>
         <div class="btn-container">
             <a href="{{ route('advance.create') }}" class="application-header-btn">
-                <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">Add Advance
+                <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">
+                {{ auth()->user()->user_type === 'checker' ? 'Create Advance Request' : 'Add Advance' }}
             </a>
         </div>
     </div>
