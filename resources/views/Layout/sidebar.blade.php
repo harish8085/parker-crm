@@ -14,6 +14,34 @@
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'dashboard')?'assets/images/home-active.svg':'assets/images/home.svg')}}" alt="error">Dashboard</a>
                 </li>
 
+                @if(auth()->user()->hasPermission('report','view'))
+                <li class="nav-item dropdown list-item {{ Request::is('report*') ? 'active' : '' }}">
+                    <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
+                        <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">Reports
+                        <span class="custom-dropdown-arrow">
+                            <img class="dropdown-icon" src="{{asset(Request::is('report*')?'assets/images/arrow-dropdown.svg':'assets/images/close-dropdown-sidebar-icon.svg')}}" alt="arrow">
+                        </span>
+                    </a>
+                    <ul class="dropdown-menu sidebar-menu {{ Request::is('report*') ? 'show' : '' }}">
+                        <li class="dropdown-list-li {{ Request::path() == 'report/view/advance' ? 'active-li' : '' }}">
+                            <a class="dropdown-item nav-links {{ Request::path() == 'report/view/advance' ? 'active-li' : '' }}" href="{{ route('report.advance.index') }}">Advance</a>
+                        </li>
+                        <li class="dropdown-list-li {{ Request::path() == 'report/view/creditors' ? 'active-li' : '' }}">
+                            <a class="dropdown-item nav-links {{ Request::path() == 'report/view/creditors' ? 'active-li' : '' }}" href="{{ route('report.creditors.index') }}">Creditors</a>
+                        </li>
+                        <li class="dropdown-list-li {{ Request::path() == 'report/view/bank-mis-pending' ? 'active-li' : '' }}">
+                            <a class="dropdown-item nav-links {{ Request::path() == 'report/view/bank-mis-pending' ? 'active-li' : '' }}" href="{{ route('report.bank-mis-pending.index') }}">Bank MIS Pending Data</a>
+                        </li>
+                        <li class="dropdown-list-li {{ Request::path() == 'report/view/invoice-tracker' ? 'active-li' : '' }}">
+                            <a class="dropdown-item nav-links {{ Request::path() == 'report/view/invoice-tracker' ? 'active-li' : '' }}" href="{{ route('report.invoice-tracker.index') }}">Invoice Tracker</a>
+                        </li>
+                        <li class="dropdown-list-li {{ Request::path() == 'report/view/daily-payment' ? 'active-li' : '' }}">
+                            <a class="dropdown-item nav-links {{ Request::path() == 'report/view/daily-payment' ? 'active-li' : '' }}" href="{{ route('report.daily-payment.index') }}">Daily Payment Report</a>
+                        </li>
+                    </ul>
+                </li>
+                @endif
+
                 @if(auth()->user()->hasPermission('announcements','view') || auth()->user()->roles[0]->id == 1)
                 <li class="nav-item dropdown list-item {{(Request::path() == 'announcements' || Request::path() == 'announcement-categories')?'active':''}}">
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
