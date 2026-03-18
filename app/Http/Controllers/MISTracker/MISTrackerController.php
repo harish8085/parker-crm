@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\MISTracker;
+namespace App\Http\Controllers\Mistracker;
 
 use App\Models\Bank;
 use App\Http\Controllers\Controller;
@@ -16,7 +16,7 @@ class MISTrackerController extends Controller
 
     public function index(Request $request)
     {
-        $Route = 'MisTracker';
+        $Route = 'Mistracker';
         $banks = Bank::all();
         $product = Product::all();
 
@@ -147,13 +147,13 @@ class MISTrackerController extends Controller
                 ->make(true);
         }
 
-        return view('Frontend.MISTracker.index', compact('Route', 'banks', 'product'));
+        return view('Frontend.Mistracker.index', compact('Route', 'banks', 'product'));
     }
 
 
     public function filter(Request $request)
     {
-        $Route = 'MisTracker';
+        $Route = 'Mistracker';
         $user = Auth::user();
         $query = BankMisTracker::query();
 
@@ -176,6 +176,6 @@ class MISTrackerController extends Controller
         $query->orderBy('id', 'desc');
         // Execute the query and fetch results
         $bank = $query->paginate(25);
-        return view('Frontend.MISTracker.Table.mis_tracker_table', compact('Route', 'bank'));
+        return view('Frontend.Mistracker.Table.mis-tracker', compact('Route', 'bank'));
     }
 }

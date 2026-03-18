@@ -33,7 +33,7 @@ use App\Http\Controllers\User\ChannelPartnerController;
 use App\Http\Controllers\User\SalesPersonController;
 use App\Http\Controllers\AnnouncementPopupController;
 use App\Http\Controllers\User\MasterDataController;
-use App\Http\Controllers\MISTracker\MISTrackerController;
+use App\Http\Controllers\Mistracker\MISTrackerController;
 use App\Http\Controllers\Contest\ContestController;
 use App\Http\Controllers\Insurance\InsuranceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
@@ -109,7 +109,7 @@ Route::middleware([CheckLogin::class])->group(function () {
     Route::post('/invoice/store', [InvoiceController::class, 'store'])->name('invoice.store');
 
     //mis tracker
-    Route::get('/mis_tracker', [MISTrackerController::class, 'index'])->name('mis_tracker.index');
+    Route::get('/mis-tracker', [MISTrackerController::class, 'index'])->name('mis-tracker.index');
 
     // Invoice Payment Route
     Route::get('/invoice_payment', [InvoicePaymentController::class, 'index'])->name('invoice_payment.index');
