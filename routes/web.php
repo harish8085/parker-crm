@@ -37,6 +37,11 @@ use App\Http\Controllers\Mistracker\MISTrackerController;
 use App\Http\Controllers\Contest\ContestController;
 use App\Http\Controllers\Insurance\InsuranceController;
 use App\Http\Controllers\InvoicePayment\InvoicePaymentController;
+use App\Http\Controllers\Report\AdvanceReportController;
+use App\Http\Controllers\Report\BankMisPendingReportController;
+use App\Http\Controllers\Report\CreditorsReportController;
+use App\Http\Controllers\Report\DailyPaymentReportController;
+use App\Http\Controllers\Report\InvoiceTrackerReportController;
 use App\Http\Middleware\CheckAdmin;
 use App\Http\Middleware\CheckLogin;
 use App\Http\Middleware\CheckPermission;
@@ -235,6 +240,29 @@ Route::middleware([CheckLogin::class])->group(function () {
 Route::middleware([CheckPermission::class])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    Route::prefix('/report/view')->group(function () {
+        Route::get('/advance', [AdvanceReportController::class, 'index'])->name('report.advance.index');
+        Route::get('/advance/filter', [AdvanceReportController::class, 'filter'])->name('report.advance.filter');
+        Route::get('/advance/export', [AdvanceReportController::class, 'export'])->name('report.advance.export');
+
+        Route::get('/creditors', [CreditorsReportController::class, 'index'])->name('report.creditors.index');
+        Route::get('/creditors/filter', [CreditorsReportController::class, 'filter'])->name('report.creditors.filter');
+        Route::get('/creditors/export', [CreditorsReportController::class, 'export'])->name('report.creditors.export');
+
+        Route::get('/bank-mis-pending', [BankMisPendingReportController::class, 'index'])->name('report.bank-mis-pending.index');
+        Route::get('/bank-mis-pending/filter', [BankMisPendingReportController::class, 'filter'])->name('report.bank-mis-pending.filter');
+        Route::get('/bank-mis-pending/export', [BankMisPendingReportController::class, 'export'])->name('report.bank-mis-pending.export');
+
+        Route::get('/invoice-tracker', [InvoiceTrackerReportController::class, 'index'])->name('report.invoice-tracker.index');
+        Route::get('/invoice-tracker/filter', [InvoiceTrackerReportController::class, 'filter'])->name('report.invoice-tracker.filter');
+        Route::get('/invoice-tracker/export', [InvoiceTrackerReportController::class, 'export'])->name('report.invoice-tracker.export');
+
+        Route::get('/daily-payment', [DailyPaymentReportController::class, 'index'])->name('report.daily-payment.index');
+        Route::get('/daily-payment/filter', [DailyPaymentReportController::class, 'filter'])->name('report.daily-payment.filter');
+        Route::get('/daily-payment/export', [DailyPaymentReportController::class, 'export'])->name('report.daily-payment.export');
+    });
+
     //Application Route
     Route::get('/application', [ApplicationController::class, 'index'])->name('application.index');
     Route::post('/application/delete/bulk', [ApplicationController::class, 'bulkDelete'])->name('applications.bulk-delete');

@@ -409,12 +409,16 @@ class AuthController extends Controller
                 $user->update(['Emp_Id'=> generateEmployeeCode($request->state, $request->district, $request->first_name, $user->id)]);
 
         
-                if (!empty($masterCode)) {
-                    $user->roles()->sync([2]);
-                } else {
-                    $roleUser = Role::where('name', 'Associate_Channel')->first();
-                    $user->roles()->sync([$roleUser->id]);
-                } 
+                $channelRole = Role::where('name', 'Channel')->first();
+                $associateRole = Role::where('name', 'Associate_Channel')->first();
+                $signupAllowedRoles = ['Channel', 'Associate_Channel'];
+
+                $roleToAssign = !empty($masterCode) ? $channelRole : $associateRole;
+                if (!$roleToAssign || !in_array($roleToAssign->name, $signupAllowedRoles, true)) {
+                    throw new \Exception('Invalid signup role configuration. Please contact administrator.');
+                }
+
+                $user->roles()->sync([$roleToAssign->id]);
 
 
                 $bankData = new BankData();
