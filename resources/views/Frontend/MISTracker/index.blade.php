@@ -89,14 +89,14 @@
 
 
     <div class="table-responsive p-4" id="dataTable">
-        @include('Frontend.MISTracker.Table.mis_tracker')
+        @include('Frontend.Mistracker.Table.mis-tracker')
     </div>
 </div>
 <!-- /# row -->
 @endsection
 
 @section('script')
-@include('Frontend.MisTracker.index_js')
+@include('Frontend.Mistracker.index_js')
 <script>
 
 </script>

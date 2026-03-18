@@ -111,7 +111,7 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: "{{ route('mis_tracker.index') }}",
+                url: "{{ route('mis-tracker.index') }}",
                 data: {
                     date: date,
                     date_range: date_range,
