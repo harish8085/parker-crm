@@ -215,7 +215,11 @@ class ApplicationController extends Controller
                         return $formatPartnerName($row->user);
                     })
                     ->addColumn('parent_name', function ($row) use ($formatParentName) {
-                        return $formatParentName($row->parentChannel);
+                        if (!$row->parentChannel || !$row->user) {
+                            return '-';
+                        }
+                        $isAssociate = $row->user->roles && $row->user->roles->contains('id', 37);
+                        return $isAssociate ? $formatParentName($row->parentChannel) : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -459,7 +463,11 @@ class ApplicationController extends Controller
                         return $formatPartnerName($row->user);
                     })
                     ->addColumn('parent_name', function ($row) use ($formatParentName) {
-                        return $formatParentName($row->parentChannel);
+                        if (!$row->parentChannel || !$row->user) {
+                            return '-';
+                        }
+                        $isAssociate = $row->user->roles && $row->user->roles->contains('id', 37);
+                        return $isAssociate ? $formatParentName($row->parentChannel) : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -1142,6 +1150,16 @@ class ApplicationController extends Controller
             ($request->filled('user_type') || $request->filled('channel_id') || $request->filled('associate_id') || $request->filled('sales_id') || $request->filled('channel_sales_id'))
         ) {
             $application->user_id = $this->resolveSelectedApplicationUserId($request, $user);
+        }
+
+        // Ensure parent_channel_id is set only for associate applications
+        $selectedUser = User::find($application->user_id);
+        $isAssociateUser = $selectedUser && $selectedUser->roles()->where('id', 37)->exists();
+        if ($isAssociateUser) {
+            $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+            $application->parent_channel_id = $parentChannel ? $parentChannel->channel_id : null;
+        } else {
+            $application->parent_channel_id = null;
         }
 
         // Update the application with the validated data
