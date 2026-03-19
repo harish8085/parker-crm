@@ -1284,9 +1284,9 @@ if (!function_exists('generateUniqueAppId')) {
      * @param int|null $excludeId Exclude this record ID from the check (used during update)
      * @return string
      */
-    function generateUniqueAppId($baseAppId, $modelClass, $extraConditions = [], $excludeId = null)
+    function generateUniqueAppId($baseAppId, $modelClass, $extraConditions = [], $excludeId = null, $column = 'app_id')
     {
-        $query = $modelClass::where('app_id', $baseAppId);
+        $query = $modelClass::where($column, $baseAppId);
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
         }
@@ -1297,11 +1297,11 @@ if (!function_exists('generateUniqueAppId')) {
             return $baseAppId;
         }
 
-        $postfixQuery = $modelClass::where('app_id', 'LIKE', $baseAppId . '-%');
+        $postfixQuery = $modelClass::where($column, 'LIKE', $baseAppId . '-%');
         if ($excludeId) {
             $postfixQuery->where('id', '!=', $excludeId);
         }
-        $existing = $postfixQuery->pluck('app_id');
+        $existing = $postfixQuery->pluck($column);
 
         $maxPostfix = 0;
         foreach ($existing as $existingAppId) {
