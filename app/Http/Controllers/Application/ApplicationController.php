@@ -1728,16 +1728,41 @@ class ApplicationController extends Controller
             $keysMapping = $filteredMapping;
 
             $headers = array_keys($rows[0] ?? []);
+            $normalizeHeader = function ($value) {
+                $value = is_string($value) ? $value : (string) $value;
+                $value = str_replace("\xC2\xA0", ' ', $value);
+                $value = trim($value);
+                $value = preg_replace('/\s+/', ' ', $value);
+                return strtoupper($value);
+            };
+
+            $headerMap = [];
+            foreach ($headers as $header) {
+                $normalized = $normalizeHeader($header);
+                if ($normalized === '') {
+                    continue;
+                }
+                if (!array_key_exists($normalized, $headerMap)) {
+                    $headerMap[$normalized] = $header;
+                }
+            }
+
+            $resolvedMapping = [];
             $missingHeadersInFile = [];
             foreach ($keysMapping as $excelKey => $dataKey) {
-                if (!in_array($dataKey, $headers, true)) {
+                $normalized = $normalizeHeader($dataKey);
+                if ($normalized === '' || !array_key_exists($normalized, $headerMap)) {
                     $missingHeadersInFile[] = $dataKey;
+                    continue;
                 }
+                $resolvedMapping[$excelKey] = $headerMap[$normalized];
             }
             if (!empty($missingHeadersInFile)) {
                 $missingHeadersList = implode(', ', array_unique($missingHeadersInFile));
                 return redirect()->to('/bank_mis')->with('error', "Missing header(s) in uploaded file: {$missingHeadersList}");
             }
+
+            $keysMapping = $resolvedMapping;
 
             $successCount = 0;
             $duplicateAppIds = [];  // Track app_ids that already exist
