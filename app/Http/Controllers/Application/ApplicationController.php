@@ -868,33 +868,7 @@ class ApplicationController extends Controller
         $salesroleId = 3;
         $sales = [];
         $channels = [];
-        // if ($user->roles[0]->id == 1) {
-        //     $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
 
-        //     $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-        //     $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
-
-        //     $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // } else {
-        //     $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-        //     $channel_assign = json_decode($channel_assign, true);
-        //     $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
-
-        //     $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // }
         $states = getState();
         $districts = [];
         // $products = BankProduct::where(['bank_id' => $application->bank_id, 'group' => $application->group])->get();
