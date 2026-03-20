@@ -43,6 +43,7 @@ class TransactionUTRImport implements ToCollection, WithHeadingRow
 
             $allocation->update([
                 'utr_number' => trim($utrNumber),
+                'payment_date' => now()->toDateString(),
             ]);
 
             $this->updatedCount++;

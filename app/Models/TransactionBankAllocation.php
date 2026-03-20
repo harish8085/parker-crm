@@ -14,7 +14,12 @@ class TransactionBankAllocation extends Model
         'bank_account_id',
         'amount',
         'utr_number',
+        'payment_date',
         'payment_status',
+    ];
+
+    protected $casts = [
+        'payment_date' => 'date',
     ];
 
     public function transaction()
