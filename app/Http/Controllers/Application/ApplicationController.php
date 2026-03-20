@@ -1717,9 +1717,8 @@ class ApplicationController extends Controller
             // Define critical fields required for matching applications with bank MIS
             $criticalFields = [
                 'app_id' => 'Application ID',
-                'customer_name' => 'Customer Name',
                 'payout_rate' => 'Commission Rate',
-                'disbAmount' => 'Disbursement Amount'
+                'disbAmount' => 'Disbursement Amount',
             ];
 
             // Check if critical fields are empty in SheetMatching
@@ -1744,6 +1743,28 @@ class ApplicationController extends Controller
             $keysMapping = $sheetData->toArray();
             unset($keysMapping['id'], $keysMapping['bank_id'], $keysMapping['product_id'], $keysMapping['group'], $keysMapping['created_at'], $keysMapping['updated_at']);
 
+            $filteredMapping = [];
+            foreach ($keysMapping as $excelKey => $dataKey) {
+                $dataKey = is_string($dataKey) ? trim($dataKey) : $dataKey;
+                if ($dataKey === null || $dataKey === '') {
+                    continue;
+                }
+                $filteredMapping[$excelKey] = $dataKey;
+            }
+            $keysMapping = $filteredMapping;
+
+            $headers = array_keys($rows[0] ?? []);
+            $missingHeadersInFile = [];
+            foreach ($keysMapping as $excelKey => $dataKey) {
+                if (!in_array($dataKey, $headers, true)) {
+                    $missingHeadersInFile[] = $dataKey;
+                }
+            }
+            if (!empty($missingHeadersInFile)) {
+                $missingHeadersList = implode(', ', array_unique($missingHeadersInFile));
+                return redirect()->to('/bank_mis')->with('error', "Missing header(s) in uploaded file: {$missingHeadersList}");
+            }
+
             $successCount = 0;
             $duplicateAppIds = [];  // Track app_ids that already exist
 
@@ -1755,10 +1776,16 @@ class ApplicationController extends Controller
                         'product_id' => $product_id,
                     ];
                     foreach ($keysMapping as $excelKey => $dataKey) {
-                        if (isset($row[$dataKey])) {
+                        if (array_key_exists($dataKey, $row)) {
                             $data[$excelKey] = $row[$dataKey];
                         }
                     }
+
+                    $appIdRaw = $data['app_id'] ?? null;
+                    if ($appIdRaw === null || trim((string) $appIdRaw) === '') {
+                        continue;
+                    }
+                    $data['app_id'] = trim((string) $appIdRaw);
 
                     // Handle duplicate app_id in BankMIS table
                     if (isset($data['app_id']) && !empty($data['app_id'])) {
