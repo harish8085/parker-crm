@@ -87,7 +87,7 @@ $encryptedCode = '';
 $signupUrl = '';
 if (!empty($masterCode)) {
 $encryptedCode = \Illuminate\Support\Facades\Crypt::encryptString($masterCode);
-$signupUrl = url(route('signup')) . '?code=' . urlencode($encryptedCode);
+$signupUrl = "https://partners.parkersconsultings.com/signup" . '?code=' . urlencode($encryptedCode);
 }
 @endphp
 <div class="card">
