@@ -147,7 +147,7 @@ class MISTrackerController extends Controller
                 ->make(true);
         }
 
-        return view('Frontend.Mistracker.index', compact('Route', 'banks', 'product'));
+        return view('Frontend.Mis-tracker.index', compact('Route', 'banks', 'product'));
     }
 
 
@@ -176,6 +176,6 @@ class MISTrackerController extends Controller
         $query->orderBy('id', 'desc');
         // Execute the query and fetch results
         $bank = $query->paginate(25);
-        return view('Frontend.Mistracker.Table.mis-tracker', compact('Route', 'bank'));
+        return view('Frontend.Mis-tracker.Table.mis-tracker', compact('Route', 'bank'));
     }
 }
