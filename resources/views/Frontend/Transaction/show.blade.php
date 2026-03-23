@@ -303,6 +303,7 @@
                             <th>Aadhar Number</th>
                             <th>Amount</th>
                             <th>UTR Number</th>
+                            <th>Payment Date</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -317,6 +318,7 @@
                             <td>{{ $allocation->bankAccount->aadhar_number ?? '-' }}</td>
                             <td>₹ {{ indianNumberFormat($allocation->amount) }}</td>
                             <td>{{ $allocation->utr_number ?? '-' }}</td>
+                            <td>{{ $allocation->payment_date ? $allocation->payment_date->format('d-m-Y') : '-' }}</td>
                         </tr>
                         @endforeach
                     </tbody>

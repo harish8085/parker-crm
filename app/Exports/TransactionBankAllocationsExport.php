@@ -25,6 +25,7 @@ class TransactionBankAllocationsExport implements FromCollection, WithHeadings, 
             ->get();
 
         return $allocations->map(function ($allocation) {
+            $paymentDate = $allocation->payment_date ? $allocation->payment_date->format('d-m-Y') : '';
             return [
                 'allocation_id' => $allocation->id,
                 'holder_name'   => $allocation->bankAccount->holder_name ?? 'N/A',
@@ -35,6 +36,7 @@ class TransactionBankAllocationsExport implements FromCollection, WithHeadings, 
                 'aadhar_number' => $allocation->bankAccount->aadhar_number ?? '-',
                 'amount'        => $allocation->amount,
                 'utr_number'    => $allocation->utr_number ?? '',
+                'payment_date'  => $paymentDate,
             ];
         });
     }
@@ -51,6 +53,7 @@ class TransactionBankAllocationsExport implements FromCollection, WithHeadings, 
             'Aadhar Number',
             'Amount',
             'UTR Number',
+            'Payment Date',
         ];
     }
 

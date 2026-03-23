@@ -215,7 +215,11 @@ class ApplicationController extends Controller
                         return $formatPartnerName($row->user);
                     })
                     ->addColumn('parent_name', function ($row) use ($formatParentName) {
-                        return $formatParentName($row->parentChannel);
+                        if (!$row->parentChannel || !$row->user) {
+                            return '-';
+                        }
+                        $isAssociate = $row->user->roles && $row->user->roles->contains('id', 37);
+                        return $isAssociate ? $formatParentName($row->parentChannel) : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -459,7 +463,11 @@ class ApplicationController extends Controller
                         return $formatPartnerName($row->user);
                     })
                     ->addColumn('parent_name', function ($row) use ($formatParentName) {
-                        return $formatParentName($row->parentChannel);
+                        if (!$row->parentChannel || !$row->user) {
+                            return '-';
+                        }
+                        $isAssociate = $row->user->roles && $row->user->roles->contains('id', 37);
+                        return $isAssociate ? $formatParentName($row->parentChannel) : '-';
                     })
                     ->editColumn('app_id', function ($row) {
                         // Determine CSS class based on app_id_is_matched
@@ -860,33 +868,7 @@ class ApplicationController extends Controller
         $salesroleId = 3;
         $sales = [];
         $channels = [];
-        // if ($user->roles[0]->id == 1) {
-        //     $channels = User::whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
 
-        //     $sales = User::whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // } elseif ($user->roles[0]->id == 2 || $user->roles[0]->id == 3) {
-        //     $channels = User::where('id', $user->id)->whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
-
-        //     $sales = User::where('id', $user->id)->whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // } else {
-        //     $channel_assign = StaffAssign::where('user_id', Auth::id())->value('channel_sales_id');
-        //     $channel_assign = json_decode($channel_assign, true);
-        //     $channels = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($channelroleId) {
-        //         $query->where('id', $channelroleId);
-        //     })->get();
-
-        //     $sales = User::whereIn('id', $channel_assign)->whereHas('roles', function ($query) use ($salesroleId) {
-        //         $query->where('id', $salesroleId);
-        //     })->get();
-        // }
         $states = getState();
         $districts = [];
         // $products = BankProduct::where(['bank_id' => $application->bank_id, 'group' => $application->group])->get();
@@ -1142,6 +1124,16 @@ class ApplicationController extends Controller
             ($request->filled('user_type') || $request->filled('channel_id') || $request->filled('associate_id') || $request->filled('sales_id') || $request->filled('channel_sales_id'))
         ) {
             $application->user_id = $this->resolveSelectedApplicationUserId($request, $user);
+        }
+
+        // Ensure parent_channel_id is set only for associate applications
+        $selectedUser = User::find($application->user_id);
+        $isAssociateUser = $selectedUser && $selectedUser->roles()->where('id', 37)->exists();
+        if ($isAssociateUser) {
+            $parentChannel = ChannelUser::where('associate_channel_id', $selectedUser->id)->first();
+            $application->parent_channel_id = $parentChannel ? $parentChannel->channel_id : null;
+        } else {
+            $application->parent_channel_id = null;
         }
 
         // Update the application with the validated data
@@ -1699,9 +1691,8 @@ class ApplicationController extends Controller
             // Define critical fields required for matching applications with bank MIS
             $criticalFields = [
                 'app_id' => 'Application ID',
-                'customer_name' => 'Customer Name',
                 'payout_rate' => 'Commission Rate',
-                'disbAmount' => 'Disbursement Amount'
+                'disbAmount' => 'Disbursement Amount',
             ];
 
             // Check if critical fields are empty in SheetMatching
@@ -1726,6 +1717,53 @@ class ApplicationController extends Controller
             $keysMapping = $sheetData->toArray();
             unset($keysMapping['id'], $keysMapping['bank_id'], $keysMapping['product_id'], $keysMapping['group'], $keysMapping['created_at'], $keysMapping['updated_at']);
 
+            $filteredMapping = [];
+            foreach ($keysMapping as $excelKey => $dataKey) {
+                $dataKey = is_string($dataKey) ? trim($dataKey) : $dataKey;
+                if ($dataKey === null || $dataKey === '') {
+                    continue;
+                }
+                $filteredMapping[$excelKey] = $dataKey;
+            }
+            $keysMapping = $filteredMapping;
+
+            $headers = array_keys($rows[0] ?? []);
+            $normalizeHeader = function ($value) {
+                $value = is_string($value) ? $value : (string) $value;
+                $value = str_replace("\xC2\xA0", ' ', $value);
+                $value = trim($value);
+                $value = preg_replace('/\s+/', ' ', $value);
+                return strtoupper($value);
+            };
+
+            $headerMap = [];
+            foreach ($headers as $header) {
+                $normalized = $normalizeHeader($header);
+                if ($normalized === '') {
+                    continue;
+                }
+                if (!array_key_exists($normalized, $headerMap)) {
+                    $headerMap[$normalized] = $header;
+                }
+            }
+
+            $resolvedMapping = [];
+            $missingHeadersInFile = [];
+            foreach ($keysMapping as $excelKey => $dataKey) {
+                $normalized = $normalizeHeader($dataKey);
+                if ($normalized === '' || !array_key_exists($normalized, $headerMap)) {
+                    $missingHeadersInFile[] = $dataKey;
+                    continue;
+                }
+                $resolvedMapping[$excelKey] = $headerMap[$normalized];
+            }
+            if (!empty($missingHeadersInFile)) {
+                $missingHeadersList = implode(', ', array_unique($missingHeadersInFile));
+                return redirect()->to('/bank_mis')->with('error', "Missing header(s) in uploaded file: {$missingHeadersList}");
+            }
+
+            $keysMapping = $resolvedMapping;
+
             $successCount = 0;
             $duplicateAppIds = [];  // Track app_ids that already exist
 
@@ -1737,10 +1775,16 @@ class ApplicationController extends Controller
                         'product_id' => $product_id,
                     ];
                     foreach ($keysMapping as $excelKey => $dataKey) {
-                        if (isset($row[$dataKey])) {
+                        if (array_key_exists($dataKey, $row)) {
                             $data[$excelKey] = $row[$dataKey];
                         }
                     }
+
+                    $appIdRaw = $data['app_id'] ?? null;
+                    if ($appIdRaw === null || trim((string) $appIdRaw) === '') {
+                        continue;
+                    }
+                    $data['app_id'] = trim((string) $appIdRaw);
 
                     // Handle duplicate app_id in BankMIS table
                     if (isset($data['app_id']) && !empty($data['app_id'])) {

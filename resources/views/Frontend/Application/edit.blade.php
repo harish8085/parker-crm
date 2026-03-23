@@ -46,47 +46,52 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
     <div class="bank-card">
         <div class="card-top-border">Basic Details</div>
         <div class="card-form">
-            @if(!in_array($roleId, [3,37]))
+            @php
+                $userTypeLabel = $selectedUserType === 'associate'
+                    ? 'Associate Partner'
+                    : ($selectedUserType === 'sales' ? 'Sales Person' : 'Channel Partner');
+
+                $channelDisplayName = $application->user
+                    ? trim(($application->user->first_name ?? '') . ' ' . ($application->user->last_name ?? ''))
+                    : '-';
+
+                $parentChannelDisplayName = $application->parentChannel
+                    ? trim(($application->parentChannel->first_name ?? '') . ' ' . ($application->parentChannel->last_name ?? ''))
+                    : '-';
+            @endphp
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Select User Type<span class="required">*</span></label>
-                <select class="bank-detail-input form-select" required name="user_type" id="user_type">
-                    <option value="" selected disabled>Select User Type</option>
-                    @if($roleId == 2)
-                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
-                    @else
-                    <option value="channel" @if($selectedUserType=='channel' ) selected @endif>Channel Partner</option>
-                    @endif
-                    <option value="associate" @if($selectedUserType=='associate' ) selected @endif>Associate Partner</option>
-                </select>
-            </div>
-            <div class="bank-detail-inputs channel">
-                <label class="bank-input-label" for="validationCustom01">Channel Partner<span class="required">*</span> </label>
-                <select class="bank-detail-input form-select" name="channel_id" id="channel_id">
-                    <option value="" selected disabled>Select Channel Partner</option>
-                    @foreach($channels as $channel)
-                    <option value="{{$channel->id}}" @if($channel->id == $selectedChannelId) selected @endif>{{$channel->first_name}} {{$channel->last_name}} ({{ $channel->Emp_Id ?: $channel->id }})</option>
-                    @endforeach
-                </select>
+                <input class="bank-detail-input form-control" type="text" value="{{ $userTypeLabel }}" disabled />
+                <input type="hidden" name="user_type" id="user_type" value="{{ $selectedUserType }}">
             </div>
 
-            <div class="bank-detail-inputs associate">
-                <label class="bank-input-label">Associate Partner<span class="required">*</span></label>
-                <select class="bank-detail-input form-select" name="associate_id" id="associate_id">
-                    <option value="" selected disabled>Select Associate Partner</option>
-                </select>
-            </div>
-            @endif
-            @if($roleId == 35 || $roleId == 36)
-            @if($application->parentChannel)
+            @if($selectedUserType === 'associate')
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Parent Channel </label>
-                <input class="bank-detail-input form-control" disabled type="text" name="parent_channel_id" id="parent_channel_id" placeholder="Enter parent channel" value="{{$application->parentChannel->first_name . ' '. $application->parentChannel->last_name}}" disabled />
+                <label class="bank-input-label">Parent Channel Partner<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $parentChannelDisplayName }}" disabled />
+                <input type="hidden" name="channel_id" id="channel_id" value="{{ $application->parent_channel_id }}">
+                <input type="hidden" name="associate_channel_id" id="associate_channel_id" value="{{ $application->parent_channel_id }}">
             </div>
-            @endif
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Channel Partner </label>
-                <input class="bank-detail-input form-control" disabled type="text" name="channel_partner" id="channel_partner" placeholder="Enter channel partner" value="{{$application->user->first_name . ' '. $application->user->last_name}}" disabled />
+                <label class="bank-input-label">Associate Name<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelDisplayName }}" disabled />
+                <input type="hidden" name="associate_id" id="associate_id" value="{{ $application->user_id }}">
+            </div>
+            @elseif($selectedUserType === 'sales')
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Sales Person<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelDisplayName }}" disabled />
+                <input type="hidden" name="sales_id" id="sales_id" value="{{ $application->user_id }}">
+                <input type="hidden" name="channel_sales_id" id="channel_sales_id" value="{{ $application->user_id }}">
+            </div>
+            @else
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Channel Partner<span class="required">*</span></label>
+                <input class="bank-detail-input form-control" type="text" value="{{ $channelDisplayName }}" disabled />
+                <input type="hidden" name="channel_id" id="channel_id" value="{{ $application->user_id }}">
+                <input type="hidden" name="associate_channel_id" id="associate_channel_id" value="">
+                <input type="hidden" name="associate_id" id="associate_id" value="">
             </div>
             @endif
 
@@ -598,6 +603,9 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
         $('.associate').hide()
 
         function loadAssociates(channelId, selectedAssociateId = null) {
+            if (!$('#associate_id').is('select')) {
+                return;
+            }
             $('#associate_id').html('<option value="" selected disabled>Select Associate Partner</option>');
             if (!channelId) {
                 return;

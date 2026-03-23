@@ -204,14 +204,16 @@ class ContestController extends Controller
                     continue;
                 }
 
-                if (ContestMis::where('application_no', $applicationNo)->exists()) {
+                $resolved = $this->resolveSecuredApplicationNo($applicationNo, ContestMis::class);
+                $resolvedAppNo = $resolved['application_no'];
+                if (!$resolved['is_secured'] && ContestMis::where('application_no', $resolvedAppNo)->exists()) {
                     $duplicateAppNos[] = $applicationNo;
                     continue;
                 }
 
                 $contestMis = new ContestMis();
                 $contestMis->bank_id = (int) $request->bank_id;
-                $contestMis->application_no = $applicationNo;
+                $contestMis->application_no = $resolvedAppNo;
                 $contestMis->location = $this->nullableString($row[$headerLookup['LOCATION']] ?? null);
                 $contestMis->disbursement_date = $this->parseExcelDate($row[$headerLookup['DISBURSEMENT DATE']] ?? null);
                 $contestMis->customer_name = $this->nullableString($row[$headerLookup['CUSTOMER NAME']] ?? null);
@@ -336,6 +338,47 @@ class ContestController extends Controller
         if (!$isAllowedRole && !$hasUploadPermission) {
             abort(403);
         }
+    }
+
+    private function resolveSecuredApplicationNo(string $applicationNo, string $misModelClass): array
+    {
+        $trimmed = trim($applicationNo);
+        if ($trimmed === '') {
+            return ['application_no' => $applicationNo, 'is_secured' => false];
+        }
+
+        $base = preg_replace('/-\d{3}$/', '', $trimmed);
+        $candidates = Application::where('group', 'Secured')
+            ->where(function ($q) use ($base) {
+                $q->where('app_id', $base)
+                    ->orWhere('app_id', 'LIKE', $base . '-%');
+            })
+            ->orderBy('app_id')
+            ->pluck('app_id')
+            ->toArray();
+
+        if (empty($candidates)) {
+            return ['application_no' => $applicationNo, 'is_secured' => false];
+        }
+
+        $used = $misModelClass::whereIn('application_no', $candidates)
+            ->pluck('application_no')
+            ->toArray();
+
+        if (in_array($trimmed, $candidates, true) && !in_array($trimmed, $used, true)) {
+            return ['application_no' => $trimmed, 'is_secured' => true];
+        }
+
+        foreach ($candidates as $candidate) {
+            if (!in_array($candidate, $used, true)) {
+                return ['application_no' => $candidate, 'is_secured' => true];
+            }
+        }
+
+        return [
+            'application_no' => generateUniqueAppId($base, $misModelClass, [], null, 'application_no'),
+            'is_secured' => true,
+        ];
     }
 
     private function getRelatedApplication(?string $applicationNo, $contestMis = null): array
