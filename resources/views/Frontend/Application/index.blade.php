@@ -72,7 +72,7 @@
                 </div>
 
             </div>
-            @if($user->roles[0]->id == 1)
+            @if(in_array($user->roles[0]->id, [1, 35, 36]))
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label ">Partner Name</label>

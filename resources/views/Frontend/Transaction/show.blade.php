@@ -277,12 +277,12 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="mb-0"><strong>Bank Account Allocations</strong></h6>
                 @php $roleId = auth()->user()->roles[0]->id; @endphp
-                @if($roleId == 36 && in_array($transaction->status, ['approved', 'completed']))
+                @if(in_array($roleId, [1, 2, 3, 35, 36]) && in_array($transaction->status, ['approved', 'completed']))
                 <div class="d-flex gap-2">
                     <a href="{{ url('/transactions/' . $transaction->id . '/export-allocations') }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-file-excel"></i> Export Allocations
                     </a>
-                    @if($transaction->status === 'approved')
+                    @if($roleId == 36 && $transaction->status === 'approved')
                     <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#uploadUTRModal">
                         <i class="fas fa-upload"></i> Upload UTR
                     </button>
@@ -363,6 +363,13 @@
         <!-- Action buttons based on role -->
         <div class="d-flex justify-content-end gap-2 mt-3">
             @php if(!isset($roleId)) $roleId = auth()->user()->roles[0]->id; @endphp
+            @php
+                $missingUtrCount = $transaction->bankAllocations
+                    ? $transaction->bankAllocations->filter(function ($allocation) {
+                        return empty($allocation->utr_number);
+                    })->count()
+                    : 0;
+            @endphp
 
             @if(in_array($roleId, [2, 3]) && $transaction->status === 'pending')
                 <a href="{{ url('/transactions/approve/' . $transaction->id) }}" class="btn btn-primary">
@@ -371,7 +378,7 @@
             @endif
 
             @if($roleId == 36 && $transaction->status === 'approved')
-                <button class="btn btn-success complete-transaction-btn" data-id="{{ $transaction->id }}">
+                <button class="btn btn-success complete-transaction-btn" data-id="{{ $transaction->id }}" data-missing-utr="{{ $missingUtrCount }}">
                     <i class="fas fa-check"></i> Mark as Completed
                 </button>
             @endif
@@ -403,6 +410,12 @@
         // Complete transaction button
         $('.complete-transaction-btn').click(function() {
             var transactionId = $(this).data('id');
+            var missingUtr = parseInt($(this).data('missing-utr'), 10) || 0;
+
+            if (missingUtr > 0) {
+                alert('Please update UTR number for all bank allocations before completing.');
+                return;
+            }
             if (!confirm('Are you sure you want to mark this transaction as completed?')) {
                 return;
             }

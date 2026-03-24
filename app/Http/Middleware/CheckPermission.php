@@ -25,6 +25,17 @@ class CheckPermission
         $applicationName = $urlParts[0];
         $type = isset($urlParts[1]) ? $urlParts[1] : 'view';
 
+        // Normalize type for read-only endpoints like /resource/{id}/logs or /resource/logs/{id}
+        if (is_numeric($type)) {
+            $type = 'view';
+        }
+        if ($type === 'logs') {
+            $type = 'view';
+        }
+        if (isset($urlParts[2]) && $urlParts[2] === 'logs') {
+            $type = 'view';
+        }
+
         if(Auth::user()->user_type == 'admin'){
             return $next($request);
         }

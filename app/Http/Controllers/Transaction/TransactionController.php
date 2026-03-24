@@ -413,6 +413,17 @@ class TransactionController extends Controller
             return response()->json(['error' => 'Unauthorized or transaction is not approved.'], 403);
         }
 
+        $missingUtrCount = TransactionBankAllocation::where('transaction_id', $transaction->id)
+            ->where(function ($q) {
+                $q->whereNull('utr_number')
+                  ->orWhere('utr_number', '');
+            })
+            ->count();
+
+        if ($missingUtrCount > 0) {
+            return response()->json(['error' => 'Please update UTR number for all bank allocations before completing.'], 422);
+        }
+
         DB::beginTransaction();
         try {
             $transaction->update([

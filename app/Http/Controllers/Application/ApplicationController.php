@@ -1681,6 +1681,9 @@ class ApplicationController extends Controller
             $bank_mis_month = $request->bank_mis_month;
             $excel = SimpleExcelReader::create(storage_path('app/' . $tempFilePath));
             $rows = $excel->getRows()->toArray();
+            if (empty($rows)) {
+                return redirect()->to('/bank_mis')->with('error', 'The uploaded file has no data rows.');
+            }
 
             // Fetch the sheet data
             $sheetData = SheetMatching::where(['bank_id' => $bank_id, 'product_id' => $product_id])->first();
@@ -1767,6 +1770,32 @@ class ApplicationController extends Controller
             $successCount = 0;
             $duplicateAppIds = [];  // Track app_ids that already exist
 
+            $normalizeCell = function ($value) {
+                if (is_string($value)) {
+                    $value = trim($value);
+                    // Ignore Excel formulas in raw import
+                    if (strpos($value, '=') === 0) {
+                        return null;
+                    }
+                }
+                return $value;
+            };
+
+            $isValidAppId = function ($value) {
+                $value = trim((string) $value);
+                if ($value === '') {
+                    return false;
+                }
+                $upper = strtoupper($value);
+                if (in_array($upper, ['TOTAL', 'SUBTOTAL', 'SUB TOTAL', 'GRAND TOTAL'], true)) {
+                    return false;
+                }
+                if (strpos($upper, 'TOTAL') === 0) {
+                    return false;
+                }
+                return (bool) preg_match('/[A-Z0-9]/i', $value);
+            };
+
             foreach ($rows as $row) {
                 if ($row) {
                     // Extract values based on mapped keys
@@ -1776,12 +1805,12 @@ class ApplicationController extends Controller
                     ];
                     foreach ($keysMapping as $excelKey => $dataKey) {
                         if (array_key_exists($dataKey, $row)) {
-                            $data[$excelKey] = $row[$dataKey];
+                            $data[$excelKey] = $normalizeCell($row[$dataKey]);
                         }
                     }
 
                     $appIdRaw = $data['app_id'] ?? null;
-                    if ($appIdRaw === null || trim((string) $appIdRaw) === '') {
+                    if ($appIdRaw === null || !$isValidAppId($appIdRaw)) {
                         continue;
                     }
                     $data['app_id'] = trim((string) $appIdRaw);
