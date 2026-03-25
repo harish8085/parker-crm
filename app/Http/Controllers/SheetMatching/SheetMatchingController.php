@@ -123,6 +123,9 @@ class SheetMatchingController extends Controller
                 ->editColumn('case_location', function ($row) {
                     return $row->case_location ? $row->case_location : '-';
                 })
+                ->editColumn('case_state', function ($row) {
+                    return $row->case_state ? $row->case_state : '-';
+                })
                 ->editColumn('customer_name', function ($row) {
                     return $row->customer_name ? $row->customer_name : '-';
                 })
@@ -207,6 +210,7 @@ class SheetMatchingController extends Controller
             'group' => 'required',
             'app_id' => 'required',
             'case_location' => 'nullable|string',
+            'case_state' => 'nullable|string',
             'customer_name' => 'nullable|string',
             'customer_firm_name' => 'nullable|string',
             'disbAmount' => 'required|string',
@@ -258,6 +262,7 @@ class SheetMatchingController extends Controller
             'group' => 'required',
             'app_id' => 'required',
             'case_location' => 'nullable|string',
+            'case_state' => 'nullable|string',
             'customer_name' => 'nullable|string',
             'customer_firm_name' => 'nullable|string',
             'disbAmount' => 'nullable|string',

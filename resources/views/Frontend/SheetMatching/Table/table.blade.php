@@ -7,6 +7,7 @@
             <th class="table-header">Group</th>
             <th class="table-header">Application ID</th>
             <th class="table-header">Case Location</th>
+            <th class="table-header">Case State</th>
             <th class="table-header">Customer Name</th>
             <th class="table-header">Customer Firm Name</th>
             <th class="table-header">Disbursement Amount</th>

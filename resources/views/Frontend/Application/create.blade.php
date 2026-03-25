@@ -108,28 +108,17 @@
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case State</label>
-                <select class="bank-detail-input form-select select" required name="case_state" id="case_state">
-                    <option value="" selected disabled>Select States</option>
+                <select class="bank-detail-input form-select select" name="case_state" id="case_state">
+                    <option value="" selected disabled>Select State</option>
                     @foreach($states as $state)
                     <option value="{{$state['state_code']}}">{{$state['state']}}</option>
                     @endforeach
                 </select>
             </div>
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Case Loaction</label>
-                <select class="bank-detail-input form-select select" required name="case_location" id="case_location">
-                    <option value="" selected disabled>Select District</option>
-                </select>
-            </div>
-            <!-- <div class="bank-detail-inputs">
-                <label class="bank-input-label">Case Loaction<span class="required">*</span></label>
+                <label class="bank-input-label">Case Location</label>
                 <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" placeholder="Enter case location">
             </div>
-
-            <div class="bank-detail-inputs">
-                <label class="bank-input-label">Case State<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="text" name="case_state" id="case_state" placeholder="Enter case state">
-            </div> -->
 
 
 
@@ -347,28 +336,7 @@
             }
         })
 
-        $('#case_state').change(function() {
-            var stateId = $(this).val();
-            $.ajax({
-                url: '/getDistrict/' + stateId,
-                type: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-
-                    $('#case_location').html('')
-                    $('#case_location').append('<option value="" selected disabled>Select District</option>')
-                    $('#case_location').val('')
-                    $('#case_location').append(response)
-                },
-                error: function(xhr) {
-                    console.log(xhr.responseText);
-                }
-            });
-
-        });
-        // });
+        // case_state is now free-text; no district lookup needed.
 
 
         $('#bank_id,#group').change(function() {

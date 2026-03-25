@@ -71,6 +71,10 @@
                 <!-- <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" placeholder="Enter Case Location"> -->
                 <input class="bank-detail-input form-control row_input" name="case_location" id="case_location" list="fileCols" placeholder="Type or choose column name">
             </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Case State</label>
+                <input class="bank-detail-input form-control row_input" name="case_state" id="case_state" list="fileCols" placeholder="Type or choose column name">
+            </div>
 
 
             <div class="bank-detail-inputs">

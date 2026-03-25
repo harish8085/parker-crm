@@ -23,7 +23,9 @@ class BankMIS extends Model
         'pf',
         'subvention',
         'roi',
-        'insurance'  
+        'insurance',
+        'case_location',
+        'case_state'
     ];
 
     public function bank()

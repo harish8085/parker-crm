@@ -1852,6 +1852,7 @@ class ApplicationController extends Controller
                         ->where('customer_name', $data['customer_name'] ?? NULL)
                         ->where('disbAmount', $data['disbAmount'] ?? NULL)
                         ->where('case_location', $data['case_location'] ?? NULL)
+                        ->where('case_state', $data['case_state'] ?? NULL)
                         ->where('otc_pdd_status', $data['otc_pdd_status'] ?? NULL)
                         ->where('bank_mis_month', $data['bank_mis_month'] ?? NULL)
                         ->first();
@@ -1879,6 +1880,7 @@ class ApplicationController extends Controller
                     $bank->customer_name = isset($data['customer_name']) ? $data['customer_name'] : NULL;
                     $bank->disbAmount = isset($data['disbAmount']) ? $data['disbAmount'] : NULL;
                     $bank->case_location = isset($data['case_location']) ? $data['case_location'] : NULL;
+                    $bank->case_state = isset($data['case_state']) ? $data['case_state'] : NULL;
                     $bank->otc_pdd_status = isset($data['otc_pdd_status']) ? $data['otc_pdd_status'] : NULL;
                     $bank->save();
 

@@ -73,21 +73,16 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
 
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Case State<span class="required">*</span></label>
-            <select class="bank-detail-input form-select" required name="case_state" id="case_state" disabled>
-                <option value="" selected disabled>Select States</option>
+            <select class="bank-detail-input form-select" name="case_state" id="case_state" disabled>
+                <option value="" selected disabled>Select State</option>
                 @foreach($states as $state)
                 <option value="{{$state['state_code']}}" @if($state['state_code']==$application->case_state) selected @endif>{{$state['state']}}</option>
                 @endforeach
             </select>
         </div>
         <div class="bank-detail-inputs">
-            <label class="bank-input-label">Case Loaction<span class="required">*</span></label>
-            <select class="bank-detail-input form-select" required name="case_location" id="case_location" disabled>
-                <option value="" selected disabled>Select District</option>
-                @foreach($districts as $district)
-                <option value="{{$district}}" @if($district==$application->case_location) selected @endif>{{$district}}</option>
-                @endforeach
-            </select>
+            <label class="bank-input-label">Case Location<span class="required">*</span></label>
+            <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" value="{{$application->case_location}}" disabled>
         </div>
 
 
