@@ -80,9 +80,9 @@
                  <label class="bank-input-label">Select District<span class="required">*</span></label>
                  <select class="bank-detail-input form-select" required name="district" id="district">
                      <option value="" selected disabled>Select District</option>
-                     @foreach($states as $state)
-                     <option value="{{$state['dis']}}">{{$state['state']}}</option>
-                     @endforeach
+                   
+                     <option value=""></option>
+                     
                  </select>
              </div>
              <div class="bank-detail-inputs">
