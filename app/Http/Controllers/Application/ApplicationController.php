@@ -1650,7 +1650,7 @@ class ApplicationController extends Controller
         } catch (ValidationException $e) {
             return redirect()->back()->withErrors($e->validator)->withInput();
         } catch (\Throwable $th) {
-            return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
+            return redirect()->back()->withErrors(['error' =>  $th->getMessage()])->withInput();
         }
     }
 
@@ -1874,7 +1874,7 @@ class ApplicationController extends Controller
 
             return redirect()->to('/bank_mis')->with('success', $successMessage);
         } catch (\Throwable $th) {
-            return redirect()->back()->withErrors(['error' => 'Something went wrong with your Excel data'])->withInput();
+            return redirect()->back()->withErrors(['error' =>  $th->getMessage()])->withInput();
         }
     }
 

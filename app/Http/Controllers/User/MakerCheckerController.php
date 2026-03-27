@@ -111,7 +111,7 @@ class MakerCheckerController extends Controller
         $user->status = 1;
         $user->password = Hash::make($password);
         $user->save();
-        $roles = Role::where('name', $validated['role'])->get();
+        $roles = Role::where('name', ucfirst($validated['role']))->get();
 
         $userRole = Role::where('name', ucfirst($validated['role']))->first();
         $user->roles()->attach($roles);
