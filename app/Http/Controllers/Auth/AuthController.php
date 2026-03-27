@@ -70,6 +70,14 @@ class AuthController extends Controller
                 if (Auth::attempt($userdata)) {
                     $user = Auth::user();
 
+                    // Restrict login for inactive maker/checker users
+                    if (in_array($user->user_type, ['maker', 'checker'], true)) {
+                        if ((int) ($user->status ?? 0) === 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your account is inactive. Please contact admin.');
+                        }
+                    }
+
                     // Restrict login for inactive channels and their associates
                     if ($user->user_type === 'channel') {
                         if ($user->status == 0) {

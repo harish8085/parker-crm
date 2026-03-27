@@ -599,6 +599,7 @@ class ChannelPartnerController extends Controller
             ],
             'ifsc_code'      => 'required|string|max:255',
             'user_commission' => 'nullable|numeric|min:0|max:100',
+            'password'       => 'nullable|string|min:8',
         ], [
             'user_commission.max' => 'The user commission cannot be greater than 100.',
             'user_commission.min' => 'The user commission cannot be less than 0.',

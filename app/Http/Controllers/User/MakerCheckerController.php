@@ -174,6 +174,7 @@ class MakerCheckerController extends Controller
             'city' => ['required', 'string', 'max:255'],
             'pincode' => ['required', 'digits:6'],
             'country' => ['nullable', 'string', 'max:255'],
+            'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         [$firstName, $lastName] = $this->splitName($validated['name']);
@@ -188,6 +189,11 @@ class MakerCheckerController extends Controller
         $user->district = $validated['city'];
         $user->pincode = $validated['pincode'];
         $user->user_type = $validated['role'];
+
+        if (!empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+
         $user->save();
 
         return redirect()

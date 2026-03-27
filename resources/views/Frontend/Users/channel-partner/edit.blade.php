@@ -32,11 +32,11 @@
                  <label class="bank-input-label">Phone Number<span class="required">*</span></label>
                  <input class="bank-detail-input form-control" type="tel" maxlength="10" name="phone" id="phone" placeholder="Enter user phone number" value="{{$channelPartner->phone}}">
              </div>
-             <div class="bank-detail-inputs">
-                 <label class="bank-input-label">Password<span class="required">*</span></label>
-                 <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter user password" />
-
-             </div>
+            <div class="bank-detail-inputs">
+                <label class="bank-input-label">Password</label>
+                <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter new password (leave blank to keep current)" />
+                <small class="form-text text-muted">Leave blank to keep the existing password.</small>
+            </div>
 
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">Pan Card<span class="required">*</span></label>
