@@ -43,6 +43,10 @@
                  <input class="bank-detail-input form-control" type="tel" maxlength="12" name="pan_number" id="pan_number" placeholder="Enter your pan number" value="{{$channelPartner->pan_number}}">
              </div>
              <div class="bank-detail-inputs">
+                 <label class="bank-input-label">GST Number</label>
+                 <input class="bank-detail-input form-control" type="text" name="gst_number" id="gst_number" placeholder="Enter GST number" value="{{$channelPartner->gst_number}}" maxlength="15">
+             </div>
+             <div class="bank-detail-inputs">
                  <label class="bank-input-label">Aadhar Number<span class="required">*</span></label>
                  <input class="bank-detail-input form-control" type="number" name="aadhar_number" id="aadhar_number" placeholder="Enter your aadhar number" value="{{$channelPartner->aadhar_number}}" />
              </div>
@@ -196,6 +200,9 @@
          // IFSC Regex
          var ifscRegex = /^[A-Z]{4}[0][A-Z0-9]{6}$/;
 
+         // GST Number Regex
+         var gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
          var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
          $('#pan_number').change(function() {
@@ -215,6 +222,15 @@
              }
          });
 
+         $('#gst_number').change(function() {
+             var gstValue = $('#gst_number').val().trim().toUpperCase();
+             if (gstValue.length > 0 && !gstRegex.test(gstValue)) {
+                 $('#gst_number').removeClass('is-valid').addClass('is-invalid');
+             } else {
+                 $('#gst_number').val(gstValue);
+                 $('#gst_number').addClass('is-valid').removeClass('is-invalid');
+             }
+         });
 
          $('#phone').change(function() {
              if ($('#phone').val().length != 10) {
@@ -333,6 +349,17 @@
                  return false;
              } else {
                  $('#pan_number').addClass('is-valid').removeClass('is-invalid');
+             }
+
+             var gstValue = $('#gst_number').val().trim().toUpperCase();
+             if (gstValue.length > 0 && !gstRegex.test(gstValue)) {
+                 $('#gst_number').removeClass('is-valid').addClass('is-invalid');
+                 $('#gst_number').focus();
+                 isValid = false;
+                 return false;
+             } else {
+                 $('#gst_number').val(gstValue);
+                 $('#gst_number').addClass('is-valid').removeClass('is-invalid');
              }
 
              if (!aadharRegex.test($('#aadhar_number').val())) {

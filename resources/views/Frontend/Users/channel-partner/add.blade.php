@@ -1,6 +1,25 @@
  @extends('Layout.app')
- @section('style')
+@section('style')
  <link rel="stylesheet" href="{{asset('assets/css/add-service-1.css')}}">
+ <style>
+     .password-input-container {
+         position: relative;
+     }
+
+     .password-toggle {
+         position: absolute;
+         right: 15px;
+         top: 50%;
+         transform: translateY(-50%);
+         cursor: pointer;
+         color: #6c757d;
+         z-index: 10;
+     }
+
+     .password-toggle:hover {
+         color: #495057;
+     }
+ </style>
 
  @endsection
  @section('body')
@@ -34,7 +53,10 @@
              </div>
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">Password<span class="required">*</span></label>
-                 <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter user password" />
+                 <div class="password-input-container">
+                     <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter user password" />
+                     <i class="fas fa-eye-slash password-toggle" onclick="togglePasswordVisibility('password')"></i>
+                 </div>
                  <div class="invalid-feedback">
                      Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.
                  </div>
@@ -43,6 +65,10 @@
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">Pan Card<span class="required">*</span></label>
                  <input class="bank-detail-input form-control" type="tel" maxlength="12" name="pan_number" id="pan_number" placeholder="Enter your pan number">
+             </div>
+             <div class="bank-detail-inputs">
+                 <label class="bank-input-label">GST Number</label>
+                 <input class="bank-detail-input form-control" type="text" name="gst_number" id="gst_number" placeholder="Enter GST number" maxlength="15">
              </div>
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">Aadhar Number<span class="required">*</span></label>
@@ -80,9 +106,9 @@
                  <label class="bank-input-label">Select District<span class="required">*</span></label>
                  <select class="bank-detail-input form-select" required name="district" id="district">
                      <option value="" selected disabled>Select District</option>
-                     @foreach($states as $state)
-                     <option value="{{$state['dis']}}">{{$state['state']}}</option>
-                     @endforeach
+                   
+                     <option value=""></option>
+                     
                  </select>
              </div>
              <div class="bank-detail-inputs">
@@ -150,8 +176,24 @@
  </form>
 
  @endsection
- @section('script')
+@section('script')
  <script>
+     // Password visibility toggle - must be global for onclick handler
+     function togglePasswordVisibility(inputId) {
+         const passwordInput = document.getElementById(inputId);
+         const eyeIcon = passwordInput.nextElementSibling;
+
+         if (passwordInput.type === 'password') {
+             passwordInput.type = 'text';
+             eyeIcon.classList.remove('fa-eye-slash');
+             eyeIcon.classList.add('fa-eye');
+         } else {
+             passwordInput.type = 'password';
+             eyeIcon.classList.remove('fa-eye');
+             eyeIcon.classList.add('fa-eye-slash');
+         }
+     }
+
      $(document).ready(function() {
 
          $('#state').change(function() {
@@ -186,6 +228,9 @@
          // IFSC Regex
          var ifscRegex = /^[A-Z]{4}[0][A-Z0-9]{6}$/;
 
+         // GST Number Regex
+         var gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
          var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
          $('#pan_number').change(function() {
@@ -205,6 +250,15 @@
              }
          });
 
+         $('#gst_number').change(function() {
+             var gstValue = $('#gst_number').val().trim().toUpperCase();
+             if (gstValue.length > 0 && !gstRegex.test(gstValue)) {
+                 $('#gst_number').removeClass('is-valid').addClass('is-invalid');
+             } else {
+                 $('#gst_number').val(gstValue);
+                 $('#gst_number').addClass('is-valid').removeClass('is-invalid');
+             }
+         });
 
          $('#phone').change(function() {
              if ($('#phone').val().length != 10) {
@@ -318,6 +372,17 @@
                  return false;
              } else {
                  $('#pan_number').addClass('is-valid').removeClass('is-invalid');
+             }
+
+             var gstValue = $('#gst_number').val().trim().toUpperCase();
+             if (gstValue.length > 0 && !gstRegex.test(gstValue)) {
+                 $('#gst_number').removeClass('is-valid').addClass('is-invalid');
+                 $('#gst_number').focus();
+                 isValid = false;
+                 return false;
+             } else {
+                 $('#gst_number').val(gstValue);
+                 $('#gst_number').addClass('is-valid').removeClass('is-invalid');
              }
 
              if (!aadharRegex.test($('#aadhar_number').val())) {

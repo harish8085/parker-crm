@@ -430,6 +430,7 @@ class ChannelPartnerController extends Controller
             'district'       => 'required|string|max:255',
             'pan_number'     => 'required|string|max:255|unique:users,pan_number',
             'aadhar_number'  => 'required|string|max:255|unique:users,aadhar_number',
+            'gst_number'     => 'nullable|string|max:15|regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/|unique:users,gst_number',
             'service_type'   => 'required|string|max:255',
             'address_1'      => 'required|string|max:255',
             'address_2'      => 'required|string|max:255',
@@ -459,6 +460,7 @@ class ChannelPartnerController extends Controller
         $channelPartner->district       = $request->district;
         $channelPartner->pan_number     = $request->pan_number;
         $channelPartner->aadhar_number  = $request->aadhar_number;
+        $channelPartner->gst_number     = $request->gst_number ? strtoupper($request->gst_number) : null;
         $channelPartner->address_1      = $request->address_1;
         $channelPartner->address_2      = $request->address_2;
         $channelPartner->landmark       = $request->landmark;
@@ -584,6 +586,13 @@ class ChannelPartnerController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($id),
             ],
+            'gst_number'     => [
+                'nullable',
+                'string',
+                'max:15',
+                'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/',
+                Rule::unique('users')->ignore($id),
+            ],
             'service_type'   => 'required|string|max:255',
             'address_1'      => 'required|string|max:255',
             'address_2'      => 'required|string|max:255',
@@ -626,6 +635,7 @@ class ChannelPartnerController extends Controller
         $channelPartner->status         = $request->status;
         $channelPartner->pan_number     = $request->pan_number;
         $channelPartner->aadhar_number  = $request->aadhar_number;
+        $channelPartner->gst_number     = $request->gst_number ? strtoupper($request->gst_number) : null;
 
         $bank->branch_name              = $request->branch_name;
         $bank->bank_name                = $request->bank_name;

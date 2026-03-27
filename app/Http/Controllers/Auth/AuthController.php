@@ -37,11 +37,117 @@ class AuthController extends Controller
 
     public function Login(Request $request)
     {
+        $email = trim((string) $request->email);
+        $password = (string) $request->password;
 
-        if (!empty($request)) {
-            $email = $request->email;
-            $password = $request->password;
+        if (empty($email) || empty($password)) {
+            return redirect()->back()->with('error', "Invalid Request");
+        }
 
+        // Determine the subdomain and user type
+        $subdomain = explode('.', $request->getHost())[0] ?? '';
+        switch ($subdomain) {
+            case 'admin':
+                $type = ['admin', 'staff'];
+                break;
+            case 'parker':
+                $type = ['admin', 'staff', 'channel', 'sales', 'maker', 'checker', 'associate_channel'];
+                break;
+            case 'partner':
+                $type = ['channel', 'maker', 'checker', 'associate_channel'];
+                break;
+            case 'sales-team':
+                $type = ['sales', 'maker', 'checker', 'associate_channel'];
+                break;
+            default:
+                $type = ['admin', 'staff', 'channel', 'sales', 'maker', 'checker', 'associate_channel'];
+                break;
+        }
+
+        $maskedEmail = (strlen($email) > 4)
+            ? substr($email, 0, 2) . '***' . substr($email, -1)
+            : '***';
+
+        // \Illuminate\Support\Facades\Log::info('AUTH_LOGIN_STEP1_REQUEST', [
+        //     'host' => $request->getHost(),
+        //     'subdomain' => $subdomain,
+        //     'email' => $maskedEmail,
+        //     'remember_present' => $request->has('remember'),
+        //     'allowed_user_types' => array_values($type),
+        //     'password_input_length' => strlen($password),
+        //     'password_trimmed_length' => strlen(trim($password)),
+        // ]);
+
+        // Case-insensitive email lookup to avoid collation differences between local and server
+        $user = User::whereRaw('LOWER(email) = LOWER(?)', [$email])->first();
+
+        // \Illuminate\Support\Facades\Log::info('AUTH_LOGIN_STEP2_USER_LOOKUP', [
+        //     'email' => $maskedEmail,
+        //     'user_found' => (bool) $user,
+        //     'user_id' => $user?->id,
+        //     'user_type' => $user?->user_type,
+        //     'user_status' => $user?->status,
+        //     'stored_password_prefix' => $user?->password ? substr((string) $user->password, 0, 4) : null,
+        //     'stored_password_length' => $user?->password ? strlen((string) $user->password) : null,
+        // ]);
+        
+
+        $hashOk = $user ? Hash::check($password, (string) $user->password) : false;
+
+
+        // \Illuminate\Support\Facades\Log::info('AUTH_LOGIN_STEP3_PASSWORD_CHECK', [
+        //     'email' => $maskedEmail,
+        //     'hash_ok' => $hashOk,
+        // ]);
+
+        if (!$hashOk || !$user) {
+            // \Illuminate\Support\Facades\Log::warning('AUTH_LOGIN_FAILED_CREDENTIALS', [
+            //     'email' => $maskedEmail,
+            //     'user_found' => (bool) $user,
+            //     'user_id' => $user?->id,
+            //     'user_type' => $user?->user_type,
+            //     'stored_password_prefix' => $user?->password ? substr((string) $user->password, 0, 4) : null,
+            //     'stored_password_length' => $user?->password ? strlen((string) $user->password) : null,
+            // ]);
+            return redirect()->back()->with('error', "Invalid Credential");
+        }
+
+        Auth::login($user);
+
+        $userType = strtolower((string) $user->user_type);
+        $allowedUserTypes = array_map('strtolower', $type);
+        $allowedType = in_array($userType, $allowedUserTypes, true);
+
+        // \Illuminate\Support\Facades\Log::info('AUTH_LOGIN_STEP4_ALLOWED_TYPE_CHECK', [
+        //     'email' => $maskedEmail,
+        //     'user_type' => $userType,
+        //     'allowed' => $allowedType,
+        //     'allowed_user_types' => $allowedUserTypes,
+        // ]);
+
+        if ($userType === 'channel' && (int) $user->status === 0) {
+            Auth::logout();
+            \Illuminate\Support\Facades\Log::warning('AUTH_LOGIN_BLOCKED_INACTIVE_CHANNEL', [
+                'email' => $maskedEmail,
+                'user_id' => $user->id,
+                'status' => $user->status,
+            ]);
+            return redirect()->back()->with('error', 'Your account is inactive. Please contact admin.');
+        }
+
+        if ($userType === 'staff' || $userType === 'sales') {
+            $parentChannel = \App\Models\ChannelUser::where('associate_channel_id', $user->id)->with('channel')->first();
+            if ($parentChannel && $parentChannel->channel && (int) $parentChannel->channel->status === 0) {
+                Auth::logout();
+                // \Illuminate\Support\Facades\Log::warning('AUTH_LOGIN_BLOCKED_PARENT_INACTIVE', [
+                //     'email' => $maskedEmail,
+                //     'user_id' => $user->id,
+                //     'parent_channel_user_id' => $parentChannel->id ?? null,
+                //     'parent_channel_status' => $parentChannel->channel?->status,
+                // ]);
+                return redirect()->back()->with('error', 'Your parent is no longer associated with Parker.');
+            }
+        }
             if (!empty($email) && !empty($password)) {
                 // Determine the subdomain and user type
                 $subdomain = explode('.', $request->getHost())[0];
@@ -94,37 +200,24 @@ class AuthController extends Controller
                         }
                     }
 
-                    if (in_array($user->user_type, $type)) {
-                        if ($request->has('remember') == null) {
-                            setcookie('email', $email, 100);
-                            setcookie('password', $password, 100);
-                        } else {
-                            setcookie('email', $email, time() + 606024100);
-                            setcookie('password', $password, time() + 606024100);
-                        }
-                        session('Login', true);
-                        flash()
-                            ->success('Logged In successfully.')
-                            ->flash();
-                        return redirect('/application');
-                    } else {
-                        Session::flush();
-                        Auth::logout();
-                        flash()
-                            ->error('Account does not exists.')
-                            ->flash();
-                        return redirect('/');
-                    }
-                } else {
-                    return redirect()->back()->with('error', "Invalid Credential");
-                }
-            } else {
-                return redirect()->back()->with('error', "Invalid Request");
-            }
-        } else {
-            return redirect()->back()->with('error', "Invalid Request");
+        if (!$allowedType) {
+            Session::flush();
+            Auth::logout();
+            flash()->error('Account does not exists.')->flash();
+            return redirect('/');
         }
-        return view("Auth.Login");
+
+        if ($request->has('remember') == null) {
+            setcookie('email', $email, 100);
+            setcookie('password', $password, 100);
+        } else {
+            setcookie('email', $email, time() + 606024100);
+            setcookie('password', $password, time() + 606024100);
+        }
+
+        session('Login', true);
+        flash()->success('Logged In successfully.')->flash();
+        return redirect('/application');
     }
 
 
