@@ -363,6 +363,10 @@
                                 name: 'product.name'
                         },
                         {
+                                data: 'company_name',
+                                name: 'company_name'
+                        },
+                        {
                                 data: 'group',
                                 name: 'group'
                         },
@@ -379,8 +383,8 @@
                                 name: 'customer_firm_name'
                         },
                         {
-                                data: 'location',
-                                name: 'location'
+                                data: 'case_state',
+                                name: 'case_state'
                         },
                         {
                                 data: 'case_location',

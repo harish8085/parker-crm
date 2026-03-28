@@ -200,24 +200,26 @@ class AuthController extends Controller
                         }
                     }
 
-        if (!$allowedType) {
-            Session::flush();
-            Auth::logout();
-            flash()->error('Account does not exists.')->flash();
-            return redirect('/');
-        }
+                    if (!$allowedType) {
+                        Session::flush();
+                        Auth::logout();
+                        flash()->error('Account does not exists.')->flash();
+                        return redirect('/');
+                    }
 
-        if ($request->has('remember') == null) {
-            setcookie('email', $email, 100);
-            setcookie('password', $password, 100);
-        } else {
-            setcookie('email', $email, time() + 606024100);
-            setcookie('password', $password, time() + 606024100);
-        }
+                    if ($request->has('remember') == null) {
+                        setcookie('email', $email, 100);
+                        setcookie('password', $password, 100);
+                    } else {
+                        setcookie('email', $email, time() + 606024100);
+                        setcookie('password', $password, time() + 606024100);
+                    }
 
-        session('Login', true);
-        flash()->success('Logged In successfully.')->flash();
-        return redirect('/application');
+                    session('Login', true);
+                    flash()->success('Logged In successfully.')->flash();
+                    return redirect('/application');
+                }
+            }
     }
 
 

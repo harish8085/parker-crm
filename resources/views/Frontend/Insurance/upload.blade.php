@@ -19,6 +19,15 @@
                 @endforeach
             </select>
         </div>
+        <div class="col-sm-4">
+            <label for="company_name" class="form-label">Select Company <span style="color: red;">*</span></label>
+            <select class="form-select" required id="company_name">
+                <option value="" selected disabled>Select Company</option>
+                <option value="Parker's Consulting & Ventures Pvt. Ltd.">Parker's Consulting & Ventures Pvt. Ltd.</option>
+                <option value="Aadrika Informative Services Pvt. LTD">Aadrika Informative Services Pvt. LTD</option>
+                <option value="Finance Solution Services">Finance Solution</option>
+            </select>
+        </div>
     </div>
 </div>
 
@@ -40,6 +49,7 @@
     <form method="POST" action="{{ route('insurance.upload') }}" enctype="multipart/form-data">
         @csrf
         <input type="hidden" name="bank_id" id="bank_id_input" />
+        <input type="hidden" name="company_name" id="company_name_input" />
         <div class="file-container" id="cont">
             <input class="input-file" type="file" accept=".xlsx" required name="xlsx_file" id="xlsx_file" />
             <div class="content-container">
@@ -59,6 +69,10 @@
 <script>
     $('#bank_id').on('change', function() {
         $('#bank_id_input').val($(this).val());
+    });
+
+    $('#company_name').on('change', function() {
+        $('#company_name_input').val($(this).val());
     });
 
     $('#xlsx_file').change(function() {

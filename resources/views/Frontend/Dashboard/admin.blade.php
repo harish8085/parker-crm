@@ -17,7 +17,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('application')}}">
+            <a class="dashboard-card-link" href="{{ url('application') }}?status=completed">
                 <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
                     <p class="cards-pg">Completed Applications</p>
                     <h3 class="card-total">{{$completed_application}}</h3>
@@ -25,7 +25,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('application')}}">
+            <a class="dashboard-card-link" href="{{ url('application') }}?status=pending">
                 <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
                     <p class="cards-pg">Pending Applications</p>
                     <h3 class="card-total">{{$pending_application}}</h3>
@@ -33,7 +33,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('application')}}">
+            <a class="dashboard-card-link" href="{{ url('application') }}?status=rejected">
                 <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
                     <p class="cards-pg">Rejected Applications</p>
                     <h3 class="card-total">{{$rejected_application}}</h3>
@@ -44,7 +44,7 @@
     {{-- Row 4: Transaction Stats --}}
     <div class="row rows-container">
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('transactions')}}">
+            <a class="dashboard-card-link" href="{{ url('transactions') }}?status=pending">
                 <div class="card card-container" style="border-left: 8px solid #00B3FF; margin-bottom: 0;">
                     <p class="cards-pg">Pending Transactions</p>
                     <h3 class="card-total">{{$pending_transactions}}</h3>
@@ -52,7 +52,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('transactions')}}">
+            <a class="dashboard-card-link" href="{{ url('transactions') }}?status=approved">
                 <div class="card card-container" style="border-left: 8px solid #6C63FF; margin-bottom: 0;">
                     <p class="cards-pg">Approved Transactions</p>
                     <h3 class="card-total">{{$approved_transactions}}</h3>
@@ -60,7 +60,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('transactions')}}">
+            <a class="dashboard-card-link" href="{{ url('transactions') }}?status=completed">
                 <div class="card card-container" style="border-left: 8px solid #2DD683; margin-bottom: 0;">
                     <p class="cards-pg">Completed Transactions</p>
                     <h3 class="card-total">{{$completed_transactions}}</h3>
@@ -68,7 +68,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('transactions')}}">
+            <a class="dashboard-card-link" href="{{ url('transactions') }}?status=cancelled">
                 <div class="card card-container" style="border-left: 8px solid #FA8B3A; margin-bottom: 0;">
                     <p class="cards-pg">Cancelled Transactions</p>
                     <h3 class="card-total">{{$cancelled_transactions}}</h3>
@@ -98,7 +98,7 @@
             </a>
         </div>
         <div class="col-12 col-sm-6 col-md-6 col-lg-3 p-2">
-            <a class="dashboard-card-link" href="{{url('application')}}">
+            <a class="dashboard-card-link" href="{{ url('application') }}?status=approved">
                 <div class="card card-container" style="border-left: 8px solid #FED142; margin-bottom: 0;">
                     <p class="cards-pg">Approved Applications</p>
                     <h3 class="card-total">{{$approved_application}}</h3>

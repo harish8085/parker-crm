@@ -121,6 +121,9 @@ class ChannelPartnerController extends Controller
                     ->editColumn('phone', function ($row) {
                         return $row->phone ? $row->phone : '-';
                     })
+                    ->editColumn('user_commission', function ($row) {
+                        return $row->user_commission !== null && $row->user_commission !== '' ? $row->user_commission : '-';
+                    })
                     ->addColumn('associated_channel', function ($row) {
                         // Count users associated with this channel partner (where this channel partner is the parent)
                         $count = ChannelUser::where('channel_id', $row->id)->count();
@@ -252,6 +255,9 @@ class ChannelPartnerController extends Controller
                     })
                     ->editColumn('phone', function ($row) {
                         return $row->phone ? $row->phone : '-';
+                    })
+                    ->editColumn('user_commission', function ($row) {
+                        return $row->user_commission !== null && $row->user_commission !== '' ? $row->user_commission : '-';
                     })
                     ->editColumn('status', function ($row) {
                         $status = "<button class='table-status-btn " . ($row->status ? 'completed' : 'rejected') . "'> " . ($row->status ? 'Active' : 'In-Active') . "</button>";

@@ -134,6 +134,11 @@ class AdvanceController extends Controller
                 'application_ids.required_if' => 'Please select at least one case when case type is Case.',
                 'application_ids.array' => 'Cases selection must be a valid list.',
                 'application_ids.*.exists' => 'One or more selected cases are invalid.',
+                'case_percentages.required_if' => 'Please enter sharing percentage for selected cases.',
+                'case_percentages.array' => 'Case percentages must be a valid list.',
+                'case_percentages.*.numeric' => 'Case percentage must be a number.',
+                'case_percentages.*.min' => 'Case percentage cannot be negative.',
+                'case_percentages.*.max' => 'Case percentage cannot exceed 100.',
             ];
     
             $validated = $request->validate([
@@ -143,13 +148,18 @@ class AdvanceController extends Controller
                 'case_type' => 'required|in:case,no_case',
                 'application_ids' => 'required_if:case_type,case|array',
                 'application_ids.*' => 'exists:applications,id',
+                'case_percentages' => 'required_if:case_type,case|array',
+                'case_percentages.*' => 'nullable|numeric|min:0|max:100',
             ], $messages);
 
             $perCaseAmounts = [];
+            $perCasePercents = [];
 
             // If case_type is "case", calculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
                 $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $casePercentages = $validated['case_percentages'] ?? [];
+                $defaultSharePercent = User::where('id', $validated['user_id'])->value('user_commission');
                 $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
                 $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
                     ->whereIn('user_id', $eligibleUserIds)
@@ -198,9 +208,18 @@ class AdvanceController extends Controller
                     }
 
                     $disburseAmount = (float) ($app->disburse_amount ?? 0);
-                    $percent = (float) $bankProduct->percent;
+                    $payoutPercent = (float) $bankProduct->percent;
+                    $sharePercentRaw = $casePercentages[$app->id] ?? $casePercentages[(string) $app->id] ?? $defaultSharePercent;
+                    $sharePercent = $sharePercentRaw !== null ? (float) $sharePercentRaw : null;
 
-                    $caseAmount = round($disburseAmount * $percent / 100, 2);
+                    if ($sharePercent === null || $sharePercent <= 0 || $sharePercent > 100) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Sharing commission percentage is missing or invalid for case ' . $app->app_id . ' (' . $app->customer_name . ').');
+                    }
+
+                    $payoutAmount = round($disburseAmount * $payoutPercent / 100, 2);
+                    $caseAmount = round($payoutAmount * $sharePercent / 100, 2);
 
                     if ($caseAmount <= 0) {
                         return redirect()->back()
@@ -209,6 +228,7 @@ class AdvanceController extends Controller
                     }
 
                     $perCaseAmounts[$app->id] = $caseAmount;
+                    $perCasePercents[$app->id] = $sharePercent;
                     $totalAdvanceAmount += $caseAmount;
                 }
 
@@ -241,6 +261,7 @@ class AdvanceController extends Controller
 
                         foreach ($validated['application_ids'] as $applicationId) {
                             $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                            $sharePercent = $perCasePercents[$applicationId] ?? null;
                             if ($caseAmount === null) {
                                 continue;
                             }
@@ -248,19 +269,11 @@ class AdvanceController extends Controller
                             $application = $applicationsWithDetails->get($applicationId);
                             $productName = $application && $application->product ? $application->product->name : null;
 
-                            $productPercent = null;
-                            if ($application) {
-                                $bankProduct = BankProduct::where('bank_id', $application->bank_id)
-                                    ->where('product_id', $application->product_id)
-                                    ->first();
-                                $productPercent = $bankProduct ? $bankProduct->percent : null;
-                            }
-
                             AdvanceRequestCase::create([
                                 'advance_request_id' => $requestModel->id,
                                 'application_id' => $applicationId,
                                 'product' => $productName,
-                                'product_percent' => $productPercent,
+                                'product_percent' => $sharePercent,
                                 'advance_payment_amount' => $caseAmount,
                             ]);
                         }
@@ -295,6 +308,7 @@ class AdvanceController extends Controller
 
                 foreach ($validated['application_ids'] as $applicationId) {
                     $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                    $sharePercent = $perCasePercents[$applicationId] ?? null;
                     if ($caseAmount === null) {
                         continue;
                     }
@@ -302,19 +316,11 @@ class AdvanceController extends Controller
                     $application = $applicationsWithDetails->get($applicationId);
                     $productName = $application && $application->product ? $application->product->name : null;
 
-                    $productPercent = null;
-                    if ($application) {
-                        $bankProduct = BankProduct::where('bank_id', $application->bank_id)
-                            ->where('product_id', $application->product_id)
-                            ->first();
-                        $productPercent = $bankProduct ? $bankProduct->percent : null;
-                    }
-
                     \App\Models\AdvancePaymentCase::create([
                         'advance_amount_log_id' => $advanceAmountLog->id,
                         'application_id' => $applicationId,
                         'product' => $productName,
-                        'product_percent' => $productPercent,
+                        'product_percent' => $sharePercent,
                         'advance_payment_amount' => $caseAmount,
                         'status' => 'active',
                     ]);
@@ -438,6 +444,7 @@ class AdvanceController extends Controller
 
         $userId = $request->get('user_id');
         $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $userId);
+        $defaultSharePercent = User::where('id', $userId)->value('user_commission');
 
         $applications = Application::with(['bank', 'product'])
             ->whereIn('user_id', $eligibleUserIds)
@@ -462,7 +469,7 @@ class AdvanceController extends Controller
                 'case_state', 'bank_id', 'product_id', 'group', 'fresh_or_bt'
             ]);
 
-        $results = $applications->map(function ($app) {
+        $results = $applications->map(function ($app) use ($defaultSharePercent) {
             return [
                 'id' => $app->id,
                 'app_id' => $app->app_id,
@@ -476,6 +483,7 @@ class AdvanceController extends Controller
                 'product_name' => $app->product ? $app->product->name : '-',
                 'group' => $app->group,
                 'fresh_or_bt' => $app->fresh_or_bt,
+                'default_share_percent' => $defaultSharePercent !== null ? (float) $defaultSharePercent : null,
             ];
         });
 
@@ -507,7 +515,16 @@ class AdvanceController extends Controller
         $validated = $request->validate([
             'application_ids' => 'required|array',
             'application_ids.*' => 'exists:applications,id',
+            'case_percentages' => 'nullable|array',
+            'case_percentages.*' => 'nullable|numeric|min:0|max:100',
+            'user_id' => 'nullable|exists:users,id',
         ]);
+
+        $casePercentages = $validated['case_percentages'] ?? [];
+        $defaultSharePercent = null;
+        if (!empty($validated['user_id'])) {
+            $defaultSharePercent = User::where('id', $validated['user_id'])->value('user_commission');
+        }
 
         $applications = Application::whereIn('id', $validated['application_ids'] ?? [])
             ->get(['id', 'bank_id', 'product_id', 'disburse_amount', 'app_id', 'customer_name']);
@@ -535,8 +552,19 @@ class AdvanceController extends Controller
             }
 
             $disburseAmount = (float) ($app->disburse_amount ?? 0);
-            $percent = (float) $bankProduct->percent;
-            $caseAmount = round($disburseAmount * $percent / 100, 2);
+            $payoutPercent = (float) $bankProduct->percent;
+            $sharePercentRaw = $casePercentages[$app->id] ?? $casePercentages[(string) $app->id] ?? $defaultSharePercent;
+            $sharePercent = $sharePercentRaw !== null ? (float) $sharePercentRaw : null;
+
+            if ($sharePercent === null || $sharePercent <= 0 || $sharePercent > 100) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sharing commission percentage is missing or invalid for case ' . $app->app_id . ' (' . $app->customer_name . ').',
+                ], 422);
+            }
+
+            $payoutAmount = round($disburseAmount * $payoutPercent / 100, 2);
+            $caseAmount = round($payoutAmount * $sharePercent / 100, 2);
 
             if ($caseAmount <= 0) {
                 return response()->json([
@@ -550,7 +578,10 @@ class AdvanceController extends Controller
                 'app_id' => $app->app_id,
                 'customer_name' => $app->customer_name,
                 'disburse_amount' => $disburseAmount,
-                'percent' => $percent,
+                'payout_percent' => $payoutPercent,
+                'share_percent' => $sharePercent,
+                'percent' => $sharePercent,
+                'payout_amount' => $payoutAmount,
                 'advance_amount' => $caseAmount,
             ];
 
@@ -656,9 +687,13 @@ class AdvanceController extends Controller
         $latestLog = $advance->advanceAmountLogs()->latest('created_at')->first();
 
         $selectedApplicationIds = [];
+        $selectedCasePercents = [];
         if ($latestLog) {
             $selectedApplicationIds = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $latestLog->id)
                 ->pluck('application_id')
+                ->toArray();
+            $selectedCasePercents = \App\Models\AdvancePaymentCase::where('advance_amount_log_id', $latestLog->id)
+                ->pluck('product_percent', 'application_id')
                 ->toArray();
         }
 
@@ -688,7 +723,8 @@ class AdvanceController extends Controller
             'latestLog',
             'caseType',
             'selectedApplicationIds',
-            'preloadedApplications'
+            'preloadedApplications',
+            'selectedCasePercents'
         ));
     }
 
@@ -714,6 +750,11 @@ class AdvanceController extends Controller
                 'application_ids.required_if' => 'Please select at least one case when case type is Case.',
                 'application_ids.array' => 'Cases selection must be a valid list.',
                 'application_ids.*.exists' => 'One or more selected cases are invalid.',
+                'case_percentages.required_if' => 'Please enter sharing percentage for selected cases.',
+                'case_percentages.array' => 'Case percentages must be a valid list.',
+                'case_percentages.*.numeric' => 'Case percentage must be a number.',
+                'case_percentages.*.min' => 'Case percentage cannot be negative.',
+                'case_percentages.*.max' => 'Case percentage cannot exceed 100.',
             ];
 
             $validated = $request->validate([
@@ -723,15 +764,20 @@ class AdvanceController extends Controller
                 'case_type' => 'required|in:case,no_case',
                 'application_ids' => 'required_if:case_type,case|array',
                 'application_ids.*' => 'exists:applications,id',
+                'case_percentages' => 'required_if:case_type,case|array',
+                'case_percentages.*' => 'nullable|numeric|min:0|max:100',
             ], $messages);
 
             $advance = Advance::with('advanceAmountLogs')->findOrFail($id);
 
             $perCaseAmounts = [];
+            $perCasePercents = [];
 
             // If case_type is "case", recalculate advance amount from applications and bank_products percentage
             if ($validated['case_type'] === 'case') {
                 $selectedAppIds = array_map('intval', $validated['application_ids'] ?? []);
+                $casePercentages = $validated['case_percentages'] ?? [];
+                $defaultSharePercent = User::where('id', $validated['user_id'])->value('user_commission');
                 $eligibleUserIds = $this->getChannelWithAssociateUserIds((int) $validated['user_id']);
                 $availableSelectedCount = Application::whereIn('id', $selectedAppIds)
                     ->whereIn('user_id', $eligibleUserIds)
@@ -780,9 +826,18 @@ class AdvanceController extends Controller
                     }
 
                     $disburseAmount = (float) ($app->disburse_amount ?? 0);
-                    $percent = (float) $bankProduct->percent;
+                    $payoutPercent = (float) $bankProduct->percent;
+                    $sharePercentRaw = $casePercentages[$app->id] ?? $casePercentages[(string) $app->id] ?? $defaultSharePercent;
+                    $sharePercent = $sharePercentRaw !== null ? (float) $sharePercentRaw : null;
 
-                    $caseAmount = round($disburseAmount * $percent / 100, 2);
+                    if ($sharePercent === null || $sharePercent <= 0 || $sharePercent > 100) {
+                        return redirect()->back()
+                            ->withInput()
+                            ->with('error', 'Sharing commission percentage is missing or invalid for case ' . $app->app_id . ' (' . $app->customer_name . ').');
+                    }
+
+                    $payoutAmount = round($disburseAmount * $payoutPercent / 100, 2);
+                    $caseAmount = round($payoutAmount * $sharePercent / 100, 2);
 
                     if ($caseAmount <= 0) {
                         return redirect()->back()
@@ -791,6 +846,7 @@ class AdvanceController extends Controller
                     }
 
                     $perCaseAmounts[$app->id] = $caseAmount;
+                    $perCasePercents[$app->id] = $sharePercent;
                     $totalAdvanceAmount += $caseAmount;
                 }
 
@@ -844,27 +900,19 @@ class AdvanceController extends Controller
 
                     foreach ($validated['application_ids'] as $applicationId) {
                         $caseAmount = $perCaseAmounts[$applicationId] ?? null;
+                        $sharePercent = $perCasePercents[$applicationId] ?? null;
                         if ($caseAmount === null) {
                             continue;
                         }
 
                         $application = $applicationsWithDetails->get($applicationId);
                         $productName = $application && $application->product ? $application->product->name : null;
-                        
-                        // Get product percent from BankProduct
-                        $productPercent = null;
-                        if ($application) {
-                            $bankProduct = BankProduct::where('bank_id', $application->bank_id)
-                                ->where('product_id', $application->product_id)
-                                ->first();
-                            $productPercent = $bankProduct ? $bankProduct->percent : null;
-                        }
 
                         \App\Models\AdvancePaymentCase::create([
                             'advance_amount_log_id' => $latestLog->id,
                             'application_id' => $applicationId,
                             'product' => $productName,
-                            'product_percent' => $productPercent,
+                            'product_percent' => $sharePercent,
                             'advance_payment_amount' => $caseAmount,
                             'status' => 'active',
                         ]);

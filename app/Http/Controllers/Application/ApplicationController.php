@@ -1669,11 +1669,13 @@ class ApplicationController extends Controller
                 'xlsx_file' => 'required|file|mimes:xlsx',
                 'bank_id' => 'required',
                 'product_id' => 'required',
+                'company_name' => 'required|string',
                 'bank_mis_month' => 'required',
             ]);
 
             $bank_id = $request->bank_id;
             $product_id = $request->product_id;
+            $company_name = $request->company_name;
             $file = $request->file('xlsx_file');
             $tempFilePath = $file->storeAs('tmp', 'uploaded.xlsx');
 
@@ -1802,6 +1804,7 @@ class ApplicationController extends Controller
                     $data = [
                         'bank_id' => $bank_id,
                         'product_id' => $product_id,
+                        'company_name' => $company_name,
                     ];
                     foreach ($keysMapping as $excelKey => $dataKey) {
                         if (array_key_exists($dataKey, $row)) {
@@ -1839,6 +1842,7 @@ class ApplicationController extends Controller
                     // Check if the record already exists based on all relevant fields (including month)
                     $existingMIS = BankMIS::where('bank_id', $data['bank_id'])
                         ->where('product_id', $data['product_id'])
+                        ->where('company_name', $data['company_name'] ?? NULL)
                         ->where('app_id', $data['app_id'] ?? NULL)
                         //    ->where('payout_rate', $data['payout_rate'] ?? NULL)
                         ->where('location', $data['location'] ?? NULL)
@@ -1866,6 +1870,7 @@ class ApplicationController extends Controller
                     $bank = new BankMIS();
                     $bank->bank_id = $data['bank_id'];
                     $bank->product_id = $data['product_id'];
+                    $bank->company_name = $data['company_name'] ?? NULL;
                     $bank->app_id = isset($data['app_id']) ? $data['app_id'] : NULL;
                     $bank->bank_mis_month = $data['bank_mis_month'] ?? NULL;
                     $bank->payout_rate = ($data['payout_rate'] != '') ? round(floatval($data['payout_rate']), 2) : NULL;

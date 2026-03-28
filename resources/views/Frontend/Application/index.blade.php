@@ -115,6 +115,7 @@
                         <option value="">Select Status</option>
                         <option value="pending">Pending</option>
                         <option value="in-progress">In Progress</option>
+                        <option value="approved">Approved</option>
                         <option value="completed">Completed</option>
                         <option value="rejected">Rejected</option>
                     </select>
@@ -213,6 +214,7 @@
                                 <select class="form-select" name="status" id="status">
                                     <option selected>All</option>
                                     <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
                                     <option value="rejected">Rejected</option>
                                     <option value="completed">Completed</option>
                                 </select>

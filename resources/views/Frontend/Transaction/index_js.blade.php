@@ -1,6 +1,13 @@
 <script type="text/javascript">
     $.fn.dataTable.ext.errMode = 'none';
 
+    function getInitialStatusFromQuery() {
+        var params = new URLSearchParams(window.location.search);
+        var status = (params.get('status') || '').toLowerCase();
+        var allowed = ['pending', 'approved', 'completed', 'rejected', 'cancelled'];
+        return allowed.includes(status) ? status : '';
+    }
+
     function load_data(status = '', channel_id = '', date_range = '') {
         var table2 = $('.data-table-2').DataTable({
             debug: false,
@@ -100,12 +107,21 @@
     };
 
     $(document).ready(function() {
-        load_data();
-
         $('.select').select2({
             placeholder: "Select an option",
             allowClear: true
         });
+
+        var initialStatus = getInitialStatusFromQuery();
+        if (initialStatus) {
+            $('#status').val(initialStatus).trigger('change');
+        }
+
+        if (initialStatus) {
+            load_data(initialStatus);
+        } else {
+            load_data();
+        }
 
         $('#filter').click(function() {
             var status = $('#status').val();

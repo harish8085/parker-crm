@@ -80,6 +80,7 @@ class InsuranceController extends Controller
                     return '<input type="checkbox" class="insurance-row-checkbox" value="' . e((string) $row->id) . '">';
                 })
                 ->editColumn('application_no', fn($row) => $row->application_no ?? '-')
+                ->editColumn('company_name', fn($row) => $row->company_name ?? '-')
                 ->editColumn('bank_name', fn($row) => $row->bank->name ?? '-')
                 ->editColumn('product_name', function ($row) {
                     $related = $this->getRelatedApplication($row->application_no, $row);
@@ -159,6 +160,7 @@ class InsuranceController extends Controller
         $request->validate([
             'xlsx_file' => 'required|file|mimes:xlsx',
             'bank_id' => 'required|exists:banks,id',
+            'company_name' => 'required|string',
         ]);
 
         try {
@@ -211,6 +213,7 @@ class InsuranceController extends Controller
 
                 $insuranceMis = new InsuranceMis();
                 $insuranceMis->bank_id = (int) $request->bank_id;
+                $insuranceMis->company_name = $request->company_name;
                 $insuranceMis->application_no = $resolvedAppNo;
                 $insuranceMis->location = $this->nullableString($row[$headerLookup['LOCATION']] ?? null);
                 $insuranceMis->disbursement_date = $this->parseExcelDate($row[$headerLookup['DISBURSEMENT DATE']] ?? null);

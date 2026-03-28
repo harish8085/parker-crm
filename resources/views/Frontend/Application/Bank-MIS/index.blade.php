@@ -5,11 +5,19 @@
 
 @endsection
 @section('body')
-<div class="import-header d-block">
+<div class="import-header d-block mt-4">
     <div class="row">
         <div class="col-sm-6">
             <h2 class="upload-file-heading">Upload Bank MIS File</h2>
-
+        </div>
+        <div class="col-sm-3">
+            <label for="company_name" class="form-label">Select Company <span style="color: red;">*</span></label>
+            <select class="form-select" required id="company_name">
+                <option value="" selected disabled>Select Company</option>
+                <option value="Parker's Consulting & Ventures Pvt. Ltd.">Parker's Consulting & Ventures Pvt. Ltd.</option>
+                <option value="Aadrika Informative Services Pvt. LTD">Aadrika Informative Services Pvt. LTD</option>
+                <option value="Finance Solution Services">Finance Solution</option>
+            </select>
         </div>
         <div class="col-sm-3">
             <label for="type" class="form-label">Select Bank <span style="color: red;">*</span></label>
@@ -20,15 +28,17 @@
                 @endforeach
             </select>
         </div>
+    </div>
+    <div class="row mt-3">
+        <div class="col-sm-6">
+        </div>
         <div class="col-sm-3">
             <label for="product_type" class="form-label">Select Product <span style="color: red;">*</span></label>
             <select class="form-select" required id="product_type">
                 <option value="" selected>Select Product</option>
             </select>
         </div>
-    </div>
-    <div class="row mt-3">
-        <div class="col-sm-3 offset-sm-6">
+        <div class="col-sm-3 ">
             <label for="bank_mis_month" class="form-label">Select Month-Year <span style="color: red;">*</span></label>
             <input type="month" class="form-control" id="bank_mis_month" placeholder="Select Month-Year" required>
         </div>
@@ -50,6 +60,7 @@
         <div class="file-container" id="cont">
             <input class="input-file" type="hidden" required name="bank_id" id="bank_id" />
             <input class="input-file" type="hidden" required name="product_id" id="product_id" />
+            <input class="input-file" type="hidden" required name="company_name" id="company_name_input" />
             <input type="hidden" name="bank_mis_month" id="bank_mis_month_input" required />
             <input class="input-file" type="file" accept=".xlsx" required name="xlsx_file" id="xlsx_file" />
             <div class="content-container">
@@ -85,6 +96,7 @@
             // Validate required fields
             let bank = $('#type').val();
             let product = $('#product_type').val();
+            let company = $('#company_name').val();
             let month = $('#bank_mis_month').val();
             let file = $('#xlsx_file').val();
 
@@ -95,6 +107,9 @@
             }
             if (!product) {
                 errors.push('Please select Product');
+            }
+            if (!company) {
+                errors.push('Please select Company');
             }
             if (!month) {
                 errors.push('Please select Month-Year');
@@ -139,6 +154,10 @@
 
         $('#product_type').change(function() {
             $('#product_id').val($(this).val())
+        })
+
+        $('#company_name').change(function() {
+            $('#company_name_input').val($(this).val())
         })
 
         $('#bank_mis_month').change(function() {

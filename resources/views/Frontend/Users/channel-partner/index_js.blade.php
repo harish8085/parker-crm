@@ -190,6 +190,10 @@
                                 {
                                         data: 'phone',
                                         name: 'phone'
+                                },
+                                {
+                                        data: 'user_commission',
+                                        name: 'user_commission'
                                 }];
                                 
                                 // Add associated channel column only for admin users

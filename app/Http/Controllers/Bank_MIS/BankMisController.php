@@ -116,6 +116,9 @@ class BankMisController extends Controller
                 ->editColumn('product_id', function ($row) {
                     return $row->product_id ? $row->product->name : '-'; 
                 })
+                ->editColumn('company_name', function ($row) {
+                    return $row->company_name ? $row->company_name : '-';
+                })
                 ->editColumn('group', function ($row) {
                     return $row->group ? $row->group : '-'; 
                 })
@@ -127,6 +130,9 @@ class BankMisController extends Controller
                 })
                 ->editColumn('location', function ($row) {
                     return $row->location ? $row->location : '-'; 
+                })
+                ->editColumn('case_state', function ($row) {
+                    return $row->case_state ? $row->case_state : '-';
                 })
                 ->editColumn('case_location', function ($row) {
                     return $row->case_location ? $row->case_location : '-'; 
