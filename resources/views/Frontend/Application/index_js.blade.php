@@ -130,6 +130,13 @@
         $.fn.dataTable.ext.errMode = 'none';
         var table;
 
+        function getInitialStatusFromQuery() {
+                var params = new URLSearchParams(window.location.search);
+                var status = (params.get('status') || '').toLowerCase();
+                var allowed = ['pending', 'in-progress', 'approved', 'completed', 'rejected'];
+                return allowed.includes(status) ? status : '';
+        }
+
         function load_data(date = '', date_range = '', partner_name = '', bank_name = '', product_name = '', status = '') {
                 table = $('.data-table').DataTable({
                         debug: false, // Disable debugging
@@ -375,8 +382,6 @@
         };
 
         $(document).ready(function() {
-                load_data();
-
                 $(document).on('change', '.remark-dropdown', function() {
                         let remark = $(this).val();
                         let id = $(this).data('id');
@@ -400,11 +405,21 @@
                         });
                 });
 
-
                 $('.select').select2({
                         placeholder: "Select an option",
                         allowClear: true
                 });
+
+                var initialStatus = getInitialStatusFromQuery();
+                if (initialStatus) {
+                        $('#status').val(initialStatus).trigger('change');
+                }
+
+                if (initialStatus) {
+                        load_data('', '', '', '', '', initialStatus);
+                } else {
+                        load_data();
+                }
 
                 $('#filter').click(function() {
                         var date = $('#date').val();

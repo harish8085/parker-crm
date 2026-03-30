@@ -50,9 +50,13 @@ class DashboardController extends Controller
         $pending_settlement = Settlement::where('status', 'pending')->sum('amount');
         $total_settlement = Settlement::where('status', 'completed')->sum('amount');
 
-        // User stats
-        $total_channel_partner = User::where('user_type', 'channel')->where('status', 1)->count();
-        $total_associate = User::where('user_type', 'Associate_Channel')->where('status', 1)->count();
+        // User stats (role-based to avoid user_type inconsistencies)
+        $total_channel_partner = User::whereHas('roles', function ($q) {
+            $q->where('name', 'Channel');
+        })->where('status', 1)->count();
+        $total_associate = User::whereHas('roles', function ($q) {
+            $q->where('name', 'Associate_Channel');
+        })->where('status', 1)->count();
 
         // Transaction stats
         $pending_transactions = Transaction::where('status', 'pending')->count();

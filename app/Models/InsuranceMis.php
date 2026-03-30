@@ -13,6 +13,7 @@ class InsuranceMis extends Model
 
     protected $fillable = [
         'bank_id',
+        'company_name',
         'application_no',
         'location',
         'disbursement_date',

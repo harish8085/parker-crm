@@ -148,25 +148,78 @@ class AuthController extends Controller
                 return redirect()->back()->with('error', 'Your parent is no longer associated with Parker.');
             }
         }
+            if (!empty($email) && !empty($password)) {
+                // Determine the subdomain and user type
+                $subdomain = explode('.', $request->getHost())[0];
+                switch ($subdomain) {
+                    case 'admin':
+                        $type = ['admin', 'staff'];
+                        break;
+                    case 'parker':
+                        $type = ['admin', 'staff','channel','sales'];
+                        break;
+                    case 'partner':
+                        $type = ['channel'];
+                        break;
+                    case 'sales-team':
+                        $type = ['sales'];
+                        break;
+                    default:
+                        $type = ['admin', 'staff','channel','sales','maker','checker'];
+                        break;
+                }
+                $userdata = array(
+                    'email' => $email,
+                    'password' => $password,
+                );
 
-        if (!$allowedType) {
-            Session::flush();
-            Auth::logout();
-            flash()->error('Account does not exists.')->flash();
-            return redirect('/');
-        }
+                if (Auth::attempt($userdata)) {
+                    $user = Auth::user();
 
-        if ($request->has('remember') == null) {
-            setcookie('email', $email, 100);
-            setcookie('password', $password, 100);
-        } else {
-            setcookie('email', $email, time() + 606024100);
-            setcookie('password', $password, time() + 606024100);
-        }
+                    // Restrict login for inactive maker/checker users
+                    if (in_array($user->user_type, ['maker', 'checker'], true)) {
+                        if ((int) ($user->status ?? 0) === 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your account is inactive. Please contact admin.');
+                        }
+                    }
 
-        session('Login', true);
-        flash()->success('Logged In successfully.')->flash();
-        return redirect('/application');
+                    // Restrict login for inactive channels and their associates
+                    if ($user->user_type === 'channel') {
+                        if ($user->status == 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your account is inactive. Please contact admin.');
+                        }
+                    }
+                    // If associate, check parent channel status
+                    if ($user->user_type === 'staff' || $user->user_type === 'sales') {
+                        $parentChannel = \App\Models\ChannelUser::where('associate_channel_id', $user->id)->with('channel')->first();
+                        if ($parentChannel && $parentChannel->channel && $parentChannel->channel->status == 0) {
+                            Auth::logout();
+                            return redirect()->back()->with('error', 'Your parent is no longer associated with Parker.');
+                        }
+                    }
+
+                    if (!$allowedType) {
+                        Session::flush();
+                        Auth::logout();
+                        flash()->error('Account does not exists.')->flash();
+                        return redirect('/');
+                    }
+
+                    if ($request->has('remember') == null) {
+                        setcookie('email', $email, 100);
+                        setcookie('password', $password, 100);
+                    } else {
+                        setcookie('email', $email, time() + 606024100);
+                        setcookie('password', $password, time() + 606024100);
+                    }
+
+                    session('Login', true);
+                    flash()->success('Logged In successfully.')->flash();
+                    return redirect('/application');
+                }
+            }
     }
 
 

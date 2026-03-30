@@ -1669,11 +1669,13 @@ class ApplicationController extends Controller
                 'xlsx_file' => 'required|file|mimes:xlsx',
                 'bank_id' => 'required',
                 'product_id' => 'required',
+                'company_name' => 'required|string',
                 'bank_mis_month' => 'required',
             ]);
 
             $bank_id = $request->bank_id;
             $product_id = $request->product_id;
+            $company_name = $request->company_name;
             $file = $request->file('xlsx_file');
             $tempFilePath = $file->storeAs('tmp', 'uploaded.xlsx');
 
@@ -1681,6 +1683,9 @@ class ApplicationController extends Controller
             $bank_mis_month = $request->bank_mis_month;
             $excel = SimpleExcelReader::create(storage_path('app/' . $tempFilePath));
             $rows = $excel->getRows()->toArray();
+            if (empty($rows)) {
+                return redirect()->to('/bank_mis')->with('error', 'The uploaded file has no data rows.');
+            }
 
             // Fetch the sheet data
             $sheetData = SheetMatching::where(['bank_id' => $bank_id, 'product_id' => $product_id])->first();
@@ -1767,21 +1772,48 @@ class ApplicationController extends Controller
             $successCount = 0;
             $duplicateAppIds = [];  // Track app_ids that already exist
 
+            $normalizeCell = function ($value) {
+                if (is_string($value)) {
+                    $value = trim($value);
+                    // Ignore Excel formulas in raw import
+                    if (strpos($value, '=') === 0) {
+                        return null;
+                    }
+                }
+                return $value;
+            };
+
+            $isValidAppId = function ($value) {
+                $value = trim((string) $value);
+                if ($value === '') {
+                    return false;
+                }
+                $upper = strtoupper($value);
+                if (in_array($upper, ['TOTAL', 'SUBTOTAL', 'SUB TOTAL', 'GRAND TOTAL'], true)) {
+                    return false;
+                }
+                if (strpos($upper, 'TOTAL') === 0) {
+                    return false;
+                }
+                return (bool) preg_match('/[A-Z0-9]/i', $value);
+            };
+
             foreach ($rows as $row) {
                 if ($row) {
                     // Extract values based on mapped keys
                     $data = [
                         'bank_id' => $bank_id,
                         'product_id' => $product_id,
+                        'company_name' => $company_name,
                     ];
                     foreach ($keysMapping as $excelKey => $dataKey) {
                         if (array_key_exists($dataKey, $row)) {
-                            $data[$excelKey] = $row[$dataKey];
+                            $data[$excelKey] = $normalizeCell($row[$dataKey]);
                         }
                     }
 
                     $appIdRaw = $data['app_id'] ?? null;
-                    if ($appIdRaw === null || trim((string) $appIdRaw) === '') {
+                    if ($appIdRaw === null || !$isValidAppId($appIdRaw)) {
                         continue;
                     }
                     $data['app_id'] = trim((string) $appIdRaw);
@@ -1810,6 +1842,7 @@ class ApplicationController extends Controller
                     // Check if the record already exists based on all relevant fields (including month)
                     $existingMIS = BankMIS::where('bank_id', $data['bank_id'])
                         ->where('product_id', $data['product_id'])
+                        ->where('company_name', $data['company_name'] ?? NULL)
                         ->where('app_id', $data['app_id'] ?? NULL)
                         //    ->where('payout_rate', $data['payout_rate'] ?? NULL)
                         ->where('location', $data['location'] ?? NULL)
@@ -1823,6 +1856,7 @@ class ApplicationController extends Controller
                         ->where('customer_name', $data['customer_name'] ?? NULL)
                         ->where('disbAmount', $data['disbAmount'] ?? NULL)
                         ->where('case_location', $data['case_location'] ?? NULL)
+                        ->where('case_state', $data['case_state'] ?? NULL)
                         ->where('otc_pdd_status', $data['otc_pdd_status'] ?? NULL)
                         ->where('bank_mis_month', $data['bank_mis_month'] ?? NULL)
                         ->first();
@@ -1836,6 +1870,7 @@ class ApplicationController extends Controller
                     $bank = new BankMIS();
                     $bank->bank_id = $data['bank_id'];
                     $bank->product_id = $data['product_id'];
+                    $bank->company_name = $data['company_name'] ?? NULL;
                     $bank->app_id = isset($data['app_id']) ? $data['app_id'] : NULL;
                     $bank->bank_mis_month = $data['bank_mis_month'] ?? NULL;
                     $bank->payout_rate = ($data['payout_rate'] != '') ? round(floatval($data['payout_rate']), 2) : NULL;
@@ -1850,6 +1885,7 @@ class ApplicationController extends Controller
                     $bank->customer_name = isset($data['customer_name']) ? $data['customer_name'] : NULL;
                     $bank->disbAmount = isset($data['disbAmount']) ? $data['disbAmount'] : NULL;
                     $bank->case_location = isset($data['case_location']) ? $data['case_location'] : NULL;
+                    $bank->case_state = isset($data['case_state']) ? $data['case_state'] : NULL;
                     $bank->otc_pdd_status = isset($data['otc_pdd_status']) ? $data['otc_pdd_status'] : NULL;
                     $bank->save();
 

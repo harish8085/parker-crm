@@ -44,6 +44,11 @@
                     orderable: false
                 },
                 {
+                    data: 'company_name',
+                    name: 'company_name',
+                    orderable: false
+                },
+                {
                     data: 'product_name',
                     name: 'product_name',
                     orderable: false

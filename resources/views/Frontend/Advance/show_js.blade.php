@@ -115,7 +115,7 @@
                             html += '<th>App ID</th>';
                             html += '<th>Bank Name</th>';
                             html += '<th>Product Name</th>';
-                            html += '<th>Product %</th>';
+                            html += '<th>Sharing %</th>';
                             html += '<th>Disbursement Amount</th>';
                             html += '<th>Advance Amount</th>';
                             html += '<th>Disbursement Date</th>';

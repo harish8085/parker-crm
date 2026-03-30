@@ -29,12 +29,7 @@
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function (response) {
-                            bootbox.alert({
-                                message: 'User ' + actionText + 'd successfully.',
-                                callback: function () {
-                                    $('.data-table').DataTable().ajax.reload();
-                                }
-                            });
+                            $('.data-table').DataTable().ajax.reload();
                         },
                         error: function (xhr) {
                             // Revert the toggle if there's an error

@@ -72,7 +72,7 @@
                 </div>
 
             </div>
-            @if($user->roles[0]->id == 1)
+            @if(in_array($user->roles[0]->id, [1, 35, 36]))
             <div class="col-lg-4 mb-2">
                 <div class="bank-detail-inputs">
                     <label class="bank-input-label ">Partner Name</label>
@@ -115,6 +115,7 @@
                         <option value="">Select Status</option>
                         <option value="pending">Pending</option>
                         <option value="in-progress">In Progress</option>
+                        <option value="approved">Approved</option>
                         <option value="completed">Completed</option>
                         <option value="rejected">Rejected</option>
                     </select>
@@ -213,6 +214,7 @@
                                 <select class="form-select" name="status" id="status">
                                     <option selected>All</option>
                                     <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
                                     <option value="rejected">Rejected</option>
                                     <option value="completed">Completed</option>
                                 </select>

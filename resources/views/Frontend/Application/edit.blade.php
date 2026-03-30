@@ -152,26 +152,24 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
 
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case State
+                @if($application->bank_mis_id&& $application->bankData)
+                <span class="required {{(strtolower((string) $application->case_state) == strtolower((string) $application->bankData->case_state)?'text-success':'')}}">({{($application->bankData->case_state? $application->bankData->case_state:'')}})</span>
+                @endif
                 </label>
                 <select class="bank-detail-input form-select" name="case_state" id="case_state">
-                    <option value="" selected disabled>Select States</option>
+                    <option value="" selected disabled>Select State</option>
                     @foreach($states as $state)
                     <option value="{{$state['state_code']}}" @if($state['state_code']==$application->case_state) selected @endif>{{$state['state']}}</option>
                     @endforeach
                 </select>
             </div>
             <div class="bank-detail-inputs">
-                <label class="bank-input-label">Case Loaction
+                <label class="bank-input-label">Case Location
                     @if($application->bank_mis_id&& $application->bankData)
                     <span class="required {{(strtolower($application->case_location) == strtolower($application->bankData->case_location)?'text-success':'')}}">({{($application->bankData->case_location? $application->bankData->case_location:'')}})</span>
                     @endif
                 </label>
-                <select class="bank-detail-input form-select" name="case_location" id="case_location">
-                    <option value="" selected disabled>Select District</option>
-                    @foreach($districts as $district)
-                    <option value="{{$district}}" @if($district==$application->case_location) selected @endif>{{$district}}</option>
-                    @endforeach
-                </select>
+                <input class="bank-detail-input form-control" type="text" name="case_location" id="case_location" placeholder="Enter case location" value="{{$application->case_location}}">
             </div>
 
             <div class="bank-detail-inputs">
@@ -676,28 +674,7 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
             endDate: new Date() // Set the end date to today, preventing future dates
 
         })
-        $('#case_state').change(function() {
-            var stateId = $(this).val();
-            $.ajax({
-                url: '/getDistrict/' + stateId,
-                type: 'GET',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function(response) {
-
-                    $('#case_location').html('')
-                    $('#case_location').append('<option value="" selected disabled>Select District</option>')
-                    $('#case_location').val('')
-                    $('#case_location').append(response)
-                },
-                error: function(xhr) {
-                    console.log(xhr.responseText);
-                }
-            });
-
-        });
-        // });
+        // case_state is now free-text; no district lookup needed.
         $('#user_type').change(handleUserTypeVisibility)
 
 

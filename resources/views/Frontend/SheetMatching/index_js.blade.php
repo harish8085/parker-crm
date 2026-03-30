@@ -243,6 +243,10 @@
                     name: 'case_location'
                 },
                 {
+                    data: 'case_state',
+                    name: 'case_state'
+                },
+                {
                     data: 'customer_name',
                     name: 'customer_name'
                 },

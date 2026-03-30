@@ -266,7 +266,7 @@
                     if (!res.cases || !res.cases.length) {
                         $('#requestCasesBody').html('<div class="text-muted">No case mappings in this request.</div>');
                     } else {
-                        let html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>App ID</th><th>Customer</th><th>Bank</th><th>Product</th><th>Percent</th><th>Advance Amount</th></tr></thead><tbody>';
+                        let html = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>App ID</th><th>Customer</th><th>Bank</th><th>Product</th><th>Sharing %</th><th>Advance Amount</th></tr></thead><tbody>';
                         res.cases.forEach(function (row) {
                             html += '<tr><td>' + row.app_id + '</td><td>' + row.customer_name + '</td><td>' + row.bank_name + '</td><td>' + row.product + '</td><td>' + row.product_percent + '</td><td>₹' + row.advance_payment_amount + '</td></tr>';
                         });

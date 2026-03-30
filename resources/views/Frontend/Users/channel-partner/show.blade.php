@@ -28,6 +28,10 @@
              <input class="bank-detail-input form-control" type="tel" maxlength="12" name="pan_number" id="pan_number" placeholder="Enter your pan number" value="{{$channelPartner->pan_number}}" disabled>
          </div>
          <div class="bank-detail-inputs">
+             <label class="bank-input-label">GST Number</label>
+             <input class="bank-detail-input form-control" type="text" name="gst_number" id="gst_number" placeholder="Enter GST number" value="{{$channelPartner->gst_number ?? '-'}}" disabled>
+         </div>
+         <div class="bank-detail-inputs">
              <label class="bank-input-label">Aadhar Number<span class="required">*</span></label>
              <input class="bank-detail-input form-control" type="text" name="aadhar_number" id="aadhar_number" placeholder="Enter your aadhar number" value="{{$channelPartner->aadhar_number}}" disabled />
          </div>

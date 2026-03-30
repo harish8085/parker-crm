@@ -5,6 +5,7 @@
             <th class="table-header">S.NO</th>
             <th class="table-header">APPLICATION NO.</th>
             <th class="table-header">BANK NAME</th>
+            <th class="table-header">COMPANY NAME</th>
             <th class="table-header">PRODUCT</th>
             <th class="table-header">CHANNEL NAME</th>
             <th class="table-header">PARENT NAME</th>

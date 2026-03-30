@@ -14,6 +14,7 @@ class BankMIS extends Model
     protected $fillable = [
         'bank_id',
         'product_id',
+        'company_name',
         'bank_mis_month',
         'app_id',
         'payout_rate',
@@ -23,7 +24,9 @@ class BankMIS extends Model
         'pf',
         'subvention',
         'roi',
-        'insurance'  
+        'insurance',
+        'case_location',
+        'case_state'
     ];
 
     public function bank()

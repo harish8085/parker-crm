@@ -9,7 +9,7 @@ class SheetMatching extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'bank_id', 'product_id', 'group', 'app_id', 'property_highlights', 'case_location',
+        'bank_id', 'product_id', 'group', 'app_id', 'property_highlights', 'case_location', 'case_state',
         'customer_name', 'customer_firm_name', 'disbAmount', 'pf', 'subvention', 'roi',
         'insurance', 'otc_pdd_status', 'payout_amount', 'payout_rate','date','month','pf%','kli',
         'kli_payout%','kli_payout','kgi','kgi_payout%','kgi_payout'

@@ -80,6 +80,7 @@ class ContestController extends Controller
                     return '<input type="checkbox" class="contest-row-checkbox" value="' . e((string) $row->id) . '">';
                 })
                 ->editColumn('application_no', fn($row) => $row->application_no ?? '-')
+                ->editColumn('company_name', fn($row) => $row->company_name ?? '-')
                 ->editColumn('bank_name', function ($row) {
                     return $row->bank->name ?? '-';
                 })
@@ -161,6 +162,7 @@ class ContestController extends Controller
         $request->validate([
             'xlsx_file' => 'required|file|mimes:xlsx',
             'bank_id' => 'required|exists:banks,id',
+            'company_name' => 'required|string',
         ]);
 
         try {
@@ -213,6 +215,7 @@ class ContestController extends Controller
 
                 $contestMis = new ContestMis();
                 $contestMis->bank_id = (int) $request->bank_id;
+                $contestMis->company_name = $request->company_name;
                 $contestMis->application_no = $resolvedAppNo;
                 $contestMis->location = $this->nullableString($row[$headerLookup['LOCATION']] ?? null);
                 $contestMis->disbursement_date = $this->parseExcelDate($row[$headerLookup['DISBURSEMENT DATE']] ?? null);

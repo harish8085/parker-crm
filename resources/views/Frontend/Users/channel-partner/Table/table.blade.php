@@ -6,6 +6,7 @@
                     <th class="table-header">Channel name</th>
                     <th class="table-header">Email</th>
                     <th class="table-header">Phone</th>
+                    <th class="table-header">User Commission (%)</th>
                     @if(auth()->user()->roles[0]->id == 1)
                     <th class="table-header">Associated Channel</th>
                     @endif

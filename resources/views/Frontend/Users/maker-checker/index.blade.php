@@ -55,6 +55,18 @@
     .toggle-switch input:focus + .toggle-slider {
         box-shadow: 0 0 1px #4CAF50;
     }
+
+    /* Center bootbox confirmation modal */
+    .bootbox.modal {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+    .bootbox.modal .modal-dialog {
+        margin: 0 1rem;
+        width: 100%;
+        max-width: 500px;
+    }
 </style>
 @endsection
 

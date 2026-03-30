@@ -1,4 +1,4 @@
-@extends('Layout.app')
+﻿@extends('Layout.app')
 
 @section('style')
 <link rel="stylesheet" href="{{ asset('assets/css/application.css') }}">
@@ -88,6 +88,7 @@
                                         <th>Firm Name</th>
                                         <th>Bank</th>
                                         <th>Product</th>
+                                        <th>Sharing %</th>
                                         <th>Disburse Amount</th>
                                         <th>Disbursement Date</th>
                                         <th>Location</th>
@@ -110,6 +111,12 @@
                         <span class="text-danger d-block">{{ $message }}</span>
                     @enderror
                     @error('application_ids.*')
+                        <span class="text-danger d-block">{{ $message }}</span>
+                    @enderror
+                    @error('case_percentages')
+                        <span class="text-danger d-block">{{ $message }}</span>
+                    @enderror
+                    @error('case_percentages.*')
                         <span class="text-danger d-block">{{ $message }}</span>
                     @enderror
                 </div>
@@ -165,6 +172,10 @@
         const casesLoading = $('#cases-loading');
         const casesEmpty = $('#cases-empty');
         const casesList = $('#cases-list');
+        const oldCasePercents = @json(old('case_percentages', []));
+        const savedCasePercents = @json($selectedCasePercents ?? []);
+        const rupeeSymbol = '\u20B9';
+        const multiplySymbol = '\u00D7';
         
         @php
             $oldAppIds = old('application_ids', $selectedApplicationIds ?? []);
@@ -228,6 +239,10 @@
                         });
                         const disbursementDate = caseItem.disbursement_date ? new Date(caseItem.disbursement_date).toLocaleDateString('en-IN') : '-';
                         const isChecked = preSelectedIds.includes(caseItem.id.toString()) || preSelectedIds.includes(caseItem.id);
+                        const oldPercent = oldCasePercents[caseItem.id] ?? oldCasePercents[String(caseItem.id)] ?? null;
+                        const savedPercent = savedCasePercents[caseItem.id] ?? savedCasePercents[String(caseItem.id)] ?? null;
+                        const defaultPercent = caseItem.default_share_percent ?? '';
+                        const percentVal = oldPercent !== null && oldPercent !== undefined ? oldPercent : (savedPercent !== null && savedPercent !== undefined ? savedPercent : defaultPercent);
                         
                         html += '<tr>';
                         html += '<td><input type="checkbox" name="application_ids[]" class="case-checkbox" value="' + caseItem.id + '"' + (isChecked ? ' checked' : '') + '></td>';
@@ -236,7 +251,8 @@
                         html += '<td>' + (caseItem.customer_firm_name || '-') + '</td>';
                         html += '<td>' + (caseItem.bank_name || '-') + '</td>';
                         html += '<td>' + (caseItem.product_name || '-') + '</td>';
-                        html += '<td>₹' + disburseAmount + '</td>';
+                        html += '<td><input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm case-percent-input" data-app-id="' + caseItem.id + '" name="case_percentages[' + caseItem.id + ']" value="' + percentVal + '" placeholder="%"></td>';
+                        html += '<td>' + rupeeSymbol + disburseAmount + '</td>';
                         html += '<td>' + disbursementDate + '</td>';
                         html += '<td>' + (caseItem.case_location || '-') + '</td>';
                         html += '<td>' + (caseItem.case_state || '-') + '</td>';
@@ -274,9 +290,20 @@
             return selected;
         }
 
+        function getSelectedCasePercentages() {
+            const map = {};
+            $('.case-checkbox:checked').each(function() {
+                const appId = $(this).val();
+                const input = $('.case-percent-input[data-app-id="' + appId + '"]');
+                map[appId] = input.val();
+            });
+            return map;
+        }
+
         function updateCalculatedAmount() {
             const caseType = $('input[name="case_type"]:checked').val();
             const appIds = getSelectedCaseIds();
+            const casePercents = getSelectedCasePercentages();
 
             if (caseType !== 'case') {
                 amountNote.text('');
@@ -305,17 +332,22 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 data: {
-                    'application_ids': appIds
+                    'application_ids': appIds,
+                    'case_percentages': casePercents,
+                    'user_id': userSelect.val()
                 },
                 success: function (response) {
                     if (response.success) {
                         advanceAmountInput.val(response.total_amount);
-                        amountNote.html('<span class="text-success"><strong>Calculated Total: ₹' + parseFloat(response.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong> for ' + response.cases.length + ' case(s)</span>');
+                        amountNote.html('<span class="text-success"><strong>Calculated Total: ' + rupeeSymbol + parseFloat(response.total_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</strong> for ' + response.cases.length + ' case(s)</span>');
                         
                         // Show breakdown
                         let breakdownHtml = '';
                         response.cases.forEach(function(caseItem) {
-                            breakdownHtml += '<li>' + caseItem.app_id + ' (' + caseItem.customer_name + '): ₹' + parseFloat(caseItem.disburse_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' × ' + caseItem.percent + '% = ₹' + parseFloat(caseItem.advance_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</li>';
+                            const disburse = parseFloat(caseItem.disburse_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            const payoutPercent = caseItem.payout_percent ?? '';
+                            const sharePercent = caseItem.share_percent ?? caseItem.percent ?? '';
+                            breakdownHtml += '<li>' + caseItem.app_id + ' (' + caseItem.customer_name + '): ' + rupeeSymbol + disburse + ' ' + multiplySymbol + ' ' + payoutPercent + '% ' + multiplySymbol + ' ' + sharePercent + '% = ' + rupeeSymbol + parseFloat(caseItem.advance_amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '</li>';
                         });
                         caseBreakdownList.html(breakdownHtml);
                         caseBreakdown.show();
@@ -394,8 +426,16 @@
             $('#select-all-checkbox').prop('checked', total === checked && total > 0);
             updateCalculatedAmount();
         });
+
+        $(document).on('input', '.case-percent-input', function() {
+            if ($(this).closest('tr').find('.case-checkbox').prop('checked')) {
+                updateCalculatedAmount();
+            }
+        });
     });
 </script>
 @endsection
+
+
 
 
