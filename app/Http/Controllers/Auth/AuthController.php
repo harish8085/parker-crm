@@ -451,7 +451,7 @@ class AuthController extends Controller
                 $parentId = $employeeCode->id;
             }
         } else {
-            $parentId = $masterCode->user_id;
+            $parentId = '';
         }
 
         // Handle file uploads before transaction (file operations aren't transactional)
@@ -542,10 +542,12 @@ class AuthController extends Controller
                 $bankData->save();
 
                 //Save associate channel
+                if ($parentId) {
                 $associateChannel = ChannelUser::create([
-                    'channel_id' => $parentId,
-                    'associate_channel_id' => $user->id
-                ]);
+                        'channel_id' => $parentId,
+                        'associate_channel_id' => $user->id
+                    ]);
+                }
 
                 // Commit the transaction if everything succeeds
                 DB::commit();
