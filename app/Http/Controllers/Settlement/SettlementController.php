@@ -183,12 +183,19 @@ class SettlementController extends Controller
                         return '₹ ' . indianNumberFormat($row->amount ?? 0);
                     })
                     ->addColumn('advance_flag', function ($row) use ($settlementType) {
-                        $hasAdvance = $settlementType === 'commission' && DB::table('advance_payment_cases')
-                            ->where('application_id', $row->application_id)
-                            ->exists();
-                        return $hasAdvance
-                            ? '<span class="badge bg-warning text-dark">Advance</span>'
-                            : '-';
+                        $advanceCase = null;
+                        if ($settlementType === 'commission') {
+                            $advanceCase = DB::table('advance_payment_cases')
+                                ->where('application_id', $row->application_id)
+                                ->first();
+                        }
+
+                        if ($advanceCase) {
+                            $percentLabel = $advanceCase->product_percent ? " (" . floatval($advanceCase->product_percent) . "%)" : '';
+                            return '<span class="badge bg-warning text-dark">Advance' . $percentLabel . '</span>';
+                        }
+
+                        return '-';
                     })
                     ->addColumn('status', function ($row) {
                         $settlement = Settlement::find($row->settlement_id);
