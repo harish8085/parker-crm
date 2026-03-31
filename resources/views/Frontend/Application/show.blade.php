@@ -72,6 +72,11 @@ $isChannel = DB::table('users')->where('id',$application->user_id)->value('user_
         </div>
 
         <div class="bank-detail-inputs">
+            <label class="bank-input-label">Company Name<span class="required {{($application->company_name_is_matched?'text-success':'')}}"> ({{($application->company_name_is_matched?'Matched':'Unmatched')}})</span></label>
+            <input class="bank-detail-input form-control" type="text" name="company_name" id="company_name" placeholder="Enter company name" value="{{$application->company_name}}" disabled>
+        </div>
+
+        <div class="bank-detail-inputs">
             <label class="bank-input-label">Case State<span class="required">*</span></label>
             <select class="bank-detail-input form-select" name="case_state" id="case_state" disabled>
                 <option value="" selected disabled>Select State</option>

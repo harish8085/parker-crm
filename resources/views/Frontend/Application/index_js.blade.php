@@ -142,8 +142,8 @@
                         debug: false, // Disable debugging
                         dom: 'Bfrtip<"bottom"l>', // 'l' adds the "Show entries" dropdown
                         lengthMenu: [
-                                [25, 50, 100, 500, -1],
-                                [25, 50, 100, 500, 'All']
+                                [10, 25, 50, 100, 500, -1],
+                                [10, 25, 50, 100, 500, 'All']
                         ], // Options for the "Show entries" dropdown
                         buttons: [{
                                         extend: 'csvHtml5',
@@ -348,6 +348,10 @@
                                 {
                                         data: 'customer_name',
                                         name: 'customer_name'
+                                },
+                                {
+                                        data: 'company_name',
+                                        name: 'company_name'
                                 },
                                 {
                                         data: 'bank.name',

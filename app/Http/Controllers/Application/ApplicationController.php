@@ -79,6 +79,7 @@ class ApplicationController extends Controller
             'app_id_is_matched' => checkValueAndSetFlag($application, 'app_id', $misRecord->app_id),
             'case_location_is_matched' => checkValueAndSetFlag($application, 'case_location', $misRecord->case_location),
             'customer_name_is_matched' => checkValueAndSetFlag($application, 'customer_name', $misRecord->customer_name),
+            'company_name_is_matched' => checkValueAndSetFlag($application, 'company_name', $misRecord->company_name ?? ''),
             'bank_id_is_matched' => checkValueAndSetFlag($application, 'bank_id', $misRecord->bank_id),
             'product_id_is_matched' => checkValueAndSetFlag($application, 'product_id', $misRecord->product_id),
             'group_is_matched' => checkValueAndSetFlag($application, 'group', $misRecord->group),
@@ -315,6 +316,19 @@ class ApplicationController extends Controller
                             '<p class="id-desc">' . $commission_rate_is_value . '</p>' .
                             '</div>';
                     })
+                    ->editColumn('company_name', function ($row) {
+                        // Determine CSS class based on company_name_is_matched
+                        $class = $row->company_name_is_matched ? 'text-success' : 'text-danger';
+
+                        // Prepare company_name_is_value for display
+                        $company_name_value = $row->company_name_is_value ? '(' . $row->company_name_is_value . ')' : '-';
+
+                        // Return the HTML structure
+                        return '<div class="row-color table-row ' . $class . '">' .
+                            ($row->company_name ?? '-') .
+                            '<p class="id-desc">' . $company_name_value . '</p>' .
+                            '</div>';
+                    })
                     ->editColumn('status', function ($row) {
                         $status = $row->status ?? '-';
                         $statusClass = '';
@@ -446,7 +460,7 @@ class ApplicationController extends Controller
 
                         return $btn;
                     })
-                    ->rawColumns(['checkbox', 'app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
+                    ->rawColumns(['checkbox', 'app_id', 'customer_name', 'company_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
                     ->make(true);
             } else {
                 
@@ -563,6 +577,19 @@ class ApplicationController extends Controller
                             '<p class="id-desc">' . $commission_rate_is_value . '</p>' .
                             '</div>';
                     })
+                    ->editColumn('company_name', function ($row) {
+                        // Determine CSS class based on company_name_is_matched
+                        $class = $row->company_name_is_matched ? 'text-success' : 'text-danger';
+
+                        // Prepare company_name_is_value for display
+                        $company_name_value = $row->company_name_is_value ? '(' . $row->company_name_is_value . ')' : '-';
+
+                        // Return the HTML structure
+                        return '<div class="row-color table-row ' . $class . '">' .
+                            ($row->company_name ?? '-') .
+                            '<p class="id-desc">' . $company_name_value . '</p>' .
+                            '</div>';
+                    })
                     ->editColumn('status', function ($row) {
                         $status = $row->status ?? '-';
                         $statusClass = ($status == 'in-progress' || $status == 'approved') ? 'inprogress' : strtolower($status);
@@ -618,7 +645,7 @@ class ApplicationController extends Controller
 
                         return $btn;
                     })
-                    ->rawColumns(['checkbox', 'app_id', 'customer_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
+                    ->rawColumns(['checkbox', 'app_id', 'customer_name', 'company_name', 'bank_id', 'product_id', 'disburse_amount', 'commission_rate', 'status', 'remark', 'action'])
                     ->make(true);
             }
         }
@@ -786,6 +813,7 @@ class ApplicationController extends Controller
             $application->customer_name = $request->customer_name;
             $application->customer_phone = $request->customer_phone;
             $application->customer_firm_name = $request->firm_name;
+            $application->company_name = $request->company_name;
             $application->bank_id = $request->bank_id;
             $application->product_id = $request->product_id;
             $application->group = $request->group;
@@ -1157,6 +1185,7 @@ class ApplicationController extends Controller
         $application->customer_name = $request->customer_name;
         $application->customer_phone = $request->customer_phone;
         $application->customer_firm_name = $request->firm_name;
+        $application->company_name = $request->company_name;
         $application->bank_id = $request->bank_id;
         $application->product_id = $request->product_id;
         $application->group = $request->group;

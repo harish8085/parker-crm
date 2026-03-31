@@ -9,6 +9,7 @@
               @endif
               <th class="table-header">Application ID</th>
               <th class="table-header">Customer Name</th>
+              <th class="table-header">Company Name</th>
               <th class="table-header">Bank Name</th>
               <th class="table-header">Product Name</th>
               <th class="table-header">Disburse Amount</th>
