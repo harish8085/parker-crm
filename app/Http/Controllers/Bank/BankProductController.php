@@ -109,15 +109,27 @@ class BankProductController extends Controller
                 ->addColumn('action', function ($row) {
                         $btn = '';
 
-                        if (auth()->user()->hasPermission('application', 'update')) {
-                            $btn .= "<img onclick=\"window.location.href='" . url('/bank/update/product/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                        // Restrict action column for channel and Associate_Channel roles
+                        $restrictedRoles = ['channel', 'Associate_Channel'];
+                        $isRestricted = false;
+                        foreach ($restrictedRoles as $role) {
+                            if (auth()->user()->hasRole($role)) {
+                                $isRestricted = true;
+                                break;
+                            }
                         }
 
-                        if (auth()->user()->hasPermission('application', 'delete')) {
-                           
-                                $btn .= "<img class='delete-bankProduct-btn' data-bankproduct-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
-                            
-                            
+                        if (!$isRestricted) {
+                            if (auth()->user()->hasPermission('application', 'update')) {
+                                $btn .= "<img onclick=\"window.location.href='" . url('/bank/update/product/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                            }
+
+                            if (auth()->user()->hasPermission('application', 'delete')) {
+                               
+                                    $btn .= "<img class='delete-bankProduct-btn' data-bankproduct-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                                
+                                
+                            }
                         }
                         return $btn;
                     })

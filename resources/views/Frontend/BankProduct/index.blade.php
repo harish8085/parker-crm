@@ -10,6 +10,22 @@
         display: none;
         /* Hidden by default */
     }
+    @php
+        $restrictedRoles = ['channel', 'Associate_Channel'];
+        $isRestricted = false;
+        foreach ($restrictedRoles as $role) {
+            if (Auth::user()->hasRole($role)) {
+                $isRestricted = true;
+                break;
+            }
+        }
+    @endphp
+    @if($isRestricted)
+    .actions-header,
+    .data-table tbody tr td:last-child {
+        display: none !important;
+    }
+    @endif
 </style>
 
 @endsection
@@ -18,12 +34,24 @@
     <div class="application-header">
         <h3 class="application-heading">All Bank Product</h3>
         <div class="btn-container">
+            @php
+                $restrictedRoles = ['channel', 'Associate_Channel'];
+                $isRestricted = false;
+                foreach ($restrictedRoles as $role) {
+                    if (Auth::user()->hasRole($role)) {
+                        $isRestricted = true;
+                        break;
+                    }
+                }
+            @endphp
+            @if(!$isRestricted)
             <button class="application-header-btn add-bank-target-res1" data-bs-toggle="modal" data-bs-target="#createBankProduct">
                 <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">Add Product
             </button>
             <button class="application-header-btn add-bank-target-res2" data-bs-toggle="modal" data-bs-target="#createBankProduct">
                 <img class="application-header-icon" src="{{ asset('assets/images/add-table-icon.svg') }}">
             </button>
+            @endif
         </div>
     </div>
 

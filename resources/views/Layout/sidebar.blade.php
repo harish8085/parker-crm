@@ -9,12 +9,18 @@
 
         <div>
             <ul class="ul-container">
+                @php
+                    $userType = strtolower(auth()->user()->user_type ?? '');
+                    $roleName = strtolower(auth()->user()->roles[0]->name ?? '');
+                    $isChannelUser = ($userType === 'channel') || ($roleName === 'channel');
+                    $isAssociateUser = ($userType === 'associate_channel') || ($roleName === 'associate_channel');
+                @endphp
                 <li class="list-item {{(Request::path() == 'dashboard')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'dashboard')?'active-li':''}}" href="{{url('dashboard')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'dashboard')?'assets/images/home-active.svg':'assets/images/home.svg')}}" alt="error">Dashboard</a>
                 </li>
 
-                @if(auth()->user()->hasPermission('report','view'))
+                @if(!$isChannelUser && auth()->user()->hasPermission('report','view'))
                 <li class="nav-item dropdown list-item {{ Request::is('report*') ? 'active' : '' }}">
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
                         <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">Reports
@@ -80,7 +86,7 @@
                 @endif -->
 
 
-                @if(auth()->user()->hasPermission('bank_mis','view') || auth()->user()->hasPermission('contest','view') || auth()->user()->hasPermission('insurance','view'))
+                @if(!$isChannelUser && !$isAssociateUser && (auth()->user()->hasPermission('bank_mis','view') || auth()->user()->hasPermission('contest','view') || auth()->user()->hasPermission('insurance','view')))
                 <li class="nav-item dropdown list-item {{(Request::path() == 'bank_mis' || Request::path() == 'contest' || Request::path() == 'insurance')?'active':''}}">
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">
                         <img class="dashboard-icons" src="{{asset('assets/images/mis-tracker-white.svg')}}" alt="error">Bank MIS
@@ -153,7 +159,7 @@
                 </li>
                 @endif
 
-                @if(in_array(auth()->user()->roles[0]->id, [1, 2, 36]))
+                @if(!$isChannelUser && in_array(auth()->user()->roles[0]->id, [1, 2, 36]))
                 <li class="list-item {{(str_starts_with(Request::path(), 'reports'))?'active-li':''}}">
                     <a class="nav-links {{(str_starts_with(Request::path(), 'reports'))?'active-li':''}}" href="{{url('reports')}}">
                         <img class="dashboard-icons" src="{{asset((str_starts_with(Request::path(), 'reports'))?'assets/images/application-active.svg':'assets/images/application.svg')}}" alt="error">Reports
@@ -168,7 +174,7 @@
                 </li>
                 @endif
 
-                @if(auth()->user()->hasPermission('bank-target','view'))
+                @if(auth()->user()->hasPermission('bank-target','view') || $isChannelUser)
                 <li class="list-item {{(Request::path() == 'bank-target')?'active-li':''}}">
                     <a class="nav-links {{(Request::path() == 'bank-target')?'active-li':''}}" href="{{url('bank-target')}}">
                         <img class="dashboard-icons" src="{{ asset((Request::path() == 'bank-target')?'assets/images/target-active.svg':'assets/images/target.svg')}}" alt="error">Bank Target</a>
@@ -263,7 +269,7 @@
                     </a>
                 </li>
                 @endif
-                @if(auth()->user()->hasPermission('channel','view') ||auth()->user()->hasPermission('sales-person','view') )
+                @if(!$isChannelUser && (auth()->user()->hasPermission('channel','view') || auth()->user()->hasPermission('sales-person','view')))
 
                 <li class="nav-item dropdown list-item {{(Request::path() == 'channel' ||Request::path() == 'sales-person')?'active':''}}">
                     <a class="nav-link dropdown-toggle nav-links" role="button" data-bs-toggle="dropdown">

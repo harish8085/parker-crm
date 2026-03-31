@@ -87,6 +87,12 @@ class User extends Authenticatable
         return $this->hasMany(Application::class);
     }
 
+    public function hasRole($roleName)
+    {
+        // Check if user has a specific role by name
+        return $this->roles()->where('name', $roleName)->exists();
+    }
+
     public function hasPermission($permissionName, $type)
     {
         // Check all roles assigned to the user
