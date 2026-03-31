@@ -7,7 +7,7 @@
               <th class="table-header">Group</th>
               <th class="table-header">Percent</th>
               <th class="table-header">Auto Generate LAN Number</th>
-              <th class="table-header">Actions</th>
+              <th class="table-header actions-header">Actions</th>
           </tr>
       </thead>
      <tbody>

@@ -96,12 +96,24 @@ class BankController extends Controller
                 ->addColumn('action', function ($row) {
                     $btn = '';
 
-                    if (auth()->user()->hasPermission('bank', 'update')) {
-                        $btn .= "<img onclick=\"window.location.href='" . url('/bank/update/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                    // Restrict action column for channel and Associate_Channel roles
+                    $restrictedRoles = ['channel', 'Associate_Channel'];
+                    $isRestricted = false;
+                    foreach ($restrictedRoles as $role) {
+                        if (auth()->user()->hasRole($role)) {
+                            $isRestricted = true;
+                            break;
+                        }
                     }
 
-                    if (auth()->user()->hasPermission('bank', 'delete')) {
-                        $btn .= "<img class='delete-bank-btn' data-bank-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                    if (!$isRestricted) {
+                        if (auth()->user()->hasPermission('bank', 'update')) {
+                            $btn .= "<img onclick=\"window.location.href='" . url('/bank/update/' . $row->id) . "'\" src='" . asset('assets/images/Edit.svg') . "'>";
+                        }
+
+                        if (auth()->user()->hasPermission('bank', 'delete')) {
+                            $btn .= "<img class='delete-bank-btn' data-bank-id='" . $row->id . "' src='" . asset('assets/images/delete-icon.svg') . "' alt='delete'>";
+                        }
                     }
                     return $btn;
                 })

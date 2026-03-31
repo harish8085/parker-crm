@@ -6,7 +6,7 @@
               <th class="table-header">Product Name</th>
               <th class="table-header">Group</th>
               <th class="table-header">DSA Code</th>
-              <th class="table-header">Actions</th>
+              <th class="table-header actions-header">Actions</th>
           </tr>
       </thead>
       <tbody>
