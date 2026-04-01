@@ -4,7 +4,25 @@
 
  @endsection
  @section('body')
+ <style>
+     .password-input-container {
+         position: relative;
+     }
 
+     .password-toggle {
+         position: absolute;
+         right: 15px;
+         top: 50%;
+         transform: translateY(-50%);
+         cursor: pointer;
+         color: #6c757d;
+         z-index: 10;
+     }
+
+     .password-toggle:hover {
+         color: #495057;
+     }
+ </style>
  <h2>Edit Channel Partner </h2>
  <form class="needs-validation" action="{{url('/channel/update/'.$channelPartner->id)}}" method="POST" novalidate>
      @csrf
@@ -32,11 +50,14 @@
                  <label class="bank-input-label">Phone Number<span class="required">*</span></label>
                  <input class="bank-detail-input form-control" type="tel" maxlength="10" name="phone" id="phone" placeholder="Enter user phone number" value="{{$channelPartner->phone}}">
              </div>
-            <div class="bank-detail-inputs">
-                <label class="bank-input-label">Password</label>
-                <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter new password (leave blank to keep current)" />
-                <small class="form-text text-muted">Leave blank to keep the existing password.</small>
-            </div>
+             <div class="bank-detail-inputs">
+                 <label class="bank-input-label">Password</label>
+                 <div class="password-input-container">
+                     <input class="bank-detail-input form-control" type="password" name="password" id="password" placeholder="Enter user password" />
+                     <i class="fas fa-eye-slash password-toggle" onclick="togglePasswordVisibility('password')"></i>
+                 </div>
+                 <small class="form-text text-muted">Leave blank to keep the existing password.</small>
+             </div>
 
              <div class="bank-detail-inputs">
                  <label class="bank-input-label">Pan Card<span class="required">*</span></label>
@@ -143,7 +164,7 @@
              </div>
 
              @php
-                 $isChannelRole = $channelPartner->roles->contains('id', 2);
+             $isChannelRole = $channelPartner->roles->contains('id', 2);
              @endphp
              @if($isChannelRole || $channelPartner->channelUser->isEmpty())
              <div class="bank-detail-inputs">
@@ -166,6 +187,22 @@
  @endsection
  @section('script')
  <script>
+     // Password visibility toggle for edit form (same as add form)
+     function togglePasswordVisibility(inputId) {
+         const passwordInput = document.getElementById(inputId);
+         const eyeIcon = passwordInput.nextElementSibling;
+
+         if (passwordInput.type === 'password') {
+             passwordInput.type = 'text';
+             eyeIcon.classList.remove('fa-eye-slash');
+             eyeIcon.classList.add('fa-eye');
+         } else {
+             passwordInput.type = 'password';
+             eyeIcon.classList.remove('fa-eye');
+             eyeIcon.classList.add('fa-eye-slash');
+         }
+     }
+
      $(document).ready(function() {
 
          $('#state').change(function() {
