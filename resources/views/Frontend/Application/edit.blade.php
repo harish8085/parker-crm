@@ -151,6 +151,26 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
             </div>
 
             <div class="bank-detail-inputs">
+                <label class="bank-input-label">Company Name
+                    @if($application->bank_mis_id && $application->bankData)
+                    <span class="required {{(strtolower((string)$application->company_name) == strtolower((string)($application->bankData->company_name ?? ''))?'text-success':'text-danger')}}"> ({{($application->bankData->company_name ? $application->bankData->company_name : '-')}})</span>
+                    <i
+                        class="fa fa-copy"
+                        onclick="copyValue('{{@$application->bankData->company_name}}')"
+                        title="Copy Company Name"
+                        style="cursor: pointer; font-size: 16px; color: gray;">
+                    </i>
+                    @endif
+                </label>
+                <select class="bank-detail-input form-select" name="company_name" id="company_name">
+                    <option value="" disabled>Select Company</option>
+                    <option value="Parker's Consulting & Ventures Pvt. Ltd." @if($application->company_name == "Parker's Consulting & Ventures Pvt. Ltd.") selected @endif>Parker's Consulting & Ventures Pvt. Ltd.</option>
+                    <option value="Aadrika Informative Services Pvt. LTD" @if($application->company_name == "Aadrika Informative Services Pvt. LTD") selected @endif>Aadrika Informative Services Pvt. LTD</option>
+                    <option value="Finance Solution" @if($application->company_name == "Finance Solution") selected @endif>Finance Solution</option>
+                </select>
+            </div>
+
+            <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case State
                 @if($application->bank_mis_id&& $application->bankData)
                 <span class="required {{(strtolower((string) $application->case_state) == strtolower((string) $application->bankData->case_state)?'text-success':'')}}">({{($application->bankData->case_state? $application->bankData->case_state:'')}})</span>

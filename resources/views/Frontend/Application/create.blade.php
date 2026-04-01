@@ -107,6 +107,16 @@
             </div>
 
             <div class="bank-detail-inputs">
+                <label class="bank-input-label">Company Name</label>
+                <select class="bank-detail-input form-select select" name="company_name" id="company_name">
+                    <option value="" selected disabled>Select Company</option>
+                    <option value="Parker's Consulting & Ventures Pvt. Ltd.">Parker's Consulting & Ventures Pvt. Ltd.</option>
+                    <option value="Aadrika Informative Services Pvt. LTD">Aadrika Informative Services Pvt. LTD</option>
+                    <option value="Finance Solution">Finance Solution</option>
+                </select>
+            </div>
+
+            <div class="bank-detail-inputs">
                 <label class="bank-input-label">Case State</label>
                 <select class="bank-detail-input form-select select" name="case_state" id="case_state">
                     <option value="" selected disabled>Select State</option>

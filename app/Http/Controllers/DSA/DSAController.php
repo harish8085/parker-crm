@@ -175,15 +175,28 @@ class DSAController extends Controller
         $request->validate([
             'bank_id' => 'required|string|max:255',
             'product_id' => 'required|string|max:255',
-            'dsa_code' => 'required|string|max:255',
+            'code' => 'required|string|max:255',
             'group' => 'required|string|max:255'
         ]);
 
-        $checkExist = DSACode::where(['product_id' => $request->product_id, 'group' => $request->group, 'code' => $request->code])->where('id', '!=', $dsaCode->id)->get();
-        if ($checkExist->isNotEmpty()) {
-            return false;
+        $checkExist = DSACode::where([
+            'bank_id' => $request->bank_id,
+            'product_id' => $request->product_id,
+            'group' => $request->group,
+            'code' => $request->code
+        ])->where('id', '!=', $dsaCode->id)->exists();
+
+        if ($checkExist) {
+            return back()->withErrors(['code' => 'This bank code already exists for the selected bank / product / group.'])->withInput();
         }
-        $dsaCode->update($request->all());
+
+        $dsaCode->update([
+            'bank_id' => $request->bank_id,
+            'product_id' => $request->product_id,
+            'group' => $request->group,
+            'code' => $request->code
+        ]);
+
         return redirect()->to('/dsa-code')->with('success', 'Bank Code updated successfully.');
     }
 

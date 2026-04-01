@@ -61,7 +61,7 @@
             </div>
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Bank Code<span class="required">*</span></label>
-                <input class="bank-detail-input form-control" type="text" name="dsa_code" id="dsa_code" placeholder="Enter Bank Code" value="{{$dsa->code}}" required>
+                <input class="bank-detail-input form-control" type="text" name="code" id="dsa_code" placeholder="Enter Bank Code" value="{{$dsa->code}}" required>
             </div>
 
 
