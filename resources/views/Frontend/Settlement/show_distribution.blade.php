@@ -91,11 +91,11 @@
         </div>
         <div class="detail-item">
             <label>Disbursement Amount</label>
-            <div class="detail-value">? {{ number_format(($settlementType ?? 'commission') === 'contest' ? ($contest->loan_amt ?? 0) : ($app->disburse_amount ?? 0), 2) }}</div>
+            <div class="detail-value">₹ {{ number_format(($settlementType ?? 'commission') === 'contest' ? ($contest->loan_amt ?? 0) : ($app->disburse_amount ?? 0), 2) }}</div>
         </div>
         <div class="detail-item">
             <label>{{ ($settlementType ?? 'commission') === 'contest' ? 'Contest Amount' : 'Bank Payout Amount' }}</label>
-            <div class="detail-value">? {{ number_format($payoutAmount ?? 0, 2) }}</div>
+            <div class="detail-value">₹ {{ number_format($payoutAmount ?? 0, 2) }}</div>
         </div>
         <div class="detail-item">
             <label>Submitted By</label>
@@ -120,15 +120,15 @@
     <div style="padding: 15px; max-width: 450px;">
         <div class="calc-row">
             <span class="calc-label">{{ ($settlementType ?? 'commission') === 'contest' ? 'Channel Contest Amount' : 'Commission Amount' }}</span>
-            <span class="calc-value">? {{ number_format($distribution->gross_amount ?? 0, 2) }}</span>
+            <span class="calc-value">₹ {{ number_format($distribution->gross_amount ?? 0, 2) }}</span>
         </div>
         <div class="calc-row">
             <span class="calc-label">TDS ({{ $tdsPercentage }}%)</span>
-            <span class="calc-value">? {{ number_format($distribution->tds ?? 0, 2) }}</span>
+            <span class="calc-value">₹ {{ number_format($distribution->tds ?? 0, 2) }}</span>
         </div>
         <div class="calc-row total">
             <span class="calc-label">{{ ($settlementType ?? 'commission') === 'contest' ? 'Net Value' : 'Net Payable' }}</span>
-            <span class="calc-value">? {{ number_format($distribution->amount ?? 0, 2) }}</span>
+            <span class="calc-value">₹ {{ number_format($distribution->amount ?? 0, 2) }}</span>
         </div>
     </div>
 </div>
