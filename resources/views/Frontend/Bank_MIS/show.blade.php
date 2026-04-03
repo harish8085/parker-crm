@@ -41,8 +41,16 @@
         </div>
         @endif
         <div class="bank-detail-inputs">
-            <label class="bank-input-label">Customer Name<span class="required ">* </span> </label>
-            <input class="bank-detail-input form-control" type="text" name="customer_name" id="customer_name" placeholder="Enter Customer Name" value="{{$bank_mis->customer_name}}" disabled />
+            <label class="bank-input-label">Company Name<span class="required ">* </span> </label>
+            <input class="bank-detail-input form-control" type="text" name="company_name" id="company_name" placeholder="Enter Company Name" value="{{$bank_mis->company_name}}" disabled />
+        </div>
+        <div class="bank-detail-inputs">
+            <label class="bank-input-label">Application Number<span class="required ">* </span> </label>
+            <input class="bank-detail-input form-control" type="text" name="app_id" id="app_id" placeholder="Enter Application Number" value="{{$bank_mis->app_id}}" disabled />
+        </div>
+        <div class="bank-detail-inputs">
+            <label class="bank-input-label">Case State<span class="required ">* </span> </label>
+            <input class="bank-detail-input form-control" type="text" name="case_state" id="case_state" placeholder="Enter Case State" value="{{$bank_mis->case_state}}" disabled />
         </div>
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Customer Firm Name<span class="required ">* </span> </label>
@@ -58,7 +66,7 @@
         </div>
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Disburse Amount<span class="required ">*</span></label>
-            <input class="bank-detail-input form-control" type="number" name="disburse_amount" id="disburse_amount" placeholder="Enter Disburse Amount" value="{{$bank_mis->disburse_amount}}" disabled>
+            <input class="bank-detail-input form-control" type="number" name="disburse_amount" id="disburse_amount" placeholder="Enter Disburse Amount" value="{{$bank_mis->disbAmount}}" disabled>
         </div>
         <div class="bank-detail-inputs">
             <label class="bank-input-label">Payout Amount<span class="required ">*</span></label>
@@ -70,12 +78,12 @@
         </div>
         <div class="bank-detail-inputs unsecured">
             <label class="bank-input-label">PF Taken<span class="required">*</span></label>
-            <input class="bank-detail-input form-control" type="text" name="pf_taken" id="pf_taken" placeholder="Enter PF Taken" value="{{$bank_mis->pf_taken}}" disabled>
+            <input class="bank-detail-input form-control" type="text" name="pf_taken" id="pf_taken" placeholder="Enter PF Taken" value="{{$bank_mis->pf}}" disabled>
 
         </div>
         <div class="bank-detail-inputs secured">
             <label class="bank-input-label">Any Subvention<span class="required">*</span></label>
-            <input class="bank-detail-input form-control" type="text" name="any_subvention" id="any_subvention" placeholder="Enter Any Subvention" value="{{$bank_mis->any_subvention}}" disabled>
+            <input class="bank-detail-input form-control" type="text" name="any_subvention" id="any_subvention" placeholder="Enter Any Subvention" value="{{$bank_mis->subvention}}" disabled>
         </div>
         <div class="bank-detail-inputs secured">
             <label class="bank-input-label">ROI<span class="required">*</span></label>
@@ -90,8 +98,8 @@
             <label class="bank-input-label">OTC/PDD Status<span class="required">*</span></label>
             <select class="bank-detail-input form-select" required name="otc_pdd" id="otc_pdd" disabled>
                 <option value="" disabled selected>Select Option</option>
-                <option value="Pending" @if($bank_mis->otc_or_pdd_status =='Pending') selected @endif>Pending</option>
-                <option value="Clear" @if($bank_mis->otc_or_pdd_status =='Clear') selected @endif>Clear</option>
+                <option value="Pending" @if($bank_mis->otc_pdd_status =='Pending') selected @endif>Pending</option>
+                <option value="Clear" @if($bank_mis->otc_pdd_status =='Clear') selected @endif>Clear</option>
             </select>
         </div>
 

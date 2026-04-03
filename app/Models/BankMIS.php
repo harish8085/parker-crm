@@ -26,7 +26,11 @@ class BankMIS extends Model
         'roi',
         'insurance',
         'case_location',
-        'case_state'
+        'case_state',
+        'group',
+        'customer_name',
+        'disbAmount',
+        'otc_pdd_status'
     ];
 
     public function bank()

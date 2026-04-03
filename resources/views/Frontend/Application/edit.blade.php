@@ -277,7 +277,7 @@ $roleId = $effectiveRoleId ?? (Auth::user()->roles[0]->pivot->role_id ?? Auth::u
             @if($roleId != 37)
             <div class="bank-detail-inputs">
                 <label class="bank-input-label">Commission Rate
-                    @if($application->bank_mis_id && $application->bankData)
+                    @if($application->bank_mis_id && $application->bankData && in_array($roleId, [1, 35, 36]))
                     <span class="required {{(strtolower($application->commission_rate) == strtolower($application->bankData->payout_rate)?'text-success':'')}}">* ({{($application->bankData->payout_rate? $application->bankData->payout_rate:'')}})</span>
                     <i
                         class="fa fa-copy"

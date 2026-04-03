@@ -298,17 +298,25 @@ class ApplicationController extends Controller
                             '<p class="id-desc">' . $disburse_amount_is_value . '</p>' .
                             '</div>';
                     })
-                    ->editColumn('commission_rate', function ($row) {
+                    ->editColumn('commission_rate', function ($row) use ($user) {
                         // Determine CSS class based on commission_rate_is_matched
-                        $class = $row->commission_rate_is_matched ? 'text-success' : 'text-danger';
+                        // Hide color coding for Channel and Associate users
+                        $class = '';
+                        if (in_array($user->roles[0]->id, [1, 35, 36])) {
+                            $class = $row->commission_rate_is_matched ? 'text-success' : 'text-danger';
+                        }
 
                         // Format the commission rate
                         $commission_rate = $row->commission_rate ? $row->commission_rate . ' %' : '-';
 
                         // Format commission_rate_is_value for display in parentheses, or fallback to '-'
-                        $commission_rate_is_value = $row->commission_rate_is_value
-                            ? '(' . indianNumberFormat($row->commission_rate_is_value) . ')'
-                            : '-';
+                        // Only show for Admin, Checker, and Maker roles
+                        $commission_rate_is_value = '';
+                        if (in_array($user->roles[0]->id, [1, 35, 36]) && $row->commission_rate_is_value) {
+                            $commission_rate_is_value = '(' . indianNumberFormat($row->commission_rate_is_value) . ')';
+                        } else if (!in_array($user->roles[0]->id, [1, 35, 36])) {
+                            $commission_rate_is_value = '';
+                        }
 
                         // Return the HTML structure
                         return '<div class="row-color table-row ' . $class . '">' .
@@ -559,7 +567,7 @@ class ApplicationController extends Controller
                             '<p class="id-desc">' . $disburse_amount_is_value . '</p>' .
                             '</div>';
                     })
-                    ->editColumn('commission_rate', function ($row) {
+                    ->editColumn('commission_rate', function ($row) use ($user) {
                         // Determine CSS class based on commission_rate_is_matched
                         $class = $row->commission_rate_is_matched ? 'text-success' : 'text-danger';
 
@@ -567,9 +575,13 @@ class ApplicationController extends Controller
                         $commission_rate = $row->commission_rate ? $row->commission_rate . ' %' : '-';
 
                         // Format commission_rate_is_value for display in parentheses, or fallback to '-'
-                        $commission_rate_is_value = $row->commission_rate_is_value
-                            ? '(' . indianNumberFormat($row->commission_rate_is_value) . ')'
-                            : '-';
+                        // Only show for Admin, Checker, and Maker roles
+                        $commission_rate_is_value = '';
+                        if (in_array($user->roles[0]->id, [1, 35, 36]) && $row->commission_rate_is_value) {
+                            $commission_rate_is_value = '(' . indianNumberFormat($row->commission_rate_is_value) . ')';
+                        } else if (!in_array($user->roles[0]->id, [1, 35, 36])) {
+                            $commission_rate_is_value = '-';
+                        }
 
                         // Return the HTML structure
                         return '<div class="row-color table-row ' . $class . '">' .
