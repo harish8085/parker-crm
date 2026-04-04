@@ -1443,7 +1443,12 @@ class ApplicationController extends Controller
         }
         sleep(2);
         $this->updateBankMisTrackerFromApplications();
-        return view('Frontend.Application.uploadMIS', compact('Route', 'channels', 'sales', 'user_id', 'role_id'));
+        
+        // Get list of valid banks and products for display in upload view
+        $validBanks = Bank::pluck('name')->sort()->values();
+        $validProducts = Product::pluck('name')->sort()->values();
+        
+        return view('Frontend.Application.uploadMIS', compact('Route', 'channels', 'sales', 'user_id', 'role_id', 'validBanks', 'validProducts'));
     }
 
 
@@ -1552,6 +1557,59 @@ class ApplicationController extends Controller
             $missingHeaders = array_values(array_diff($requiredHeaders, $headers));
             if (!empty($missingHeaders)) {
                 return redirect()->back()->withErrors(['error' => 'Header format mismatch'])->withInput();
+            }
+
+            // Validate Bank Names and Product Names before processing
+            $validationErrors = [];
+            $bankErrors = [];
+            $productErrors = [];
+            $rowNumber = 1; // Start from 1 (header is row 0, data starts from row 1)
+            
+            foreach ($rows as $row) {
+                $rowNumber++;
+                
+                // Skip rows with empty DISBURSE AMOUNT
+                if ($row['DISBURSE AMOUNT'] === '') {
+                    continue;
+                }
+                
+                // Validate Bank Name
+                $bankExists = Bank::where('name', $row['BANK NAME'])->exists();
+                if (!$bankExists) {
+                    $bankErrors[] = "Row $rowNumber: '{$row['BANK NAME']}'";
+                }
+                
+                // Validate Product Name
+                $productExists = Product::where('name', $row['PRODUCT NAME'])->exists();
+                if (!$productExists) {
+                    $productErrors[] = "Row $rowNumber: '{$row['PRODUCT NAME']}'";
+                }
+            }
+            
+            // Format consolidated error messages
+            if (!empty($bankErrors)) {
+                $bankList = implode(', ', array_slice($bankErrors, 0, 5));
+                if (count($bankErrors) > 5) {
+                    $bankList .= " and " . (count($bankErrors) - 5) . " more";
+                }
+                $validationErrors[] = "Invalid Bank Name(s): $bankList - Please select the correct bank name from the dropdown in the sample file.";
+            }
+            
+            if (!empty($productErrors)) {
+                $productList = implode(', ', array_slice($productErrors, 0, 5));
+                if (count($productErrors) > 5) {
+                    $productList .= " and " . (count($productErrors) - 5) . " more";
+                }
+                $validationErrors[] = "Invalid Product Name(s): $productList - Please select the correct product name from the dropdown in the sample file.";
+            }
+            
+            // If validation errors exist, return them to the user
+            if (!empty($validationErrors)) {
+                $errorMessage = "Please fix the following errors in your file:\n\n" . implode("\n", array_slice($validationErrors, 0, 10));
+                if (count($validationErrors) > 10) {
+                    $errorMessage .= "\n\n... and " . (count($validationErrors) - 10) . " more error(s)";
+                }
+                return redirect()->back()->withErrors(['validation' => $errorMessage])->withInput();
             }
 
             // Iterate through each row of the Excel data and insert into the database
