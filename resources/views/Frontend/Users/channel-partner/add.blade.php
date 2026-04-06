@@ -106,9 +106,6 @@
                  <label class="bank-input-label">Select District<span class="required">*</span></label>
                  <select class="bank-detail-input form-select" required name="district" id="district">
                      <option value="" selected disabled>Select District</option>
-                   
-                     <option value=""></option>
-                     
                  </select>
              </div>
              <div class="bank-detail-inputs">
@@ -196,25 +193,40 @@
 
      $(document).ready(function() {
 
-         $('#state').change(function() {
-             var stateId = $(this).val();
+         function fetchDistrictsForState() {
+             var stateId = $('#state').val();
+             if (!stateId) {
+                 $('#district').html('<option value="" selected disabled>Select District</option>');
+                 return;
+             }
+
+             let url = (window.location.host === 'localhost') ? '/parker-crm/public/getDistrict/' : '/getDistrict/';
              $.ajax({
-                 url: '/parker-crm/public/getDistrict/' + stateId,
+                 url: url + stateId,
                  type: 'GET',
                  headers: {
                      'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                  },
                  success: function(response) {
-                     $('#district').html('')
-                     $('#district').append('<option value="" selected disabled>Select District</option>')
-                     $('#district').val('')
-                     $('#district').append(response)
+                     $('#district').html('');
+                     $('#district').append('<option value="" selected disabled>Select District</option>');
+                     $('#district').val('');
+                     $('#district').append(response);
                  },
                  error: function(xhr) {
                      console.log(xhr.responseText);
                  }
              });
+         }
 
+         $('#state').change(function() {
+             fetchDistrictsForState();
+         });
+
+         $('#district').on('focus', function() {
+             if ($('#state').val() && $('#district option').length <= 1) {
+                 fetchDistrictsForState();
+             }
          });
          // Aadhar Number Regex
          var aadharRegex = /^\d{12}$/;

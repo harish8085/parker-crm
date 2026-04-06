@@ -8,7 +8,6 @@ use App\Models\BankProduct;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceDetail;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -259,12 +258,6 @@ class ServiceController extends Controller
     
     public function destory(Service $service)
     {
-        $checkExist = User::where('service_type', $service->id)->get();
-
-        if ($checkExist->isNotEmpty()) {
-            return response()->json(['message' => 'This service is assigned to an user'], 400);
-        }
-
         $service->delete();
         return  true;
     }
